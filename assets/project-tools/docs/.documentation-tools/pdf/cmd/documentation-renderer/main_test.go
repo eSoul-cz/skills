@@ -169,7 +169,7 @@ func TestBuildGuideUsesPandocJSONAndCheckedInFilters(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(source), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(source, []byte("# Guide\n\nContent.\n"), 0o644); err != nil {
+	if err := os.WriteFile(source, []byte("# Guide\n\n[Missing](../missing.md)\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	tools := filepath.Join(root, "tools")
@@ -188,13 +188,19 @@ func TestBuildGuideUsesPandocJSONAndCheckedInFilters(t *testing.T) {
 	  "meta": {},
 	  "blocks": [
 	    {"t":"Header","c":[1,["guide",[],[]],[{"t":"Str","c":"Guide"}]]},
-	    {"t":"Para","c":[{"t":"Str","c":"Content."}]}
+	    {"t":"Para","c":[
+	      {"t":"Link","c":[["",[],[]],[{"t":"Str","c":"Missing"}],["../missing.md",""]]}
+	    ]}
 	  ]
 	}`
 	var commands [][]string
+	var sourceFilterEnv []string
 	originalRunner := runCommand
 	runCommand = func(args []string, cwd string, env []string, input []byte) (commandResult, error) {
 		commands = append(commands, append([]string(nil), args...))
+		if containsArgument(args, "--lua-filter="+filepath.Join(tools, "source.lua")) {
+			sourceFilterEnv = append([]string(nil), env...)
+		}
 		if args[0] == "pandoc" && containsArgument(args, "--to=json") {
 			return commandResult{Stdout: []byte(document)}, nil
 		}
@@ -217,10 +223,14 @@ func TestBuildGuideUsesPandocJSONAndCheckedInFilters(t *testing.T) {
 		WorkDir:         "docs/work",
 	}
 	guide := guideConfig{
-		ID:      "guide",
-		Title:   "Guide",
-		Output:  "guide.pdf",
-		Sources: []string{"docs/guide/page.md"},
+		ID:                 "guide",
+		Title:              "Guide",
+		Output:             "guide.pdf",
+		Sources:            []string{"docs/guide/page.md"},
+		CrossDocumentLinks: "notice",
+		InvalidLinks:       "notice",
+		LinkNoticeStyle:    "footnote",
+		LinkNoticePaths:    "project-relative",
 	}
 	output, err := buildGuide(root, cfg, guide)
 	if err != nil {
@@ -243,6 +253,23 @@ func TestBuildGuideUsesPandocJSONAndCheckedInFilters(t *testing.T) {
 	if !usedSourceFilter || !usedRenderFilter {
 		t.Fatalf("expected source and render filters, commands: %#v", commands)
 	}
+	if !containsArgument(sourceFilterEnv, "DOCUMENTATION_CROSS_DOCUMENT_LINKS=notice") {
+		t.Fatalf("cross-document link policy was not passed to the source filter: %#v", sourceFilterEnv)
+	}
+	if !containsArgument(sourceFilterEnv, "DOCUMENTATION_LINK_NOTICE_STYLE=footnote") {
+		t.Fatalf("link notice style was not passed to the source filter: %#v", sourceFilterEnv)
+	}
+	noticeMap := filepath.Join(root, "docs", "work", "build", "guide", "staging", "link-notice-map.lua")
+	if !containsArgument(sourceFilterEnv, "DOCUMENTATION_LINK_NOTICE_MAP="+noticeMap) {
+		t.Fatalf("link notice map path was not passed to the source filter: %#v", sourceFilterEnv)
+	}
+	content, err := os.ReadFile(noticeMap)
+	if err != nil {
+		t.Fatalf("missing link notice map: %v", err)
+	}
+	if !strings.Contains(string(content), `["../missing.md"] = "docs/missing.md"`) {
+		t.Fatalf("link notice map does not contain the expected mapping: %s", content)
+	}
 }
 
 func containsArgument(arguments []string, expected string) bool {
@@ -256,14 +283,175 @@ func containsArgument(arguments []string, expected string) bool {
 
 func TestValidationReportsSuccessAndErrors(t *testing.T) {
 	success := validationResult{}
+	success.notice("informational")
 	if !success.report() {
-		t.Fatal("expected empty validation to pass")
+		t.Fatal("expected notices not to fail validation")
 	}
 	failure := validationResult{}
 	failure.error("broken")
 	failure.warn("review")
 	if failure.report() {
 		t.Fatal("expected validation error to fail")
+	}
+}
+
+func TestLinkSeverity(t *testing.T) {
+	for value, expected := range map[string]string{
+		"":       "error",
+		"error":  "error",
+		"notice": "notice",
+	} {
+		severity, valid := linkSeverity(value)
+		if !valid || severity != expected {
+			t.Errorf("linkSeverity(%q) = %q, %t; want %q, true", value, severity, valid, expected)
+		}
+	}
+	if _, valid := linkSeverity("warning"); valid {
+		t.Fatal("unsupported link severity must be rejected")
+	}
+}
+
+func TestLinkNoticeStyle(t *testing.T) {
+	for value, expected := range map[string]string{
+		"":            "plain",
+		"plain":       "plain",
+		"parentheses": "parentheses",
+		"footnote":    "footnote",
+	} {
+		style, valid := linkNoticeStyle(value)
+		if !valid || style != expected {
+			t.Errorf("linkNoticeStyle(%q) = %q, %t; want %q, true", value, style, valid, expected)
+		}
+	}
+}
+
+func TestLinkNoticePaths(t *testing.T) {
+	for value, expected := range map[string]string{
+		"":                 "original",
+		"original":         "original",
+		"project-relative": "project-relative",
+	} {
+		paths, valid := linkNoticePaths(value)
+		if !valid || paths != expected {
+			t.Errorf("linkNoticePaths(%q) = %q, %t; want %q, true", value, paths, valid, expected)
+		}
+	}
+}
+
+func TestCrossDocumentLinksCanBecomeNotices(t *testing.T) {
+	root := t.TempDir()
+	source := filepath.Join(root, "docs", "guide", "page.md")
+	target := filepath.Join(root, "docs", "other", "page.md")
+	for _, path := range []string{source, target} {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("# Page\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	guideSources := map[string]bool{source: true}
+
+	strict := validationResult{}
+	validateLinkReference(
+		root,
+		source,
+		"docs/guide/page.md",
+		"../other/page.md",
+		guideSources,
+		"error",
+		"error",
+		&strict,
+		map[string]map[string]bool{},
+		map[string]pandocDocument{},
+	)
+	if !validationContains(strict.Errors, "not part of the rendered guide") {
+		t.Fatalf("expected strict cross-document link error: %#v", strict.Errors)
+	}
+
+	permissive := validationResult{}
+	validateLinkReference(
+		root,
+		source,
+		"docs/guide/page.md",
+		"../other/page.md",
+		guideSources,
+		"notice",
+		"error",
+		&permissive,
+		map[string]map[string]bool{},
+		map[string]pandocDocument{},
+	)
+	if len(permissive.Errors) != 0 {
+		t.Fatalf("notice policy must not produce errors: %#v", permissive.Errors)
+	}
+	if !validationContains(permissive.Notices, "rendered with a link notice") {
+		t.Fatalf("expected cross-document link notice: %#v", permissive.Notices)
+	}
+
+	invalid := validationResult{}
+	validateLinkReference(
+		root,
+		source,
+		"docs/guide/page.md",
+		"../missing.md",
+		guideSources,
+		"error",
+		"notice",
+		&invalid,
+		map[string]map[string]bool{},
+		map[string]pandocDocument{},
+	)
+	if len(invalid.Errors) != 0 {
+		t.Fatalf("invalid-link notice policy must not produce errors: %#v", invalid.Errors)
+	}
+	if !validationContains(invalid.Notices, "broken local link") {
+		t.Fatalf("expected invalid-link notice: %#v", invalid.Notices)
+	}
+}
+
+func TestCollectLinkNoticesUsesProjectRelativePaths(t *testing.T) {
+	root := t.TempDir()
+	source := filepath.Join(root, "docs", "guide", "page.md")
+	target := filepath.Join(root, "file.md")
+	for _, path := range []string{source, target} {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("# Page\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	raw := `{
+	  "pandoc-api-version": [1,23,1],
+	  "meta": {},
+	  "blocks": [
+	    {"t":"Para","c":[
+	      {"t":"Link","c":[["",[],[]],[{"t":"Str","c":"External"}],["../../file.md",""]]},
+	      {"t":"Space"},
+	      {"t":"Link","c":[["",[],[]],[{"t":"Str","c":"Missing"}],["../../missing.md#draft",""]]}
+	    ]}
+	  ]
+	}`
+	var document pandocDocument
+	if err := json.Unmarshal([]byte(raw), &document); err != nil {
+		t.Fatal(err)
+	}
+	notices := collectLinkNotices(
+		root,
+		[]string{source},
+		map[string]pandocDocument{source: document},
+		guideConfig{
+			CrossDocumentLinks: "notice",
+			InvalidLinks:       "notice",
+			LinkNoticePaths:    "project-relative",
+		},
+	)
+	if notices[source]["../../file.md"] != "file.md" {
+		t.Fatalf("unexpected cross-document display path: %#v", notices)
+	}
+	if notices[source]["../../missing.md#draft"] != "missing.md#draft" {
+		t.Fatalf("unexpected invalid-link display path: %#v", notices)
 	}
 }
 
@@ -423,6 +611,9 @@ func TestMermaidAlternativeAndMarkdownAnchorPassValidation(t *testing.T) {
 		source,
 		"docs/guide/page.md",
 		"target.md#section",
+		map[string]bool{source: true, target: true},
+		"error",
+		"error",
 		&result,
 		map[string]map[string]bool{target: {"section": true}},
 		map[string]pandocDocument{},

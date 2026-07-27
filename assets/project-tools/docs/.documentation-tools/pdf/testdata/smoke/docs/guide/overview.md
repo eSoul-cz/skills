@@ -12,6 +12,12 @@ This page verifies ordinary Markdown and a footnote.[^footnote]
 
 The inline expression $x \le y$ is passed through Pandoc's math representation.
 
+The [external maintenance notes](external.md) remain useful in Markdown but are
+not part of this rendered guide.
+
+The [missing release notes](../missing.md#draft) demonstrate an invalid local
+link rendered as a notice annotation.
+
 <!-- diagram-alt: A request flows through the Go renderer and Pandoc to a PDF. -->
 
 ```mermaid

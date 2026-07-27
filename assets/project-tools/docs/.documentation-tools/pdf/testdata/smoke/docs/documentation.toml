@@ -29,6 +29,10 @@ footer_left = ""
 id = "smoke"
 title = "Documentation Renderer Smoke Test"
 output = "smoke.pdf"
+cross_document_links = "notice"
+invalid_links = "notice"
+link_notice_style = "footnote"
+link_notice_paths = "project-relative"
 sources = [
   "docs/guide/overview.md",
   "docs/guide/appendix.md",
