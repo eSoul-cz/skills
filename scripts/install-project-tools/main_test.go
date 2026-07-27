@@ -277,6 +277,99 @@ func TestExplicitLocalProfileRestoresBuildSources(t *testing.T) {
 	}
 }
 
+func TestLocalUpgradeRefusesUnmanagedFileCollision(t *testing.T) {
+	assets := fixtureAssets(t, "0.5.0", map[string]fixtureFile{
+		"docs/documentation":                               {Content: "#!/bin/sh\n", Mode: 0o755},
+		"docs/.documentation-tools/pdf/header.tex":         {Content: "header\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/Dockerfile":         {Content: "FROM scratch\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/filters/source.lua": {Content: "filter\n", Mode: 0o644},
+	})
+	project := t.TempDir()
+	if err := install(project, assets, false, "remote"); err != nil {
+		t.Fatal(err)
+	}
+	dockerfile := filepath.Join(project, "docs", ".documentation-tools", "pdf", "Dockerfile")
+	if err := os.WriteFile(dockerfile, []byte("user-owned\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err := install(project, assets, true, "local")
+	if err == nil || !strings.Contains(err.Error(), "not owned by a managed manifest") {
+		t.Fatalf("expected unmanaged collision refusal, got %v", err)
+	}
+	content, readErr := os.ReadFile(dockerfile)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	if string(content) != "user-owned\n" {
+		t.Fatalf("unmanaged Dockerfile was changed: %q", content)
+	}
+}
+
+func TestUpgradeReplacesRetiredFileWithManagedDirectory(t *testing.T) {
+	oldAssets := fixtureAssets(t, "0.4.0", map[string]fixtureFile{
+		"docs/documentation": {Content: "#!/bin/sh\n", Mode: 0o755},
+		"docs/tool":          {Content: "old file\n", Mode: 0o644},
+	})
+	newAssets := fixtureAssets(t, "0.5.0", map[string]fixtureFile{
+		"docs/documentation": {Content: "#!/bin/sh\n", Mode: 0o755},
+		"docs/tool/config":   {Content: "new child\n", Mode: 0o644},
+	})
+	project := t.TempDir()
+	if err := install(project, oldAssets, false, "local"); err != nil {
+		t.Fatal(err)
+	}
+	if err := install(project, newAssets, true, "local"); err != nil {
+		t.Fatal(err)
+	}
+	content, err := os.ReadFile(filepath.Join(project, "docs", "tool", "config"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(content) != "new child\n" {
+		t.Fatalf("unexpected migrated content: %q", content)
+	}
+}
+
+func TestUpgradeRollbackRestoresManagedFileBeforeDirectoryMigration(t *testing.T) {
+	project := t.TempDir()
+	target := filepath.Join(project, "docs", "tool")
+	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(target, []byte("old file\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	backupRoot, err := os.MkdirTemp(project, ".upgrade-test-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	backupPath, err := backupManagedFile(project, backupRoot, "docs/tool")
+	if err != nil {
+		t.Fatal(err)
+	}
+	replacement := filepath.Join(project, "docs", "tool", "config")
+	if err := os.MkdirAll(filepath.Dir(replacement), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(replacement, []byte("new child\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := restoreManagedFiles(
+		project,
+		map[string]string{"docs/tool": backupPath},
+		[]string{"docs/tool/config"},
+	); err != nil {
+		t.Fatal(err)
+	}
+	content, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(content) != "old file\n" {
+		t.Fatalf("rollback did not restore managed file: %q", content)
+	}
+}
+
 type fixtureFile struct {
 	Content string
 	Mode    os.FileMode
@@ -286,6 +379,9 @@ func fixtureAssets(t *testing.T, version string, files map[string]fixtureFile) s
 	t.Helper()
 	root := t.TempDir()
 	for relative, fixture := range files {
+		if relative == "docs/.documentation-tools/VERSION" {
+			continue
+		}
 		path := filepath.Join(root, filepath.FromSlash(relative))
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatal(err)

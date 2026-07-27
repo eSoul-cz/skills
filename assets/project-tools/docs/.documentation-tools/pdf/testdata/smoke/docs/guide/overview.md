@@ -5,6 +5,7 @@ This page verifies ordinary Markdown and a footnote.[^footnote]
 > [!WARNING]
 > This warning is rendered as a styled, page-breakable box.
 
+<!-- markdownlint-disable-next-line MD028 -->
 > **Planned**
 >
 > This planned capability uses its own visual treatment.

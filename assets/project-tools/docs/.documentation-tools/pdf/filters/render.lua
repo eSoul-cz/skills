@@ -52,6 +52,7 @@ function Div(element)
   if element.attributes["data-documentation-token"] ~= internal_token then
     return nil
   end
+  element.attributes["data-documentation-token"] = nil
   if has_class(element, "documentation-page-break") then
     return pandoc.RawBlock("latex", "\\newpage")
   end

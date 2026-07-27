@@ -1,6 +1,6 @@
 ARG EISVOGEL_PLATFORM=linux/amd64
 
-FROM golang:1.24-bookworm AS go_builder
+FROM golang:1.24-bookworm@sha256:1a6d4452c65dea36aac2e2d606b01b4a029ec90cc1ae53890540ce6173ea77ac AS go_builder
 
 WORKDIR /src
 COPY go.mod go.sum ./
@@ -16,7 +16,7 @@ RUN go test ./... \
     -o /out/documentation-renderer \
     ./cmd/documentation-renderer
 
-FROM rust:1.95-bookworm AS merman_builder
+FROM rust:1.95-bookworm@sha256:6258907abe69656e41cd992e0b705cdcfabcbbe3db374f92ed2d47121282d4a1 AS merman_builder
 
 RUN cargo install \
     --locked \
@@ -30,10 +30,8 @@ FROM pandoc/core:3.6.2@sha256:2a15e4b953fe588c57db82cd920e4eec515bf788bc568ad55e
 # extra image into both native runtime architectures.
 FROM --platform=${EISVOGEL_PLATFORM} pandoc/extra:3.6.2@sha256:f0a02ba3e2287fc70a15cca12a32240bccf3d2c0a522da4147edfe3e64b321da AS eisvogel_assets
 
-FROM debian:bookworm-slim AS runtime_base
+FROM debian:bookworm-slim@sha256:7b140f374b289a7c2befc338f42ebe6441b7ea838a042bbd5acbfca6ec875818 AS runtime_base
 
-# Debian's TeX meta-packages depend on Python for optional maintenance helpers.
-# The renderer never invokes those helpers, so omit the interpreter at runtime.
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends \
         fonts-noto-cjk \
@@ -47,12 +45,6 @@ RUN apt-get update \
         texlive-fonts-recommended \
         texlive-latex-extra \
         texlive-xetex \
-    && rm -rf \
-        /usr/bin/python3 \
-        /usr/bin/python3.11 \
-        /usr/lib/python3 \
-        /usr/lib/python3.11 \
-        /usr/share/python3 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=pandoc_assets /usr/local/bin/pandoc /usr/local/bin/pandoc
@@ -88,6 +80,8 @@ FROM runtime_base AS runtime
 
 COPY --from=smoke_test /tmp/documentation-renderer-smoke-passed /opt/documentation-tools/smoke-passed
 
+ARG DOC_UID=1000
+ARG DOC_GID=1000
 USER ${DOC_UID}:${DOC_GID}
 
 ENTRYPOINT ["/usr/local/bin/documentation-renderer"]

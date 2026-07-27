@@ -82,7 +82,7 @@ require_project_relative_path() {
     key=$1
     value=$2
     case "${value}" in
-        ""|"."|/*|.git|.git/*|../*|*/../*|*/..|*//*|*/./*|./*|*/|*\\*)
+        ""|"."|".."|/*|.git|.git/*|*/.git|*/.git/*|../*|*/../*|*/..|*//*|*/./*|./*|*/|*\\*)
             echo "ERROR: ${key} must be a normalized project-relative path outside .git: ${value}" >&2
             exit 1
             ;;
@@ -150,7 +150,11 @@ prepare_image() {
         exit 1
     fi
     context=$(dirname "${dockerfile}")
-    version=$(sed -n '1{s/[^A-Za-z0-9_.-]/-/g;p;}' "${VERSION_FILE}")
+    version=$(sed -n '1p' "${VERSION_FILE}")
+    if ! printf '%s\n' "${version}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+        echo "ERROR: Managed tool VERSION must be semantic: ${version}" >&2
+        exit 1
+    fi
     renderer_image="esoul-documentation-tools:${version}"
     if [ -n "${pdf_platform}" ]; then
         docker build \
@@ -180,6 +184,8 @@ run_renderer() {
         --cap-drop ALL \
         --security-opt no-new-privileges \
         --pids-limit 512 \
+        --memory 2g \
+        --memory-swap 2g \
         --shm-size 256m \
         --network none \
         --tmpfs /tmp:rw,nosuid,nodev,size=1g \

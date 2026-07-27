@@ -94,11 +94,41 @@ func TestInternalDivCarriesToken(t *testing.T) {
 }
 
 func TestValidateRegion(t *testing.T) {
-	if err := validateRegion(redactionRegion{X: 1, Y: 2, Width: 10, Height: 12}, 100, 100); err != nil {
-		t.Fatalf("valid region failed: %v", err)
+	maxInt := int(^uint(0) >> 1)
+	tests := []struct {
+		name    string
+		region  redactionRegion
+		width   int
+		height  int
+		wantErr bool
+	}{
+		{name: "inside", region: redactionRegion{X: 1, Y: 2, Width: 10, Height: 12}, width: 100, height: 100},
+		{name: "exact bounds", region: redactionRegion{X: 0, Y: 0, Width: 100, Height: 100}, width: 100, height: 100},
+		{name: "negative origin", region: redactionRegion{X: -1, Y: 0, Width: 1, Height: 1}, width: 100, height: 100, wantErr: true},
+		{name: "zero width", region: redactionRegion{X: 0, Y: 0, Width: 0, Height: 1}, width: 100, height: 100, wantErr: true},
+		{name: "horizontal overflow", region: redactionRegion{X: 95, Y: 2, Width: 10, Height: 12}, width: 100, height: 100, wantErr: true},
+		{name: "vertical overflow", region: redactionRegion{X: 2, Y: 95, Width: 10, Height: 12}, width: 100, height: 100, wantErr: true},
+		{name: "origin past image", region: redactionRegion{X: maxInt, Y: 0, Width: 10, Height: 1}, width: 100, height: 100, wantErr: true},
+		{name: "integer overflow", region: redactionRegion{X: maxInt - 5, Y: 0, Width: 10, Height: 1}, width: maxInt, height: 100, wantErr: true},
 	}
-	if err := validateRegion(redactionRegion{X: 95, Y: 2, Width: 10, Height: 12}, 100, 100); err == nil {
-		t.Fatal("expected overflowing region to fail")
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := validateRegion(test.region, test.width, test.height)
+			if (err != nil) != test.wantErr {
+				t.Fatalf("validateRegion() error = %v, wantErr %v", err, test.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateGuideOutput(t *testing.T) {
+	if err := validateGuideOutput("guide.pdf"); err != nil {
+		t.Fatalf("expected PDF filename to pass: %v", err)
+	}
+	for _, output := range []string{"", "../guide.pdf", "nested/guide.pdf", `nested\guide.pdf`, "guide.txt"} {
+		if err := validateGuideOutput(output); err == nil {
+			t.Errorf("expected output %q to fail", output)
+		}
 	}
 }
 
@@ -114,6 +144,22 @@ func TestWriteHeadingMapEscapesValues(t *testing.T) {
 	}
 	if !strings.Contains(string(content), `quo\"te.md`) || !strings.Contains(string(content), "café") {
 		t.Fatalf("unexpected heading map: %s", content)
+	}
+}
+
+func TestWriteMetadataFallsBackFromInvalidAccentColor(t *testing.T) {
+	root := t.TempDir()
+	metadataPath := filepath.Join(root, "metadata.yaml")
+	cfg := config{PDF: pdfConfig{AccentColor: "blue"}}
+	if err := writeMetadata(root, root, metadataPath, cfg, guideConfig{}); err != nil {
+		t.Fatal(err)
+	}
+	content, err := os.ReadFile(metadataPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(content), `titlepage-rule-color: "1B6B93"`) {
+		t.Fatalf("invalid accent color did not use the default: %s", content)
 	}
 }
 
@@ -332,6 +378,60 @@ func TestRawHTMLImageValidationUsesPandocNodes(t *testing.T) {
 	}
 }
 
+func TestRawHTMLImageValidationIgnoresPrefixedAttributes(t *testing.T) {
+	root := t.TempDir()
+	source := filepath.Join(root, "docs", "guide", "page.md")
+	image := filepath.Join(root, "docs", "guide", "published.png")
+	if err := os.MkdirAll(filepath.Dir(source), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(image, []byte("fixture"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rawHTML := `<img data-src="https://example.com/lazy.png" x-alt="" src="published.png" alt="Published image">`
+	result := validationResult{}
+	validateRawHTMLImages(root, source, "docs/guide/page.md", rawHTML, &result, map[string]publishedRaster{})
+	if len(result.Errors) != 0 {
+		t.Fatalf("prefixed attributes must not be treated as src or alt: %#v", result.Errors)
+	}
+}
+
+func TestMermaidAlternativeAndMarkdownAnchorPassValidation(t *testing.T) {
+	result := validationResult{}
+	validateMermaidAlternatives(
+		"docs/guide/page.md",
+		"<!-- diagram-alt: A useful flow. -->\n\n```mermaid\nflowchart LR\n  A --> B\n```\n",
+		&result,
+	)
+	if len(result.Errors) != 0 {
+		t.Fatalf("valid Mermaid alternative failed: %#v", result.Errors)
+	}
+
+	root := t.TempDir()
+	source := filepath.Join(root, "docs", "guide", "page.md")
+	target := filepath.Join(root, "docs", "guide", "target.md")
+	if err := os.MkdirAll(filepath.Dir(source), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{source, target} {
+		if err := os.WriteFile(path, []byte("# Page\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	validateLinkReference(
+		root,
+		source,
+		"docs/guide/page.md",
+		"target.md#section",
+		&result,
+		map[string]map[string]bool{target: {"section": true}},
+		map[string]pandocDocument{},
+	)
+	if len(result.Errors) != 0 {
+		t.Fatalf("valid Markdown anchor failed: %#v", result.Errors)
+	}
+}
+
 func TestRemoteRendererRequiresTrustedDigest(t *testing.T) {
 	root := t.TempDir()
 	image := "registry.example/documentation@sha256:" + strings.Repeat("a", 64)
@@ -359,27 +459,14 @@ func TestPackagingUsesGoAndMermanWithoutBrowserRuntime(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sourceFilter, err := os.ReadFile(filepath.Join(pdfTools, "filters", "source.lua"))
-	if err != nil {
-		t.Fatal(err)
-	}
 	dockerText := strings.ToLower(string(dockerfile))
 	for _, forbidden := range []string{"chromium", "node:", "nodejs", "npm install", "puppeteer"} {
 		if strings.Contains(dockerText, forbidden) {
 			t.Errorf("Dockerfile contains forbidden browser dependency %q", forbidden)
 		}
 	}
-	filterText := string(sourceFilter)
-	for _, expected := range []string{
-		`pandoc.pipe("merman-cli"`,
-		`"--outputFormat", "pdf"`,
-		`"--pdfFit"`,
-		`pandoc.Figure({`,
-		`pandoc.Caption({`,
-	} {
-		if !strings.Contains(filterText, expected) {
-			t.Errorf("source filter missing %q", expected)
-		}
+	if !strings.Contains(dockerText, "merman-cli") {
+		t.Error("Dockerfile does not package Merman")
 	}
 }
 

@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -86,8 +87,13 @@ func parseSemanticVersion(value string) (semanticVersion, bool) {
 		return semanticVersion{}, false
 	}
 	var version semanticVersion
-	if _, err := fmt.Sscanf(value, "%d.%d.%d", &version.Major, &version.Minor, &version.Patch); err != nil {
-		return semanticVersion{}, false
+	parts := []*int{&version.Major, &version.Minor, &version.Patch}
+	for index, part := range parts {
+		parsed, err := strconv.Atoi(match[index+1])
+		if err != nil {
+			return semanticVersion{}, false
+		}
+		*part = parsed
 	}
 	return version, true
 }
@@ -265,7 +271,7 @@ func drift(projectRoot string, installed manifest) ([]string, error) {
 	return findings, nil
 }
 
-func install(projectRoot, assetRoot string, upgrade bool, profile string) error {
+func install(projectRoot, assetRoot string, upgrade bool, profile string) (installErr error) {
 	info, err := os.Stat(projectRoot)
 	if err != nil || !info.IsDir() {
 		return fmt.Errorf("project root does not exist: %s", projectRoot)
@@ -318,6 +324,38 @@ func install(projectRoot, assetRoot string, upgrade bool, profile string) error 
 			}
 		}
 		sort.Strings(retired)
+		var conflicts []string
+		for relative := range files {
+			if _, managed := existing.ManagedFiles[relative]; managed {
+				continue
+			}
+			blockedByRetiredFile := false
+			for _, retiredPath := range retired {
+				if strings.HasPrefix(relative, retiredPath+"/") {
+					blockedByRetiredFile = true
+					break
+				}
+			}
+			if blockedByRetiredFile {
+				continue
+			}
+			target, err := managedTarget(projectRoot, relative)
+			if err != nil {
+				return err
+			}
+			if _, err := os.Lstat(target); err == nil {
+				conflicts = append(conflicts, relative)
+			} else if !errors.Is(err, os.ErrNotExist) {
+				return fmt.Errorf("inspect target %s: %w", relative, err)
+			}
+		}
+		sort.Strings(conflicts)
+		if len(conflicts) > 0 {
+			return fmt.Errorf(
+				"refusing to overwrite files not owned by a managed manifest:\n- %s",
+				strings.Join(conflicts, "\n- "),
+			)
+		}
 	} else {
 		var conflicts []string
 		for relative := range files {
@@ -340,31 +378,58 @@ func install(projectRoot, assetRoot string, upgrade bool, profile string) error 
 		}
 	}
 
-	for _, relative := range retired {
-		target, err := managedTarget(projectRoot, relative)
-		if err != nil {
-			return err
-		}
-		info, err := os.Lstat(target)
-		if errors.Is(err, os.ErrNotExist) {
-			continue
-		}
-		if err != nil {
-			return fmt.Errorf("inspect retired managed file %s: %w", relative, err)
-		}
-		if !info.Mode().IsRegular() {
-			return fmt.Errorf("refusing to remove retired non-file path: %s", relative)
-		}
-		if err := os.Remove(target); err != nil {
-			return fmt.Errorf("remove retired managed file %s: %w", relative, err)
-		}
-	}
-
 	relativeFiles := make([]string, 0, len(files))
 	for relative := range files {
 		relativeFiles = append(relativeFiles, relative)
 	}
 	sort.Strings(relativeFiles)
+
+	backupRoot := ""
+	backups := map[string]string{}
+	copyStarted := false
+	transactionCommitted := false
+	backupRoot, err = os.MkdirTemp(projectRoot, ".documentation-tools-upgrade-")
+	if err != nil {
+		return fmt.Errorf("create managed-tool upgrade backup: %w", err)
+	}
+	defer func() {
+		if !transactionCommitted {
+			replacements := []string(nil)
+			if copyStarted {
+				replacements = relativeFiles
+			}
+			if restoreErr := restoreManagedFiles(projectRoot, backups, replacements); restoreErr != nil {
+				installErr = errors.Join(
+					installErr,
+					restoreErr,
+					fmt.Errorf("managed-tool upgrade backup preserved for manual recovery: %s", backupRoot),
+				)
+				return
+			}
+		}
+		if cleanupErr := os.RemoveAll(backupRoot); cleanupErr != nil {
+			installErr = errors.Join(installErr, fmt.Errorf("remove managed-tool upgrade backup: %w", cleanupErr))
+		}
+	}()
+
+	if existing != nil {
+		previousFiles := make([]string, 0, len(existing.ManagedFiles))
+		for relative := range existing.ManagedFiles {
+			previousFiles = append(previousFiles, relative)
+		}
+		sort.Strings(previousFiles)
+		for _, relative := range previousFiles {
+			backupPath, err := backupManagedFile(projectRoot, backupRoot, relative)
+			if err != nil {
+				return err
+			}
+			if backupPath != "" {
+				backups[relative] = backupPath
+			}
+		}
+	}
+
+	copyStarted = true
 	for _, relative := range relativeFiles {
 		target, err := managedTarget(projectRoot, relative)
 		if err != nil {
@@ -400,6 +465,7 @@ func install(projectRoot, assetRoot string, upgrade bool, profile string) error 
 	if err := writeManifest(manifestPath, payload); err != nil {
 		return err
 	}
+	transactionCommitted = true
 
 	action := "Installed"
 	if existing != nil {
@@ -413,6 +479,102 @@ func install(projectRoot, assetRoot string, upgrade bool, profile string) error 
 	fmt.Println("Ensure /docs/.documentation-work/ is ignored by Git.")
 	fmt.Println("Ignore /docs/pdf/ unless documentation.toml intentionally commits PDF outputs.")
 	return nil
+}
+
+func backupManagedFile(projectRoot, backupRoot, relative string) (string, error) {
+	target, err := managedTarget(projectRoot, relative)
+	if err != nil {
+		return "", err
+	}
+	info, err := os.Lstat(target)
+	if errors.Is(err, os.ErrNotExist) {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("inspect managed file for upgrade backup %s: %w", relative, err)
+	}
+	if !info.Mode().IsRegular() {
+		return "", fmt.Errorf("refusing to back up managed non-file path: %s", relative)
+	}
+	backupPath := filepath.Join(backupRoot, filepath.FromSlash(relative))
+	if err := os.MkdirAll(filepath.Dir(backupPath), 0o700); err != nil {
+		return "", fmt.Errorf("prepare managed file upgrade backup %s: %w", relative, err)
+	}
+	if err := os.Rename(target, backupPath); err != nil {
+		return "", fmt.Errorf("back up managed file %s: %w", relative, err)
+	}
+	return backupPath, nil
+}
+
+func restoreManagedFiles(projectRoot string, backups map[string]string, newManaged []string) error {
+	var rollbackErr error
+	candidateTargets := map[string]string{}
+	for _, relative := range newManaged {
+		target, err := managedTarget(projectRoot, relative)
+		if err != nil {
+			rollbackErr = errors.Join(rollbackErr, fmt.Errorf("resolve replacement managed file %s during rollback: %w", relative, err))
+			continue
+		}
+		candidateTargets[relative] = target
+		if err := os.Remove(target); err != nil && !errors.Is(err, os.ErrNotExist) {
+			rollbackErr = errors.Join(rollbackErr, fmt.Errorf("remove replacement managed file %s during rollback: %w", relative, err))
+		}
+	}
+
+	relativeBackups := make([]string, 0, len(backups))
+	for relative := range backups {
+		relativeBackups = append(relativeBackups, relative)
+	}
+	sort.Strings(relativeBackups)
+
+	emptyDirectories := map[string]bool{}
+	for _, relative := range relativeBackups {
+		target, err := managedTarget(projectRoot, relative)
+		if err != nil {
+			rollbackErr = errors.Join(rollbackErr, fmt.Errorf("resolve managed file %s during rollback: %w", relative, err))
+			continue
+		}
+		for candidate, candidateTarget := range candidateTargets {
+			if !strings.HasPrefix(candidate, relative+"/") {
+				continue
+			}
+			for directory := filepath.Dir(candidateTarget); directory == target || strings.HasPrefix(directory, target+string(filepath.Separator)); directory = filepath.Dir(directory) {
+				emptyDirectories[directory] = true
+				if directory == target {
+					break
+				}
+			}
+		}
+	}
+
+	directories := make([]string, 0, len(emptyDirectories))
+	for directory := range emptyDirectories {
+		directories = append(directories, directory)
+	}
+	sort.Slice(directories, func(left, right int) bool {
+		return len(directories[left]) > len(directories[right])
+	})
+	for _, directory := range directories {
+		if err := os.Remove(directory); err != nil && !errors.Is(err, os.ErrNotExist) {
+			rollbackErr = errors.Join(rollbackErr, fmt.Errorf("remove replacement directory during rollback %s: %w", directory, err))
+		}
+	}
+
+	for _, relative := range relativeBackups {
+		target, err := managedTarget(projectRoot, relative)
+		if err != nil {
+			rollbackErr = errors.Join(rollbackErr, fmt.Errorf("restore managed file %s: %w", relative, err))
+			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+			rollbackErr = errors.Join(rollbackErr, fmt.Errorf("restore managed file %s: %w", relative, err))
+			continue
+		}
+		if err := os.Rename(backups[relative], target); err != nil {
+			rollbackErr = errors.Join(rollbackErr, fmt.Errorf("restore managed file %s: %w", relative, err))
+		}
+	}
+	return rollbackErr
 }
 
 func copyManagedFile(source, target string) error {

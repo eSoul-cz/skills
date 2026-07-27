@@ -105,7 +105,9 @@ local function normalize_image(element)
       staging_dir,
       "image-" .. pandoc.sha1(resolved) .. ".png",
     })
-    pandoc.pipe("convert", {resolved, "-depth", "8", "-strip", output}, "")
+    if not file_exists(output) then
+      pandoc.pipe("convert", {resolved, "-depth", "8", "-strip", output}, "")
+    end
     element.src = output
     if element.attributes.width == nil then
       element.attributes.width = "95%"
@@ -146,6 +148,8 @@ function Link(element)
       end
     end
     element.target = "#" .. anchor
+  elseif path:lower():match("%.md$") then
+    error("Markdown link target is not part of the rendered guide: " .. target)
   elseif file_exists(resolved) then
     element.target = resolved
       .. (query ~= "" and "?" .. query or "")

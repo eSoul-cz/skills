@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -29,6 +30,7 @@ const (
 	defaultHeader      = "/opt/documentation-tools/header.tex"
 	defaultSourceLua   = "/opt/documentation-tools/filters/source.lua"
 	defaultRenderLua   = "/opt/documentation-tools/filters/render.lua"
+	commandTimeout     = 10 * time.Minute
 )
 
 var (
@@ -163,6 +165,9 @@ func run(projectRoot, configPath string, renderOnly, validateOnly bool, redactPl
 	for _, guide := range cfg.Guides {
 		var pdfPath string
 		if renderOnly {
+			if err := validateGuideOutput(guide.Output); err != nil {
+				return fmt.Errorf("guide %s: %w", valueOr(guide.ID, "guide"), err)
+			}
 			pdfPath = filepath.Join(outputDir, guide.Output)
 		} else {
 			pdfPath, err = buildGuide(root, cfg, guide)
@@ -196,6 +201,13 @@ func valueOr(value, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+func validateGuideOutput(output string) error {
+	if !strings.HasSuffix(strings.ToLower(output), ".pdf") || strings.ContainsAny(output, `/\`) {
+		return errors.New("output must be a PDF filename, not a path")
+	}
+	return nil
 }
 
 func securePath(root, value string) (string, error) {
@@ -263,7 +275,9 @@ func execute(args []string, cwd string, env []string, input []byte) (commandResu
 	if len(args) == 0 {
 		return commandResult{}, errors.New("empty command")
 	}
-	command := exec.Command(args[0], args[1:]...)
+	ctx, cancel := context.WithTimeout(context.Background(), commandTimeout)
+	defer cancel()
+	command := exec.CommandContext(ctx, args[0], args[1:]...)
 	command.Dir = cwd
 	command.Env = append(os.Environ(), env...)
 	command.Stdin = bytes.NewReader(input)
@@ -272,6 +286,9 @@ func execute(args []string, cwd string, env []string, input []byte) (commandResu
 	command.Stdout = &stdout
 	command.Stderr = &stderr
 	if err := command.Run(); err != nil {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return commandResult{}, fmt.Errorf("%s timed out after %s", args[0], commandTimeout)
+		}
 		message := strings.TrimSpace(stderr.String())
 		if message != "" {
 			return commandResult{}, fmt.Errorf("%s: %w: %s", args[0], err, message)
@@ -560,7 +577,7 @@ func writeMetadata(root, stagingDir, path string, cfg config, guide guideConfig)
 	metadata = append(metadata, "Generated "+generated)
 
 	accent := hexPattern.ReplaceAllString(valueOr(cfg.PDF.AccentColor, "1B6B93"), "")
-	if accent == "" {
+	if len(accent) != 6 {
 		accent = "1B6B93"
 	}
 	title := valueOr(guide.Title, "Documentation")
@@ -848,7 +865,10 @@ func validateRegion(region redactionRegion, width, height int) error {
 	if region.X < 0 || region.Y < 0 || region.Width < 1 || region.Height < 1 {
 		return errors.New("redaction coordinates must be positive")
 	}
-	if region.X+region.Width > width || region.Y+region.Height > height {
+	if region.X > width || region.Y > height || region.Width > width || region.Height > height {
+		return fmt.Errorf("redaction region exceeds image dimensions %dx%d", width, height)
+	}
+	if region.X > width-region.Width || region.Y > height-region.Height {
 		return fmt.Errorf("redaction region exceeds image dimensions %dx%d", width, height)
 	}
 	return nil

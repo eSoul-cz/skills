@@ -25,8 +25,9 @@ var (
 	credentialPattern        = regexp.MustCompile(`(?i)(?:api[_-]?key|access[_-]?token|client[_-]?secret|password)\s*[:=]\s*['"]?([A-Za-z0-9_./+\-=]{12,})`)
 	emailPattern             = regexp.MustCompile(`(?i)\b[A-Z0-9._%+\-]+@([A-Z0-9.\-]+\.[A-Z]{2,})\b`)
 	htmlImagePattern         = regexp.MustCompile(`(?is)<img\b[^>]*>`)
-	htmlAttributePattern     = regexp.MustCompile(`(?is)\b(src|srcset|alt)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))`)
+	htmlAttributePattern     = regexp.MustCompile(`(?is)[[:space:]]+(src|srcset|alt)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))`)
 	dimensionPattern         = regexp.MustCompile(`^\s*(\d+)\s*[x×]\s*(\d+)\s*$`)
+	tableSeparatorPattern    = regexp.MustCompile(`^:?-{3,}:?$`)
 	rasterExtensions         = map[string]bool{".jpeg": true, ".jpg": true, ".png": true, ".tif": true, ".tiff": true, ".webp": true}
 )
 
@@ -110,6 +111,7 @@ func validateProject(root string, cfg config) validationResult {
 	seenSources := map[string]bool{}
 	rasters := map[string]publishedRaster{}
 	anchorCache := map[string]map[string]bool{}
+	documentCache := map[string]pandocDocument{}
 	for index, guide := range cfg.Guides {
 		label := guide.ID
 		if label == "" {
@@ -124,7 +126,7 @@ func validateProject(root string, cfg config) validationResult {
 		if strings.TrimSpace(guide.Title) == "" {
 			result.error(fmt.Sprintf("Guide %s: title is required.", label))
 		}
-		if !strings.HasSuffix(strings.ToLower(guide.Output), ".pdf") || strings.ContainsAny(guide.Output, `/\`) {
+		if validateGuideOutput(guide.Output) != nil {
 			result.error(fmt.Sprintf("Guide %s: output must be a PDF filename, not a path.", label))
 		} else if seenOutputs[guide.Output] {
 			result.error("Duplicate guide output: " + guide.Output)
@@ -149,7 +151,7 @@ func validateProject(root string, cfg config) validationResult {
 				result.error("Missing source: " + sourceValue)
 				continue
 			}
-			validateMarkdown(root, source, cfg, &result, rasters, anchorCache)
+			validateMarkdown(root, source, cfg, &result, rasters, anchorCache, documentCache)
 		}
 	}
 	validateScreenshotManifests(root, rasters, &result)
@@ -216,7 +218,7 @@ func validatePDFConfig(root string, pdf pdfConfig, result *validationResult) {
 	}
 }
 
-func validateMarkdown(root, source string, cfg config, result *validationResult, rasters map[string]publishedRaster, anchorCache map[string]map[string]bool) {
+func validateMarkdown(root, source string, cfg config, result *validationResult, rasters map[string]publishedRaster, anchorCache map[string]map[string]bool, documentCache map[string]pandocDocument) {
 	relative, _ := filepath.Rel(root, source)
 	relative = filepath.ToSlash(relative)
 	data, err := os.ReadFile(source)
@@ -263,7 +265,7 @@ func validateMarkdown(root, source string, cfg config, result *validationResult,
 		}
 	}
 
-	document, err := parsePandocDocument(source)
+	document, err := cachedPandocDocument(source, documentCache)
 	if err != nil {
 		result.error(fmt.Sprintf("%s: %v", relative, err))
 		return
@@ -280,7 +282,7 @@ func validateMarkdown(root, source string, cfg config, result *validationResult,
 		if label == "click here" || label == "here" || label == "link" || label == "more" {
 			result.warn(fmt.Sprintf("%s: link text '%s' is not descriptive.", relative, label))
 		}
-		validateLinkReference(root, source, relative, reference.Target, result, anchorCache)
+		validateLinkReference(root, source, relative, reference.Target, result, anchorCache, documentCache)
 	}
 	validateRawHTMLImages(root, source, relative, pandocRawHTML(document), result, rasters)
 }
@@ -299,6 +301,18 @@ func parsePandocDocument(path string) (pandocDocument, error) {
 	if err := json.Unmarshal(response.Stdout, &document); err != nil {
 		return pandocDocument{}, fmt.Errorf("cannot decode Pandoc AST: %w", err)
 	}
+	return document, nil
+}
+
+func cachedPandocDocument(path string, cache map[string]pandocDocument) (pandocDocument, error) {
+	if document, ok := cache[path]; ok {
+		return document, nil
+	}
+	document, err := parsePandocDocument(path)
+	if err != nil {
+		return pandocDocument{}, err
+	}
+	cache[path] = document
 	return document, nil
 }
 
@@ -479,7 +493,7 @@ func validateRawHTMLImages(root, source, relative, rawHTML string, result *valid
 	}
 }
 
-func validateLinkReference(root, source, relative, target string, result *validationResult, anchorCache map[string]map[string]bool) {
+func validateLinkReference(root, source, relative, target string, result *validationResult, anchorCache map[string]map[string]bool, documentCache map[string]pandocDocument) {
 	parsed, err := url.Parse(target)
 	if err != nil {
 		result.error(fmt.Sprintf("%s: invalid link target: %s", relative, target))
@@ -512,7 +526,7 @@ func validateLinkReference(root, source, relative, target string, result *valida
 	fragment, _ := url.PathUnescape(parsed.Fragment)
 	anchors, ok := anchorCache[resolved]
 	if !ok {
-		anchors = markdownAnchors(resolved)
+		anchors = markdownAnchors(resolved, documentCache)
 		anchorCache[resolved] = anchors
 	}
 	if !anchors[fragment] {
@@ -520,9 +534,9 @@ func validateLinkReference(root, source, relative, target string, result *valida
 	}
 }
 
-func markdownAnchors(path string) map[string]bool {
+func markdownAnchors(path string, documentCache map[string]pandocDocument) map[string]bool {
 	anchors := map[string]bool{}
-	document, err := parsePandocDocument(path)
+	document, err := cachedPandocDocument(path, documentCache)
 	if err != nil {
 		return anchors
 	}
@@ -668,7 +682,7 @@ func screenshotManifestRows(root, path string, result *validationResult) map[str
 		}
 		separator := true
 		for _, cell := range cells {
-			if !regexp.MustCompile(`^:?-{3,}:?$`).MatchString(cell) {
+			if !tableSeparatorPattern.MatchString(cell) {
 				separator = false
 				break
 			}

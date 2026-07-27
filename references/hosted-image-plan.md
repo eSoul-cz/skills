@@ -25,6 +25,6 @@ Before treating the image as an externally governed distribution:
 
 ## Project migration
 
-Take the immutable image from the archived Jenkins mapping, add it to `docs/documentation.toml`, switch `pdf.mode` from `local` to `remote`, and provide the same value through trusted `DOCUMENTATION_REMOTE_RENDERER_IMAGE` runtime configuration. Run a complete local-versus-remote comparison.
+Take the immutable image from the archived Jenkins mapping, add it to `docs/documentation.toml`, switch `pdf.mode` from `local` to `remote`, and provide the same value through trusted `DOCUMENTATION_REMOTE_RENDERER_IMAGE` runtime configuration. The Jenkins artifact remains authoritative only while build retention keeps it available; after the durable version-to-digest registry in the hardening plan exists, use that registry instead. Run a complete local-versus-remote comparison.
 
 After that comparison passes, run `scripts/install_project_tools /absolute/project/root --upgrade --remote`. The remote profile retires the project-local Dockerfile, Go source, Lua filters, dependency manifests, and fixtures while retaining the wrapper, version marker, default header, and managed-file manifest. A project can explicitly return to the complete local profile with `--upgrade --local` if an offline or repository-local build fallback is required.
