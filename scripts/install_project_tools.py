@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 
-TOOL_VERSION = "0.3.1"
+TOOL_VERSION = "0.4.0"
 MANIFEST_PATH = Path("docs/.documentation-tools/managed-files.json")
 
 

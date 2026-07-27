@@ -12,6 +12,10 @@ copyright = ""
 contact = ""
 
 [pdf]
+mode = "local"
+image = ""
+platform = "linux/amd64"
+dockerfile = "docs/.documentation-tools/pdf/Dockerfile"
 template = ""
 header_include = ""
 paper_size = "a4"

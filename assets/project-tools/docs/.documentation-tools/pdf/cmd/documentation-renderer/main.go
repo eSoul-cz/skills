@@ -39,12 +39,15 @@ var (
 )
 
 type config struct {
+	SchemaVersion        int           `toml:"schema_version"`
 	DocumentationVersion string        `toml:"documentation_version"`
 	PrimaryLanguage      string        `toml:"primary_language"`
 	OutputDir            string        `toml:"output_dir"`
 	WorkDir              string        `toml:"work_dir"`
+	CommitPDFOutputs     bool          `toml:"commit_pdf_outputs"`
 	Project              projectConfig `toml:"project"`
 	PDF                  pdfConfig     `toml:"pdf"`
+	Privacy              privacyConfig `toml:"privacy"`
 	Guides               []guideConfig `toml:"guides"`
 }
 
@@ -56,6 +59,10 @@ type projectConfig struct {
 }
 
 type pdfConfig struct {
+	Mode          string `toml:"mode"`
+	Image         string `toml:"image"`
+	Platform      string `toml:"platform"`
+	Dockerfile    string `toml:"dockerfile"`
 	Template      string `toml:"template"`
 	HeaderInclude string `toml:"header_include"`
 	PaperSize     string `toml:"paper_size"`
@@ -64,6 +71,11 @@ type pdfConfig struct {
 	AccentColor   string `toml:"accent_color"`
 	HeaderLeft    string `toml:"header_left"`
 	FooterLeft    string `toml:"footer_left"`
+}
+
+type privacyConfig struct {
+	AllowedEmailDomains []string `toml:"allowed_email_domains"`
+	AllowedHosts        []string `toml:"allowed_hosts"`
 }
 
 type guideConfig struct {
@@ -105,16 +117,21 @@ func main() {
 	projectRoot := flag.String("project-root", defaultProjectRoot, "absolute project root")
 	configPath := flag.String("config", defaultConfigPath, "project-relative documentation configuration")
 	renderOnly := flag.Bool("render-only", false, "inspect existing PDFs without rebuilding")
+	validateOnly := flag.Bool("validate-only", false, "validate configuration and Markdown without rendering")
 	redactPlan := flag.String("redact", "", "project-relative redaction plan")
 	flag.Parse()
 
-	if err := run(*projectRoot, *configPath, *renderOnly, *redactPlan); err != nil {
+	if *validateOnly && (*renderOnly || *redactPlan != "") {
+		fmt.Fprintln(os.Stderr, "ERROR: --validate-only cannot be combined with rendering or redaction")
+		os.Exit(2)
+	}
+	if err := run(*projectRoot, *configPath, *renderOnly, *validateOnly, *redactPlan); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func run(projectRoot, configPath string, renderOnly bool, redactPlan string) error {
+func run(projectRoot, configPath string, renderOnly, validateOnly bool, redactPlan string) error {
 	root, err := filepath.Abs(projectRoot)
 	if err != nil {
 		return fmt.Errorf("resolve project root: %w", err)
@@ -125,6 +142,19 @@ func run(projectRoot, configPath string, renderOnly bool, redactPlan string) err
 	}
 	if redactPlan != "" {
 		return redact(root, cfg, redactPlan)
+	}
+	if !renderOnly {
+		validation := validateProject(root, cfg)
+		if !validation.report() {
+			return fmt.Errorf(
+				"validation failed with %d error(s) and %d warning(s)",
+				len(validation.Errors),
+				len(validation.Warnings),
+			)
+		}
+		if validateOnly {
+			return nil
+		}
 	}
 	outputDir, err := securePath(root, valueOr(cfg.OutputDir, "docs/pdf"))
 	if err != nil {
@@ -181,6 +211,28 @@ func securePath(root, value string) (string, error) {
 	relative, err := filepath.Rel(root, path)
 	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
 		return "", fmt.Errorf("path escapes project root: %s", value)
+	}
+	resolvedRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return "", fmt.Errorf("resolve project root: %w", err)
+	}
+	ancestor := path
+	for {
+		if _, err := os.Lstat(ancestor); err == nil {
+			break
+		}
+		parent := filepath.Dir(ancestor)
+		if parent == ancestor {
+			return "", fmt.Errorf("cannot resolve project path: %s", value)
+		}
+		ancestor = parent
+	}
+	resolvedAncestor, err := filepath.EvalSymlinks(ancestor)
+	if err != nil {
+		return "", fmt.Errorf("resolve project path %s: %w", value, err)
+	}
+	if !inside(resolvedRoot, resolvedAncestor) {
+		return "", fmt.Errorf("path escapes project root through a symbolic link: %s", value)
 	}
 	return path, nil
 }

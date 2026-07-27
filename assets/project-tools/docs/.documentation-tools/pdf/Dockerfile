@@ -22,9 +22,6 @@ FROM pandoc/extra:3.6.2 AS pandoc_assets
 
 FROM debian:bookworm-slim
 
-ARG DOC_UID=1000
-ARG DOC_GID=1000
-
 # Debian's TeX meta-packages depend on Python for optional maintenance helpers.
 # The renderer never invokes those helpers, so omit the interpreter at runtime.
 RUN apt-get update \
@@ -65,6 +62,8 @@ COPY --from=merman_builder /out/bin/merman-cli /usr/local/bin/merman-cli
 COPY filters /opt/documentation-tools/filters
 COPY header.tex mermaid-config.json /opt/documentation-tools/
 
+ARG DOC_UID=1000
+ARG DOC_GID=1000
 RUN mkdir -p /workspace \
     && chown "${DOC_UID}:${DOC_GID}" /workspace
 
