@@ -32,6 +32,19 @@ local function file_exists(path)
   return true
 end
 
+local function file_cache_key(path)
+  local handle, open_error = io.open(path, "rb")
+  if handle == nil then
+    error("Cannot read image target in PDF rendering: " .. path .. ": " .. tostring(open_error))
+  end
+  local contents, read_error = handle:read("*a")
+  handle:close()
+  if contents == nil then
+    error("Cannot read image target in PDF rendering: " .. path .. ": " .. tostring(read_error))
+  end
+  return pandoc.sha1(path .. "\0" .. pandoc.sha1(contents))
+end
+
 local function percent_decode(value)
   return (value:gsub("%%(%x%x)", function(hex)
     return string.char(tonumber(hex, 16))
@@ -103,7 +116,7 @@ local function normalize_image(element)
   if raster_suffixes[suffix(resolved)] then
     local output = pandoc.path.join({
       staging_dir,
-      "image-" .. pandoc.sha1(resolved) .. ".png",
+      "image-" .. file_cache_key(resolved) .. ".png",
     })
     if not file_exists(output) then
       pandoc.pipe("convert", {resolved, "-depth", "8", "-strip", output}, "")

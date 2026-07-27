@@ -74,7 +74,8 @@ WORKDIR /workspace
 FROM runtime_base AS smoke_test
 
 COPY testdata/smoke /workspace
-RUN /workspace/assert-renderer
+RUN /workspace/assert-renderer \
+    && sh /workspace/assert-raster-cache
 
 FROM runtime_base AS runtime
 
