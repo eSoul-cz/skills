@@ -32,8 +32,13 @@ var (
 )
 
 type validationResult struct {
+	Notices  []string
 	Errors   []string
 	Warnings []string
+}
+
+func (result *validationResult) notice(message string) {
+	result.Notices = append(result.Notices, message)
 }
 
 func (result *validationResult) error(message string) {
@@ -45,6 +50,9 @@ func (result *validationResult) warn(message string) {
 }
 
 func (result validationResult) report() bool {
+	for _, message := range result.Notices {
+		fmt.Printf("NOTICE: %s\n", message)
+	}
 	for _, message := range result.Warnings {
 		fmt.Printf("WARNING: %s\n", message)
 	}
@@ -54,7 +62,11 @@ func (result validationResult) report() bool {
 	if len(result.Errors) > 0 {
 		return false
 	}
-	fmt.Printf("Validation passed with %d warning(s).\n", len(result.Warnings))
+	fmt.Printf(
+		"Validation passed with %d notice(s) and %d warning(s).\n",
+		len(result.Notices),
+		len(result.Warnings),
+	)
 	return true
 }
 
@@ -67,6 +79,12 @@ type documentReference struct {
 type publishedRaster struct {
 	Source string
 	Path   string
+}
+
+type linkInspection struct {
+	Issue         string
+	Message       string
+	ProjectTarget string
 }
 
 func validateProject(root string, cfg config) validationResult {
@@ -136,6 +154,27 @@ func validateProject(root string, cfg config) validationResult {
 			result.error(fmt.Sprintf("Guide %s: sources must be a non-empty array.", label))
 			continue
 		}
+		crossLinkSeverity, valid := crossDocumentLinkSeverity(guide.CrossDocumentLinks)
+		if !valid {
+			result.error(fmt.Sprintf("Guide %s: cross_document_links must be 'error' or 'notice'.", label))
+		}
+		invalidLinkSeverity, valid := linkSeverity(guide.InvalidLinks)
+		if !valid {
+			result.error(fmt.Sprintf("Guide %s: invalid_links must be 'error' or 'notice'.", label))
+		}
+		if _, valid := linkNoticeStyle(guide.LinkNoticeStyle); !valid {
+			result.error(fmt.Sprintf("Guide %s: link_notice_style must be 'plain', 'parentheses', or 'footnote'.", label))
+		}
+		if _, valid := linkNoticePaths(guide.LinkNoticePaths); !valid {
+			result.error(fmt.Sprintf("Guide %s: link_notice_paths must be 'original' or 'project-relative'.", label))
+		}
+		guideSources := map[string]bool{}
+		for _, sourceValue := range guide.Sources {
+			source, err := securePath(root, sourceValue)
+			if err == nil {
+				guideSources[source] = true
+			}
+		}
 		for _, sourceValue := range guide.Sources {
 			source, err := securePath(root, sourceValue)
 			if err != nil {
@@ -151,7 +190,18 @@ func validateProject(root string, cfg config) validationResult {
 				result.error("Missing source: " + sourceValue)
 				continue
 			}
-			validateMarkdown(root, source, cfg, &result, rasters, anchorCache, documentCache)
+			validateMarkdown(
+				root,
+				source,
+				cfg,
+				guideSources,
+				crossLinkSeverity,
+				invalidLinkSeverity,
+				&result,
+				rasters,
+				anchorCache,
+				documentCache,
+			)
 		}
 	}
 	validateScreenshotManifests(root, rasters, &result)
@@ -218,7 +268,26 @@ func validatePDFConfig(root string, pdf pdfConfig, result *validationResult) {
 	}
 }
 
-func validateMarkdown(root, source string, cfg config, result *validationResult, rasters map[string]publishedRaster, anchorCache map[string]map[string]bool, documentCache map[string]pandocDocument) {
+func crossDocumentLinkSeverity(value string) (string, bool) {
+	return linkSeverity(value)
+}
+
+func linkSeverity(value string) (string, bool) {
+	severity := valueOr(value, "error")
+	return severity, severity == "error" || severity == "notice"
+}
+
+func linkNoticeStyle(value string) (string, bool) {
+	style := valueOr(value, "plain")
+	return style, style == "plain" || style == "parentheses" || style == "footnote"
+}
+
+func linkNoticePaths(value string) (string, bool) {
+	paths := valueOr(value, "original")
+	return paths, paths == "original" || paths == "project-relative"
+}
+
+func validateMarkdown(root, source string, cfg config, guideSources map[string]bool, crossDocumentLinks, invalidLinks string, result *validationResult, rasters map[string]publishedRaster, anchorCache map[string]map[string]bool, documentCache map[string]pandocDocument) {
 	relative, _ := filepath.Rel(root, source)
 	relative = filepath.ToSlash(relative)
 	data, err := os.ReadFile(source)
@@ -282,7 +351,18 @@ func validateMarkdown(root, source string, cfg config, result *validationResult,
 		if label == "click here" || label == "here" || label == "link" || label == "more" {
 			result.warn(fmt.Sprintf("%s: link text '%s' is not descriptive.", relative, label))
 		}
-		validateLinkReference(root, source, relative, reference.Target, result, anchorCache, documentCache)
+		validateLinkReference(
+			root,
+			source,
+			relative,
+			reference.Target,
+			guideSources,
+			crossDocumentLinks,
+			invalidLinks,
+			result,
+			anchorCache,
+			documentCache,
+		)
 	}
 	validateRawHTMLImages(root, source, relative, pandocRawHTML(document), result, rasters)
 }
@@ -493,35 +573,57 @@ func validateRawHTMLImages(root, source, relative, rawHTML string, result *valid
 	}
 }
 
-func validateLinkReference(root, source, relative, target string, result *validationResult, anchorCache map[string]map[string]bool, documentCache map[string]pandocDocument) {
+func inspectLinkReference(root, source, target string, guideSources map[string]bool, anchorCache map[string]map[string]bool, documentCache map[string]pandocDocument) linkInspection {
 	parsed, err := url.Parse(target)
 	if err != nil {
-		result.error(fmt.Sprintf("%s: invalid link target: %s", relative, target))
-		return
+		return linkInspection{Issue: "fatal", Message: "invalid link target"}
 	}
 	if parsed.Scheme != "" || parsed.Host != "" || strings.HasPrefix(target, "//") {
-		return
+		return linkInspection{}
 	}
 	pathValue, err := url.PathUnescape(parsed.Path)
 	if err != nil {
-		result.error(fmt.Sprintf("%s: invalid link target: %s", relative, target))
-		return
+		return linkInspection{Issue: "fatal", Message: "invalid link target"}
 	}
 	resolved := source
 	if pathValue != "" {
 		resolved, err = securePath(root, filepath.Join(filepath.Dir(source), pathValue))
 		if err != nil {
-			result.error(fmt.Sprintf("%s: local link escapes the project: %s", relative, target))
-			return
+			return linkInspection{Issue: "fatal", Message: "local link escapes the project"}
 		}
 	}
+	projectTarget, err := filepath.Rel(root, resolved)
+	if err != nil {
+		return linkInspection{Issue: "fatal", Message: "cannot normalize local link"}
+	}
+	projectTarget = filepath.ToSlash(projectTarget)
+	if parsed.RawQuery != "" {
+		projectTarget += "?" + parsed.RawQuery
+	}
+	if parsed.Fragment != "" {
+		projectTarget += "#" + parsed.Fragment
+	}
 	info, statErr := os.Stat(resolved)
-	if statErr != nil || (pathValue != "" && info.IsDir()) {
-		result.error(fmt.Sprintf("%s: broken local link: %s", relative, target))
-		return
+	if statErr != nil {
+		if !os.IsNotExist(statErr) {
+			return linkInspection{Issue: "fatal", Message: "cannot inspect local link"}
+		}
+		return linkInspection{Issue: "invalid", Message: "broken local link", ProjectTarget: projectTarget}
+	}
+	if pathValue != "" && info.IsDir() {
+		return linkInspection{Issue: "invalid", Message: "broken local link", ProjectTarget: projectTarget}
+	}
+	if pathValue != "" &&
+		strings.EqualFold(filepath.Ext(resolved), ".md") &&
+		!guideSources[resolved] {
+		return linkInspection{
+			Issue:         "cross-document",
+			Message:       "Markdown link target is not part of the rendered guide",
+			ProjectTarget: projectTarget,
+		}
 	}
 	if parsed.Fragment == "" || !strings.EqualFold(filepath.Ext(resolved), ".md") {
-		return
+		return linkInspection{}
 	}
 	fragment, _ := url.PathUnescape(parsed.Fragment)
 	anchors, ok := anchorCache[resolved]
@@ -530,8 +632,88 @@ func validateLinkReference(root, source, relative, target string, result *valida
 		anchorCache[resolved] = anchors
 	}
 	if !anchors[fragment] {
-		result.error(fmt.Sprintf("%s: broken Markdown anchor: %s", relative, target))
+		return linkInspection{Issue: "invalid", Message: "broken Markdown anchor", ProjectTarget: projectTarget}
 	}
+	return linkInspection{}
+}
+
+func validateLinkReference(root, source, relative, target string, guideSources map[string]bool, crossDocumentLinks, invalidLinks string, result *validationResult, anchorCache map[string]map[string]bool, documentCache map[string]pandocDocument) {
+	inspection := inspectLinkReference(root, source, target, guideSources, anchorCache, documentCache)
+	if inspection.Issue == "" {
+		return
+	}
+	if inspection.Issue == "fatal" {
+		result.error(fmt.Sprintf("%s: %s: %s", relative, inspection.Message, target))
+		return
+	}
+	severity := invalidLinks
+	if inspection.Issue == "cross-document" {
+		severity = crossDocumentLinks
+	}
+	if severity == "notice" {
+		result.notice(fmt.Sprintf(
+			"%s: %s and will be rendered with a link notice: %s",
+			relative,
+			inspection.Message,
+			target,
+		))
+		return
+	}
+	result.error(fmt.Sprintf("%s: %s: %s", relative, inspection.Message, target))
+}
+
+func collectLinkNotices(root string, sourcePaths []string, documents map[string]pandocDocument, guide guideConfig) map[string]map[string]string {
+	notices := map[string]map[string]string{}
+	guideSources := map[string]bool{}
+	documentCache := map[string]pandocDocument{}
+	for _, source := range sourcePaths {
+		cleaned := filepath.Clean(source)
+		guideSources[cleaned] = true
+		if document, ok := documents[cleaned]; ok {
+			documentCache[cleaned] = document
+		}
+	}
+	crossDocumentLinks, _ := crossDocumentLinkSeverity(guide.CrossDocumentLinks)
+	invalidLinks, _ := linkSeverity(guide.InvalidLinks)
+	noticePaths, _ := linkNoticePaths(guide.LinkNoticePaths)
+	anchorCache := map[string]map[string]bool{}
+	for _, source := range sourcePaths {
+		cleaned := filepath.Clean(source)
+		document, ok := documents[cleaned]
+		if !ok {
+			continue
+		}
+		for _, reference := range pandocReferences(document) {
+			if reference.Kind != "Link" {
+				continue
+			}
+			inspection := inspectLinkReference(
+				root,
+				cleaned,
+				reference.Target,
+				guideSources,
+				anchorCache,
+				documentCache,
+			)
+			severity := invalidLinks
+			if inspection.Issue == "cross-document" {
+				severity = crossDocumentLinks
+			}
+			if severity != "notice" ||
+				(inspection.Issue != "invalid" && inspection.Issue != "cross-document") {
+				continue
+			}
+			display := reference.Target
+			if noticePaths == "project-relative" {
+				display = inspection.ProjectTarget
+			}
+			if notices[cleaned] == nil {
+				notices[cleaned] = map[string]string{}
+			}
+			notices[cleaned][reference.Target] = display
+		}
+	}
+	return notices
 }
 
 func markdownAnchors(path string, documentCache map[string]pandocDocument) map[string]bool {

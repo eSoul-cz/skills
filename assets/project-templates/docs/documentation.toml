@@ -33,6 +33,10 @@ allowed_hosts = []
 id = "user-guide"
 title = "Application User Guide"
 output = "application-user-guide.pdf"
+cross_document_links = "error"
+invalid_links = "error"
+link_notice_style = "plain"
+link_notice_paths = "original"
 sources = [
   "docs/user-guide/README.md",
 ]
@@ -42,6 +46,10 @@ landscape_sources = []
 id = "developer-guide"
 title = "Application Developer and Operator Guide"
 output = "application-developer-guide.pdf"
+cross_document_links = "error"
+invalid_links = "error"
+link_notice_style = "plain"
+link_notice_paths = "original"
 sources = [
   "docs/developer-guide/README.md",
 ]

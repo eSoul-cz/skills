@@ -28,6 +28,14 @@ case "${normalized}" in
     *"Figure 2:"*"A Markdown table and Mermaid diagram are rendered on a landscape page."*) ;;
     *) echo "ERROR: second Mermaid figure caption or number is missing." >&2; exit 1 ;;
 esac
+case "${normalized}" in
+    *"external maintenance notes"*) ;;
+    *) echo "ERROR: ignored cross-document link text is missing." >&2; exit 1 ;;
+esac
+case "${normalized}" in
+    *"docs/guide/external.md"*"docs/missing.md#draft"*) ;;
+    *) echo "ERROR: project-relative link notice footnotes are missing." >&2; exit 1 ;;
+esac
 
 image_rows=$(pdfimages -list "${pdf}" | sed -n "3,\$p")
 if [ -n "${image_rows}" ]; then

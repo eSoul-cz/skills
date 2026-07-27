@@ -81,11 +81,15 @@ type privacyConfig struct {
 }
 
 type guideConfig struct {
-	ID               string   `toml:"id"`
-	Title            string   `toml:"title"`
-	Output           string   `toml:"output"`
-	Sources          []string `toml:"sources"`
-	LandscapeSources []string `toml:"landscape_sources"`
+	ID                 string   `toml:"id"`
+	Title              string   `toml:"title"`
+	Output             string   `toml:"output"`
+	CrossDocumentLinks string   `toml:"cross_document_links"`
+	InvalidLinks       string   `toml:"invalid_links"`
+	LinkNoticeStyle    string   `toml:"link_notice_style"`
+	LinkNoticePaths    string   `toml:"link_notice_paths"`
+	Sources            []string `toml:"sources"`
+	LandscapeSources   []string `toml:"landscape_sources"`
 }
 
 type pandocDocument struct {
@@ -329,6 +333,7 @@ func buildGuide(root string, cfg config, guide guideConfig) (string, error) {
 
 	reader := "markdown+tex_math_dollars+footnotes-raw_tex-raw_attribute"
 	headings := make(map[string]string, len(sourcePaths))
+	documents := make(map[string]pandocDocument, len(sourcePaths))
 	for _, source := range sourcePaths {
 		result, err := runCommand(
 			[]string{"pandoc", source, "--from=" + reader, "--to=json"},
@@ -343,6 +348,7 @@ func buildGuide(root string, cfg config, guide guideConfig) (string, error) {
 		if err := json.Unmarshal(result.Stdout, &document); err != nil {
 			return "", fmt.Errorf("decode Pandoc AST for %s: %w", source, err)
 		}
+		documents[filepath.Clean(source)] = document
 		heading, err := firstH1Identifier(document)
 		if err != nil {
 			return "", fmt.Errorf("%s: %w", source, err)
@@ -352,6 +358,11 @@ func buildGuide(root string, cfg config, guide guideConfig) (string, error) {
 
 	headingMapPath := filepath.Join(stagingDir, "heading-map.lua")
 	if err := writeHeadingMap(headingMapPath, headings); err != nil {
+		return "", err
+	}
+	linkNoticeMapPath := filepath.Join(stagingDir, "link-notice-map.lua")
+	linkNotices := collectLinkNotices(root, sourcePaths, documents, guide)
+	if err := writeLinkNoticeMap(linkNoticeMapPath, linkNotices); err != nil {
 		return "", err
 	}
 	token, err := randomToken()
@@ -378,6 +389,10 @@ func buildGuide(root string, cfg config, guide guideConfig) (string, error) {
 			"DOCUMENTATION_HEADING_MAP=" + headingMapPath,
 			"DOCUMENTATION_INTERNAL_TOKEN=" + token,
 			"DOCUMENTATION_MERMAID_CONFIG=" + runtimePath("mermaid-config.json", "/opt/documentation-tools/mermaid-config.json"),
+			"DOCUMENTATION_CROSS_DOCUMENT_LINKS=" + valueOr(guide.CrossDocumentLinks, "error"),
+			"DOCUMENTATION_SOURCE_PATH=" + filepath.Clean(source),
+			"DOCUMENTATION_LINK_NOTICE_MAP=" + linkNoticeMapPath,
+			"DOCUMENTATION_LINK_NOTICE_STYLE=" + valueOr(guide.LinkNoticeStyle, "plain"),
 		}
 		result, err := runCommand(
 			[]string{
@@ -524,6 +539,39 @@ func writeHeadingMap(path string, headings map[string]string) error {
 	buffer.WriteString("}\n")
 	if err := os.WriteFile(path, []byte(buffer.String()), 0o600); err != nil {
 		return fmt.Errorf("write heading map: %w", err)
+	}
+	return nil
+}
+
+func writeLinkNoticeMap(path string, notices map[string]map[string]string) error {
+	var buffer strings.Builder
+	buffer.WriteString("return {\n")
+	sources := make([]string, 0, len(notices))
+	for source := range notices {
+		sources = append(sources, source)
+	}
+	sort.Strings(sources)
+	for _, source := range sources {
+		buffer.WriteString("  [")
+		buffer.WriteString(strconv.Quote(filepath.Clean(source)))
+		buffer.WriteString("] = {\n")
+		targets := make([]string, 0, len(notices[source]))
+		for target := range notices[source] {
+			targets = append(targets, target)
+		}
+		sort.Strings(targets)
+		for _, target := range targets {
+			buffer.WriteString("    [")
+			buffer.WriteString(strconv.Quote(target))
+			buffer.WriteString("] = ")
+			buffer.WriteString(strconv.Quote(notices[source][target]))
+			buffer.WriteString(",\n")
+		}
+		buffer.WriteString("  },\n")
+	}
+	buffer.WriteString("}\n")
+	if err := os.WriteFile(path, []byte(buffer.String()), 0o600); err != nil {
+		return fmt.Errorf("write link notice map: %w", err)
 	}
 	return nil
 }

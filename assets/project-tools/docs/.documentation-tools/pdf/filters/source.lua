@@ -4,7 +4,16 @@ local staging_dir = assert(os.getenv("DOCUMENTATION_STAGING_DIR"), "missing stag
 local heading_map_path = assert(os.getenv("DOCUMENTATION_HEADING_MAP"), "missing heading map")
 local internal_token = assert(os.getenv("DOCUMENTATION_INTERNAL_TOKEN"), "missing renderer token")
 local mermaid_config = assert(os.getenv("DOCUMENTATION_MERMAID_CONFIG"), "missing Mermaid config")
+local cross_document_links = os.getenv("DOCUMENTATION_CROSS_DOCUMENT_LINKS") or "error"
 local heading_map = assert(loadfile(heading_map_path))()
+local link_notice_style = os.getenv("DOCUMENTATION_LINK_NOTICE_STYLE") or "plain"
+local link_notice_map_path = os.getenv("DOCUMENTATION_LINK_NOTICE_MAP")
+local source_path = os.getenv("DOCUMENTATION_SOURCE_PATH")
+local link_notice_map = {}
+if link_notice_map_path ~= nil then
+  link_notice_map = assert(loadfile(link_notice_map_path))()
+end
+local link_notices = link_notice_map[source_path] or {}
 
 local raster_suffixes = {
   [".jpeg"] = true,
@@ -94,6 +103,26 @@ local function literal_inlines(value)
   return inlines
 end
 
+local function annotate_link(element, target)
+  local output = pandoc.Inlines({})
+  for _, inline in ipairs(element.content) do
+    output:insert(inline)
+  end
+  if link_notice_style == "parentheses" then
+    output:insert(pandoc.Space())
+    output:insert(pandoc.Str("("))
+    for _, inline in ipairs(literal_inlines(target)) do
+      output:insert(inline)
+    end
+    output:insert(pandoc.Str(")"))
+  elseif link_notice_style == "footnote" then
+    output:insert(pandoc.Note({
+      pandoc.Para(literal_inlines(target)),
+    }))
+  end
+  return output
+end
+
 local function normalize_image(element)
   local target = element.src
   if element.attributes.srcset ~= nil then
@@ -137,6 +166,9 @@ end
 
 function Link(element)
   local target = element.target
+  if link_notices[target] ~= nil then
+    return annotate_link(element, link_notices[target])
+  end
   if is_external(target) then
     return nil
   end
@@ -162,6 +194,9 @@ function Link(element)
     end
     element.target = "#" .. anchor
   elseif path:lower():match("%.md$") then
+    if cross_document_links == "notice" then
+      return element.content
+    end
     error("Markdown link target is not part of the rendered guide: " .. target)
   elseif file_exists(resolved) then
     element.target = resolved
