@@ -1,37 +1,320 @@
 #!/bin/sh
 set -eu
 
-DOCS_DIR="$(CDPATH= cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="$(CDPATH= cd "${DOCS_DIR}/.." && pwd)"
-PYTHON_BIN="${PYTHON_BIN:-python3}"
+DOCS_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
+PROJECT_ROOT=$(CDPATH= cd "${DOCS_DIR}/.." && pwd)
+CONFIG="${PROJECT_ROOT}/docs/documentation.toml"
+TOOLS_DIR="${PROJECT_ROOT}/docs/.documentation-tools"
+VERSION_FILE="${TOOLS_DIR}/VERSION"
 
-if ! command -v "${PYTHON_BIN}" >/dev/null 2>&1; then
-    echo "ERROR: Python 3.11 or newer is required." >&2
+usage() {
+    echo "Usage: docs/documentation {validate|build|render|redact PLAN|version}" >&2
+    exit 2
+}
+
+toml_string() {
+    wanted_section=$1
+    wanted_key=$2
+    awk -v wanted_section="${wanted_section}" -v wanted_key="${wanted_key}" '
+        BEGIN { section = "" }
+        /^[[:space:]]*\[[^[]/ {
+            value = $0
+            sub(/^[[:space:]]*\[/, "", value)
+            sub(/\][[:space:]]*(#.*)?$/, "", value)
+            section = value
+            next
+        }
+        section == wanted_section {
+            line = $0
+            sub(/^[[:space:]]*/, "", line)
+            if (index(line, wanted_key) != 1) {
+                next
+            }
+            rest = substr(line, length(wanted_key) + 1)
+            if (rest !~ /^[[:space:]]*=/) {
+                next
+            }
+            sub(/^[[:space:]]*=[[:space:]]*/, "", rest)
+            if (rest !~ /^"/) {
+                parse_error = 1
+                exit
+            }
+            sub(/^"/, "", rest)
+            quote = index(rest, "\"")
+            if (quote == 0) {
+                parse_error = 1
+                exit
+            }
+            print substr(rest, 1, quote - 1)
+            found = 1
+            exit
+        }
+        END {
+            if (parse_error) {
+                exit 3
+            }
+            if (!found) {
+                exit 4
+            }
+        }
+    ' "${CONFIG}"
+}
+
+read_setting() {
+    section=$1
+    key=$2
+    fallback=$3
+    if value=$(toml_string "${section}" "${key}"); then
+        printf '%s\n' "${value}"
+        return
+    else
+        status=$?
+    fi
+    if [ "${status}" -eq 4 ]; then
+        printf '%s\n' "${fallback}"
+        return
+    fi
+    echo "ERROR: ${key} must be a simple quoted TOML string for Docker bootstrap." >&2
     exit 1
-fi
+}
 
-if ! "${PYTHON_BIN}" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)'; then
-    echo "ERROR: Python 3.11 or newer is required." >&2
-    exit 1
-fi
+require_project_relative_path() {
+    key=$1
+    value=$2
+    case "${value}" in
+        ""|"."|".."|/*|.git|.git/*|*/.git|*/.git/*|../*|*/../*|*/..|*//*|*/./*|./*|*/|*\\*)
+            echo "ERROR: ${key} must be a normalized project-relative path outside .git: ${value}" >&2
+            exit 1
+            ;;
+    esac
+}
 
-if [ ! -f "${PROJECT_ROOT}/docs/documentation.toml" ] && [ "${1:-}" != "version" ]; then
-    echo "ERROR: Missing docs/documentation.toml" >&2
-    exit 1
-fi
-
-case "${1:-}" in
-    build|render|redact)
-        if ! command -v docker >/dev/null 2>&1; then
-            echo "ERROR: Docker is required for '${1}'." >&2
+reject_symlink_components() {
+    key=$1
+    value=$2
+    current=${PROJECT_ROOT}
+    previous_ifs=${IFS}
+    IFS=/
+    set -f
+    set -- ${value}
+    set +f
+    IFS=${previous_ifs}
+    for component do
+        current="${current}/${component}"
+        if [ -L "${current}" ]; then
+            echo "ERROR: ${key} must not traverse a symbolic link: ${value}" >&2
             exit 1
         fi
-        if ! docker info >/dev/null 2>&1; then
-            echo "ERROR: Docker is installed but the daemon is unavailable." >&2
+    done
+}
+
+git_ignored() {
+    git -C "${PROJECT_ROOT}" check-ignore --no-index -q "$1"
+}
+
+prepare_image() {
+    if [ "${pdf_mode}" = "remote" ]; then
+        case "${pdf_image}" in
+            *@sha256:*) ;;
+            *)
+                echo "ERROR: Remote pdf.image must be pinned by an immutable sha256 digest." >&2
+                exit 1
+                ;;
+        esac
+        if [ -z "${DOCUMENTATION_REMOTE_RENDERER_IMAGE:-}" ]; then
+            echo "ERROR: Remote mode requires DOCUMENTATION_REMOTE_RENDERER_IMAGE from trusted runtime configuration." >&2
             exit 1
         fi
+        if [ "${pdf_image}" != "${DOCUMENTATION_REMOTE_RENDERER_IMAGE}" ]; then
+            echo "ERROR: Configured remote renderer is not allowlisted." >&2
+            exit 1
+        fi
+        if [ -n "${pdf_platform}" ]; then
+            docker pull --platform "${pdf_platform}" "${pdf_image}"
+        else
+            docker pull "${pdf_image}"
+        fi
+        renderer_image=${pdf_image}
+        return
+    fi
+
+    if [ "${pdf_mode}" != "local" ]; then
+        echo "ERROR: pdf.mode must be 'local' or 'remote'." >&2
+        exit 1
+    fi
+    require_project_relative_path "pdf.dockerfile" "${pdf_dockerfile}"
+    reject_symlink_components "pdf.dockerfile" "${pdf_dockerfile}"
+    dockerfile="${PROJECT_ROOT}/${pdf_dockerfile}"
+    if [ ! -f "${dockerfile}" ]; then
+        echo "ERROR: Missing configured Dockerfile: ${pdf_dockerfile}" >&2
+        exit 1
+    fi
+    context=$(dirname "${dockerfile}")
+    version=$(sed -n '1p' "${VERSION_FILE}")
+    if ! printf '%s\n' "${version}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+        echo "ERROR: Managed tool VERSION must be semantic: ${version}" >&2
+        exit 1
+    fi
+    renderer_image="esoul-documentation-tools:${version}"
+    if [ -n "${pdf_platform}" ]; then
+        docker build \
+            --platform "${pdf_platform}" \
+            --build-arg "DOC_UID=$(id -u)" \
+            --build-arg "DOC_GID=$(id -g)" \
+            --file "${dockerfile}" \
+            --tag "${renderer_image}" \
+            "${context}"
+    else
+        docker build \
+            --build-arg "DOC_UID=$(id -u)" \
+            --build-arg "DOC_GID=$(id -g)" \
+            --file "${dockerfile}" \
+            --tag "${renderer_image}" \
+            "${context}"
+    fi
+}
+
+run_renderer() {
+    renderer_mode=$1
+    renderer_action=$2
+    renderer_plan=${3:-}
+    set -- docker run \
+        --rm \
+        --read-only \
+        --cap-drop ALL \
+        --security-opt no-new-privileges \
+        --pids-limit 512 \
+        --memory 2g \
+        --memory-swap 2g \
+        --shm-size 256m \
+        --network none \
+        --tmpfs /tmp:rw,nosuid,nodev,size=1g \
+        --env HOME=/tmp \
+        --env XDG_CACHE_HOME=/tmp/.cache \
+        --env "DOC_COMMIT=${doc_commit}" \
+        --env "DOC_GIT_TAG=${doc_git_tag}" \
+        --env "DOC_GENERATED_AT=${doc_generated_at}" \
+        --env "DOC_GIT_CHECKS_AVAILABLE=${git_checks_available}" \
+        --env "DOC_WORK_IGNORED=${work_ignored}" \
+        --env "DOC_OUTPUT_IGNORED=${output_ignored}" \
+        --volume "${PROJECT_ROOT}:/workspace:ro"
+    if [ -n "${DOCUMENTATION_REMOTE_RENDERER_IMAGE:-}" ]; then
+        set -- "$@" --env "DOCUMENTATION_REMOTE_RENDERER_IMAGE=${DOCUMENTATION_REMOTE_RENDERER_IMAGE}"
+    fi
+    if [ -n "${pdf_platform}" ]; then
+        set -- "$@" --platform "${pdf_platform}"
+    fi
+    set -- "$@" --user "$(id -u):$(id -g)"
+    if [ "${renderer_mode}" = "writable" ]; then
+        reject_symlink_components "output_dir" "${output_dir}"
+        reject_symlink_components "work_dir" "${work_dir}"
+        mkdir -p "${PROJECT_ROOT}/${output_dir}" "${PROJECT_ROOT}/${work_dir}"
+        set -- "$@" \
+            --volume "${PROJECT_ROOT}/${output_dir}:/workspace/${output_dir}:rw" \
+            --volume "${PROJECT_ROOT}/${work_dir}:/workspace/${work_dir}:rw"
+    fi
+    set -- "$@" \
+        "${renderer_image}" \
+        --project-root /workspace \
+        --config docs/documentation.toml
+    case "${renderer_action}" in
+        validate)
+            set -- "$@" --validate-only
+            ;;
+        render)
+            set -- "$@" --render-only
+            ;;
+        redact)
+            set -- "$@" --redact "${renderer_plan}"
+            ;;
+    esac
+    exec "$@"
+}
+
+command=${1:-}
+case "${command}" in
+    version)
+        [ "$#" -eq 1 ] || usage
+        if [ ! -f "${VERSION_FILE}" ]; then
+            echo "unknown"
+            exit 0
+        fi
+        sed -n '1p' "${VERSION_FILE}"
+        exit 0
+        ;;
+    validate|build|render)
+        [ "$#" -eq 1 ] || usage
+        ;;
+    redact)
+        [ "$#" -eq 2 ] || usage
+        ;;
+    *)
+        usage
         ;;
 esac
 
-exec "${PYTHON_BIN}" "${DOCS_DIR}/.documentation-tools/docs.py" \
-    --project-root "${PROJECT_ROOT}" "$@"
+if [ ! -f "${CONFIG}" ]; then
+    echo "ERROR: Missing docs/documentation.toml" >&2
+    exit 1
+fi
+if [ ! -f "${VERSION_FILE}" ]; then
+    echo "ERROR: Missing managed tool VERSION file." >&2
+    exit 1
+fi
+if ! command -v docker >/dev/null 2>&1; then
+    echo "ERROR: Docker is required for '${command}'." >&2
+    exit 1
+fi
+if ! docker info >/dev/null 2>&1; then
+    echo "ERROR: Docker is installed but the daemon is unavailable." >&2
+    exit 1
+fi
+
+output_dir=$(read_setting "" output_dir "docs/pdf")
+work_dir=$(read_setting "" work_dir "docs/.documentation-work")
+pdf_mode=$(read_setting pdf mode local)
+pdf_image=$(read_setting pdf image "")
+pdf_platform=$(read_setting pdf platform "")
+pdf_dockerfile=$(read_setting pdf dockerfile "docs/.documentation-tools/pdf/Dockerfile")
+require_project_relative_path "output_dir" "${output_dir}"
+require_project_relative_path "work_dir" "${work_dir}"
+
+doc_commit=unknown
+doc_git_tag=
+git_checks_available=0
+work_ignored=0
+output_ignored=0
+if command -v git >/dev/null 2>&1 && [ -e "${PROJECT_ROOT}/.git" ]; then
+    git_checks_available=1
+    doc_commit=$(git -C "${PROJECT_ROOT}" rev-parse --short=12 HEAD 2>/dev/null || printf unknown)
+    doc_git_tag=$(git -C "${PROJECT_ROOT}" describe --tags --abbrev=0 2>/dev/null || true)
+    if git_ignored "${work_dir}/.ignore-probe"; then
+        work_ignored=1
+    fi
+    if git_ignored "${output_dir}/.ignore-probe.pdf"; then
+        output_ignored=1
+    fi
+fi
+doc_generated_at=$(date -u '+%Y-%m-%d %H:%M UTC')
+
+prepare_image
+case "${command}" in
+    validate)
+        run_renderer readonly validate
+        ;;
+    build)
+        run_renderer writable build
+        ;;
+    render)
+        run_renderer writable render
+        ;;
+    redact)
+        plan=$2
+        require_project_relative_path "redaction plan" "${plan}"
+        if [ ! -f "${PROJECT_ROOT}/${plan}" ]; then
+            echo "ERROR: Redaction plan does not exist: ${plan}" >&2
+            exit 1
+        fi
+        run_renderer writable redact "${plan}"
+        ;;
+esac

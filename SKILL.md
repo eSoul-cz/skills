@@ -28,10 +28,12 @@ Implemented behavior is authoritative for current behavior. Record intended-vers
 After specification approval, run:
 
 ```bash
-python3 scripts/install_project_tools.py /absolute/project/root
+scripts/install_project_tools /absolute/project/root
 ```
 
-Resolve the script path relative to this skill directory. Use `--check` to detect drift and `--upgrade` only with explicit approval. Never overwrite locally modified managed files silently.
+Resolve the command path relative to this skill directory. It builds and runs the static Go installer in Docker, so the host needs neither Python nor Go. Use `--check` to detect drift and `--upgrade` only with explicit approval. Never overwrite locally modified managed files silently.
+
+After a hosted renderer digest has been published and configured in `docs/documentation.toml`, add `--remote` to install only the runtime wrapper, version marker, default header, and manifest. Use `--upgrade --remote` to migrate a clean local-profile installation; the installer retires the project-local Docker build sources. Use `--upgrade --local` to restore the complete build context. Keep the default local profile when a published digest is unavailable or an auditable project-local fallback is required.
 
 Create project-owned files from `assets/project-templates/`; do not overwrite existing files. Ensure these ignored paths unless project configuration explicitly commits PDFs:
 
@@ -42,7 +44,7 @@ Create project-owned files from `assets/project-templates/`; do not overwrite ex
 
 ## Author portable Markdown
 
-Use one H1 per source file, relative links, descriptive image alt text, ordinary Markdown tables, fenced code, Mermaid fences, `$...$` inline math, and `$$...$$` display math. Keep raw LaTeX and renderer directives out of authored pages. Configure layout exceptions and templates in `docs/documentation.toml`.
+Use one H1 per source file, relative links, descriptive image alt text, ordinary Markdown tables, fenced code, footnotes, GitHub alert callouts, Mermaid fences, `$...$` inline math, and `$$...$$` display math. Math commands are restricted to the allowlist documented in [pdf-pipeline.md](references/pdf-pipeline.md); any other command or remaining backslash causes a hard build failure. Use a blockquote beginning with bold `Planned` for approved planned-content callouts. Keep raw LaTeX and renderer directives out of authored pages. Configure layout exceptions and templates in `docs/documentation.toml`.
 
 Default to separate user and developer/operator guides, but let the approved specification adapt their chapters. Keep planning, decisions, review records, and screenshot manifests outside PDF source lists.
 
@@ -68,4 +70,3 @@ Inspect every rendered PDF page. Use an installed PDF skill when available. Othe
 - Read [pdf-pipeline.md](references/pdf-pipeline.md) for configuration, commands, custom templates, math, version metadata, and remote-image mode.
 - Read [jenkins.md](references/jenkins.md) only when the user requests CI integration.
 - Read [hosted-image-plan.md](references/hosted-image-plan.md) only when planning or implementing the future hosted renderer image.
-

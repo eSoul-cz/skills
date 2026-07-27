@@ -1,0 +1,38 @@
+schema_version = 1
+documentation_version = "0.2.0-smoke"
+primary_language = "en"
+output_dir = "docs/pdf"
+work_dir = "docs/.documentation-work"
+commit_pdf_outputs = false
+
+[project]
+name = "Documentation Renderer Smoke Test"
+logo = ""
+copyright = ""
+contact = ""
+
+[pdf]
+mode = "local"
+image = ""
+platform = "linux/amd64"
+dockerfile = "docs/.documentation-tools/pdf/Dockerfile"
+template = ""
+header_include = ""
+paper_size = "a4"
+main_font = "Noto Sans"
+mono_font = "Noto Sans Mono"
+accent_color = "1B6B93"
+header_left = "Renderer smoke test"
+footer_left = ""
+
+[[guides]]
+id = "smoke"
+title = "Documentation Renderer Smoke Test"
+output = "smoke.pdf"
+sources = [
+  "docs/guide/overview.md",
+  "docs/guide/appendix.md",
+]
+landscape_sources = [
+  "docs/guide/appendix.md",
+]

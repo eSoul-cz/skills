@@ -1,0 +1,80 @@
+#!/bin/sh
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
+SKILL_ROOT=$(CDPATH= cd "${SCRIPT_DIR}/.." && pwd)
+TOOLS_ROOT="${SKILL_ROOT}/assets/project-tools/docs/.documentation-tools/pdf"
+FIXTURE_ROOT="${TOOLS_ROOT}/testdata/smoke"
+VERSION_FILE="${SKILL_ROOT}/assets/project-tools/docs/.documentation-tools/VERSION"
+
+if ! command -v docker >/dev/null 2>&1; then
+    echo "ERROR: Docker is required for the renderer smoke test." >&2
+    exit 1
+fi
+if ! docker info >/dev/null 2>&1; then
+    echo "ERROR: Docker is installed but the daemon is unavailable." >&2
+    exit 1
+fi
+
+smoke_root=$(mktemp -d "${TMPDIR:-/tmp}/documentation-renderer-smoke.XXXXXX")
+cleanup() {
+    rm -rf "${smoke_root}"
+}
+trap cleanup EXIT HUP INT TERM
+
+cp -R "${FIXTURE_ROOT}/." "${smoke_root}/"
+mkdir -p \
+    "${smoke_root}/docs/pdf" \
+    "${smoke_root}/docs/.documentation-work"
+
+version=$(sed -n '1{s/[^A-Za-z0-9_.-]/-/g;p;}' "${VERSION_FILE}")
+renderer_image="esoul-documentation-tools:${version}-smoke"
+platform=${DOCUMENTATION_TEST_PLATFORM:-linux/amd64}
+
+docker build \
+    --platform "${platform}" \
+    --build-arg "DOC_UID=$(id -u)" \
+    --build-arg "DOC_GID=$(id -g)" \
+    --file "${TOOLS_ROOT}/Dockerfile" \
+    --tag "${renderer_image}" \
+    "${TOOLS_ROOT}"
+
+docker run \
+    --rm \
+    --read-only \
+    --cap-drop ALL \
+    --security-opt no-new-privileges \
+    --pids-limit 512 \
+    --memory 2g \
+    --memory-swap 2g \
+    --shm-size 256m \
+    --network none \
+    --tmpfs /tmp:rw,nosuid,nodev,size=1g \
+    --env HOME=/tmp \
+    --env XDG_CACHE_HOME=/tmp/.cache \
+    --env DOC_COMMIT=smoke-test \
+    --env DOC_GENERATED_AT="2026-01-01 00:00 UTC" \
+    --platform "${platform}" \
+    --user "$(id -u):$(id -g)" \
+    --volume "${smoke_root}:/workspace:ro" \
+    --volume "${smoke_root}/docs/pdf:/workspace/docs/pdf:rw" \
+    --volume "${smoke_root}/docs/.documentation-work:/workspace/docs/.documentation-work:rw" \
+    "${renderer_image}" \
+    --project-root /workspace \
+    --config docs/documentation.toml
+
+docker run \
+    --rm \
+    --read-only \
+    --cap-drop ALL \
+    --security-opt no-new-privileges \
+    --memory 512m \
+    --memory-swap 512m \
+    --network none \
+    --platform "${platform}" \
+    --volume "${smoke_root}:/workspace:ro" \
+    --entrypoint /bin/sh \
+    "${renderer_image}" \
+    /workspace/assert-renderer --verify-only
+
+echo "Renderer smoke test passed: numbered captions are present and Mermaid output is vector-only."

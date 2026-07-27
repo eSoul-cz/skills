@@ -1,0 +1,54 @@
+#!/bin/sh
+set -eu
+
+verify_only=0
+if [ "${1:-}" = "--verify-only" ]; then
+    verify_only=1
+else
+    DOC_COMMIT=smoke-test \
+    DOC_GENERATED_AT="2026-01-01 00:00 UTC" \
+    HOME=/tmp \
+    XDG_CACHE_HOME=/tmp/.cache \
+        documentation-renderer \
+            --project-root /workspace \
+            --config docs/documentation.toml
+fi
+
+extracted=/workspace/docs/.documentation-work/review/smoke/extracted.txt
+pdf=/workspace/docs/pdf/smoke.pdf
+test -s "${extracted}"
+test -s "${pdf}"
+
+normalized=$(tr "\n" " " < "${extracted}" | tr -s " ")
+case "${normalized}" in
+    *"Figure 1:"*"A request flows through the Go renderer and Pandoc to a PDF."*) ;;
+    *) echo "ERROR: first Mermaid figure caption or number is missing." >&2; exit 1 ;;
+esac
+case "${normalized}" in
+    *"Figure 2:"*"A Markdown table and Mermaid diagram are rendered on a landscape page."*) ;;
+    *) echo "ERROR: second Mermaid figure caption or number is missing." >&2; exit 1 ;;
+esac
+
+image_rows=$(pdfimages -list "${pdf}" | sed -n "3,\$p")
+if [ -n "${image_rows}" ]; then
+    echo "ERROR: smoke PDF contains raster image objects." >&2
+    printf "%s\n" "${image_rows}" >&2
+    exit 1
+fi
+
+set -- /workspace/docs/.documentation-work/build/smoke/staging/diagram-*.pdf
+if [ "$#" -ne 2 ] || [ ! -f "$1" ] || [ ! -f "$2" ]; then
+    echo "ERROR: expected exactly two rendered Mermaid PDFs." >&2
+    exit 1
+fi
+for diagram_pdf do
+    diagram_images=$(pdfimages -list "${diagram_pdf}" | sed -n "3,\$p")
+    if [ -n "${diagram_images}" ]; then
+        echo "ERROR: Mermaid PDF contains raster image objects: ${diagram_pdf}" >&2
+        exit 1
+    fi
+done
+
+if [ "${verify_only}" -eq 0 ]; then
+    touch /tmp/documentation-renderer-smoke-passed
+fi

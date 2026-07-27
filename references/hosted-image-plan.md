@@ -1,23 +1,30 @@
-# Future Hosted Renderer Image
+# Hosted Renderer Image
 
-Do not create or publish a hosted image during the first implementation. The local Dockerfile is canonical until this plan is explicitly activated.
+The hosted-image plan is active. The skill repository remains the canonical source for the Dockerfile, renderer runtime, dependency pins, fixtures, and release automation. Project-specific titles, assets, templates, and configuration stay outside the image.
 
-## Proposed repository
+## Initial private-registry release
 
-Create a separately owned repository containing the Dockerfile, renderer runtime, dependency pins, tests, and release automation. Keep project-specific titles, assets, templates, and configuration out of the image.
+The root Jenkins pipeline:
 
-## Release requirements
+1. runs the Docker-first renderer smoke test and installer test image;
+2. builds native linux/amd64 and linux/arm64 images through the `dockerHelpers` shared library;
+3. runs Go tests, vet checks, and the complete Markdown/Mermaid/math/table/landscape PDF smoke fixture inside each architecture build;
+4. publishes the semantic tool version, `latest`, and valid Git tags to `rg.fr-par.scw.cloud/esoul-internal-tools/documentation-tools`;
+5. resolves the merged manifest digest and archives a fingerprinted version-to-digest environment file.
 
-1. Build linux/amd64 and linux/arm64 images.
-2. Pin direct tool versions and record transitive package state.
-3. Run sample Markdown, Mermaid, math, image, table, custom-template, redaction, and every-page rendering tests.
-4. Generate an SBOM and provenance attestation.
-5. Scan operating-system and language packages; define a vulnerability remediation policy.
-6. Sign releases when organizational infrastructure supports it.
-7. Publish semantic tags and immutable digests to the chosen public or private registry.
-8. Retain a documented mapping from tool version to digest.
+The image keeps project configuration and authored documentation outside the runtime and continues to enforce the same read-only checkout, network isolation, dropped capabilities, and writable-directory boundaries as local mode.
+
+## Remaining distribution hardening
+
+Before treating the image as an externally governed distribution:
+
+1. generate and retain an SBOM and provenance attestation;
+2. scan operating-system and language packages and define a vulnerability-remediation policy;
+3. sign releases when organizational infrastructure supports it;
+4. record the approved version-to-digest mapping outside ephemeral build retention.
 
 ## Project migration
 
-Add the published digest to `docs/documentation.toml`, switch `pdf.mode` from `local` to `remote`, authenticate with ordinary Docker/Jenkins mechanisms, and run the complete local-versus-remote fixture comparison. Keep the project-local Dockerfile and pins available for audit and fallback unless a later approved policy removes them.
+Take the immutable image from the archived Jenkins mapping, add it to `docs/documentation.toml`, switch `pdf.mode` from `local` to `remote`, and provide the same value through trusted `DOCUMENTATION_REMOTE_RENDERER_IMAGE` runtime configuration. The Jenkins artifact remains authoritative only while build retention keeps it available; after the durable version-to-digest registry in the hardening plan exists, use that registry instead. Run a complete local-versus-remote comparison.
 
+After that comparison passes, run `scripts/install_project_tools /absolute/project/root --upgrade --remote`. The remote profile retires the project-local Dockerfile, Go source, Lua filters, dependency manifests, and fixtures while retaining the wrapper, version marker, default header, and managed-file manifest. A project can explicitly return to the complete local profile with `--upgrade --local` if an offline or repository-local build fallback is required.

@@ -1,6 +1,7 @@
 \usepackage{graphicx}
 \usepackage{newunicodechar}
 \usepackage{pdflscape}
+\usepackage[most]{tcolorbox}
 \usepackage{xurl}
 \setkeys{Gin}{keepaspectratio}
 \newfontfamily\documentsymbolfont{Noto Sans Symbols}
@@ -12,6 +13,54 @@
 \newunicodechar{♀}{{\documentsymbolfont\char"2640}}
 \newunicodechar{♂}{{\documentsymbolfont\char"2642}}
 \setlength{\emergencystretch}{3em}
+\providecommand{\documentationnotetitle}{Note}
+\providecommand{\documentationtiptitle}{Tip}
+\providecommand{\documentationimportanttitle}{Important}
+\providecommand{\documentationwarningtitle}{Warning}
+\providecommand{\documentationcautiontitle}{Caution}
+\providecommand{\documentationplannedtitle}{Planned}
+\newtcolorbox{documentationnote}{
+  breakable,
+  colback=blue!3,
+  colframe=blue!55!black,
+  fonttitle=\bfseries,
+  title=\documentationnotetitle
+}
+\newtcolorbox{documentationtip}{
+  breakable,
+  colback=green!3,
+  colframe=green!45!black,
+  fonttitle=\bfseries,
+  title=\documentationtiptitle
+}
+\newtcolorbox{documentationimportant}{
+  breakable,
+  colback=violet!3,
+  colframe=violet!55!black,
+  fonttitle=\bfseries,
+  title=\documentationimportanttitle
+}
+\newtcolorbox{documentationwarning}{
+  breakable,
+  colback=orange!5,
+  colframe=orange!70!black,
+  fonttitle=\bfseries,
+  title=\documentationwarningtitle
+}
+\newtcolorbox{documentationcaution}{
+  breakable,
+  colback=red!3,
+  colframe=red!65!black,
+  fonttitle=\bfseries,
+  title=\documentationcautiontitle
+}
+\newtcolorbox{documentationplanned}{
+  breakable,
+  colback=gray!5,
+  colframe=gray!65!black,
+  fonttitle=\bfseries,
+  title=\documentationplannedtitle
+}
 \AtBeginDocument{%
   \lstset{
     breaklines=true,
