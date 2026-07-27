@@ -68,6 +68,19 @@ local function suffix(path)
   return (path:match("(%.[^./]+)$") or ""):lower()
 end
 
+local function literal_inlines(value)
+  local inlines = pandoc.Inlines({})
+  local first = true
+  for word in value:gmatch("%S+") do
+    if not first then
+      inlines:insert(pandoc.Space())
+    end
+    inlines:insert(pandoc.Str(word))
+    first = false
+  end
+  return inlines
+end
+
 local function normalize_image(element)
   local target = element.src
   if element.attributes.srcset ~= nil then
@@ -245,9 +258,20 @@ function Blocks(blocks)
         "--backgroundColor", "transparent",
         "--configFile", mermaid_config,
       }, "")
-      output:insert(pandoc.Para({
-        pandoc.Image({pandoc.Str(alt)}, image, "", pandoc.Attr("", {}, {width = "95%"})),
-      }))
+      local image_alt = literal_inlines(alt)
+      local caption = pandoc.Caption({
+        pandoc.Plain(literal_inlines(alt)),
+      })
+      output:insert(pandoc.Figure({
+        pandoc.Plain({
+          pandoc.Image(
+            image_alt,
+            image,
+            "",
+            pandoc.Attr("", {}, {width = "95%"})
+          ),
+        }),
+      }, caption))
       index = index + 2
     else
       output:insert(current)

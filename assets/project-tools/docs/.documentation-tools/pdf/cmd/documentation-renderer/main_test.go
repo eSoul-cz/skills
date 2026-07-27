@@ -370,7 +370,13 @@ func TestPackagingUsesGoAndMermanWithoutBrowserRuntime(t *testing.T) {
 		}
 	}
 	filterText := string(sourceFilter)
-	for _, expected := range []string{`pandoc.pipe("merman-cli"`, `"--outputFormat", "pdf"`, `"--pdfFit"`} {
+	for _, expected := range []string{
+		`pandoc.pipe("merman-cli"`,
+		`"--outputFormat", "pdf"`,
+		`"--pdfFit"`,
+		`pandoc.Figure({`,
+		`pandoc.Caption({`,
+	} {
 		if !strings.Contains(filterText, expected) {
 			t.Errorf("source filter missing %q", expected)
 		}
