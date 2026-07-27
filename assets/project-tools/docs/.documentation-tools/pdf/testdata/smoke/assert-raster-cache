@@ -35,6 +35,9 @@ assert_cached_image_count() {
 convert -size 2x2 xc:red "${cache_root}/source.png"
 render_fixture
 assert_cached_image_count 1
+set -- "${cache_root}"/staging/image-*.png
+red_cache=$1
+red_digest=$(sha256sum "${red_cache}" | awk '{print $1}')
 
 render_fixture
 assert_cached_image_count 1
@@ -42,3 +45,17 @@ assert_cached_image_count 1
 convert -size 2x2 xc:blue "${cache_root}/source.png"
 render_fixture
 assert_cached_image_count 2
+set -- "${cache_root}"/staging/image-*.png
+if [ "$1" = "${red_cache}" ]; then
+    changed_cache=$2
+elif [ "$2" = "${red_cache}" ]; then
+    changed_cache=$1
+else
+    echo "ERROR: original red raster cache entry is missing." >&2
+    exit 1
+fi
+changed_digest=$(sha256sum "${changed_cache}" | awk '{print $1}')
+if [ "${changed_digest}" = "${red_digest}" ]; then
+    echo "ERROR: changed raster cache entry has the original digest." >&2
+    exit 1
+fi
