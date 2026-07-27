@@ -14,7 +14,7 @@ contact = ""
 [pdf]
 mode = "local"
 image = ""
-platform = "linux/amd64"
+platform = ""
 dockerfile = "docs/.documentation-tools/pdf/Dockerfile"
 template = ""
 header_include = "docs/.documentation-tools/pdf/header.tex"

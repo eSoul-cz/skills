@@ -20,10 +20,17 @@ const manifestRelativePath = "docs/.documentation-tools/managed-files.json"
 
 var semanticVersionPattern = regexp.MustCompile(`^(\d+)\.(\d+)\.(\d+)$`)
 
+var remoteProfileFiles = map[string]bool{
+	"docs/documentation":                       true,
+	"docs/.documentation-tools/VERSION":        true,
+	"docs/.documentation-tools/pdf/header.tex": true,
+}
+
 type manifest struct {
-	SchemaVersion int               `json:"schema_version"`
-	ToolVersion   string            `json:"tool_version"`
-	ManagedFiles  map[string]string `json:"managed_files"`
+	SchemaVersion  int               `json:"schema_version"`
+	ToolVersion    string            `json:"tool_version"`
+	InstallProfile string            `json:"install_profile,omitempty"`
+	ManagedFiles   map[string]string `json:"managed_files"`
 }
 
 type semanticVersion struct {
@@ -36,13 +43,17 @@ func main() {
 	assetRoot := flag.String("asset-root", "", "absolute bundled project-tools directory")
 	checkOnly := flag.Bool("check", false, "check installed managed files without changing them")
 	upgrade := flag.Bool("upgrade", false, "upgrade an existing managed installation")
+	profile := flag.String("profile", "auto", "installation profile: auto, local, or remote")
 	flag.Parse()
 
 	if *checkOnly && *upgrade {
 		exitError(errors.New("--check and --upgrade cannot be combined"), 2)
 	}
 	if strings.TrimSpace(*assetRoot) == "" || flag.NArg() != 1 {
-		exitError(errors.New("usage: install-project-tools --asset-root PATH [--check|--upgrade] PROJECT_ROOT"), 2)
+		exitError(errors.New("usage: install-project-tools --asset-root PATH [--check|--upgrade] [--profile auto|local|remote] PROJECT_ROOT"), 2)
+	}
+	if *profile != "auto" && *profile != "local" && *profile != "remote" {
+		exitError(errors.New("--profile must be 'auto', 'local', or 'remote'"), 2)
 	}
 	projectRoot, err := filepath.Abs(flag.Arg(0))
 	if err != nil {
@@ -59,7 +70,7 @@ func main() {
 		}
 		os.Exit(code)
 	}
-	if err := install(projectRoot, assets, *upgrade); err != nil {
+	if err := install(projectRoot, assets, *upgrade, *profile); err != nil {
 		exitError(err, 1)
 	}
 }
@@ -107,7 +118,7 @@ func bundledVersion(assetRoot string) (string, error) {
 	return version, nil
 }
 
-func sourceFiles(assetRoot string) (map[string]string, error) {
+func sourceFiles(assetRoot, profile string) (map[string]string, error) {
 	files := map[string]string{}
 	err := filepath.WalkDir(assetRoot, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
@@ -131,6 +142,9 @@ func sourceFiles(assetRoot string) (map[string]string, error) {
 		}
 		normalized := filepath.ToSlash(relative)
 		if normalized == manifestRelativePath {
+			return nil
+		}
+		if profile == "remote" && !remoteProfileFiles[normalized] {
 			return nil
 		}
 		files[normalized] = path
@@ -251,7 +265,7 @@ func drift(projectRoot string, installed manifest) ([]string, error) {
 	return findings, nil
 }
 
-func install(projectRoot, assetRoot string, upgrade bool) error {
+func install(projectRoot, assetRoot string, upgrade bool, profile string) error {
 	info, err := os.Stat(projectRoot)
 	if err != nil || !info.IsDir() {
 		return fmt.Errorf("project root does not exist: %s", projectRoot)
@@ -260,11 +274,17 @@ func install(projectRoot, assetRoot string, upgrade bool) error {
 	if err != nil {
 		return err
 	}
-	files, err := sourceFiles(assetRoot)
+	existing, err := loadManifest(projectRoot)
 	if err != nil {
 		return err
 	}
-	existing, err := loadManifest(projectRoot)
+	if profile == "auto" {
+		profile = "local"
+		if existing != nil && existing.InstallProfile == "remote" {
+			profile = "remote"
+		}
+	}
+	files, err := sourceFiles(assetRoot, profile)
 	if err != nil {
 		return err
 	}
@@ -368,9 +388,10 @@ func install(projectRoot, assetRoot string, upgrade bool) error {
 		managedHashes[relative] = digest
 	}
 	payload := manifest{
-		SchemaVersion: 1,
-		ToolVersion:   version,
-		ManagedFiles:  managedHashes,
+		SchemaVersion:  1,
+		ToolVersion:    version,
+		InstallProfile: profile,
+		ManagedFiles:   managedHashes,
 	}
 	manifestPath, err := managedTarget(projectRoot, manifestRelativePath)
 	if err != nil {
@@ -384,7 +405,7 @@ func install(projectRoot, assetRoot string, upgrade bool) error {
 	if existing != nil {
 		action = "Upgraded"
 	}
-	fmt.Printf("%s documentation tooling %s in %s\n", action, version, projectRoot)
+	fmt.Printf("%s documentation tooling %s (%s profile) in %s\n", action, version, profile, projectRoot)
 	if len(retired) > 0 {
 		fmt.Printf("Removed %d retired managed file(s).\n", len(retired))
 	}
@@ -500,6 +521,11 @@ func check(projectRoot, assetRoot string) (int, error) {
 	}
 	fmt.Printf("Installed documentation tooling: %s\n", installed.ToolVersion)
 	fmt.Printf("Bundled documentation tooling: %s\n", version)
+	profile := installed.InstallProfile
+	if profile == "" {
+		profile = "local"
+	}
+	fmt.Printf("Installation profile: %s\n", profile)
 	if len(findings) > 0 {
 		for _, finding := range findings {
 			fmt.Fprintf(os.Stderr, "DRIFT: %s\n", finding)

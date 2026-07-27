@@ -55,7 +55,7 @@ func TestFreshInstallCheckAndDrift(t *testing.T) {
 	if err := os.WriteFile(projectConfig, []byte("project-owned\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := install(project, assets, false); err != nil {
+	if err := install(project, assets, false, "local"); err != nil {
 		t.Fatal(err)
 	}
 	configData, err := os.ReadFile(projectConfig)
@@ -97,7 +97,7 @@ func TestFreshInstallRefusesUnmanagedConflict(t *testing.T) {
 	if err := os.WriteFile(conflict, []byte("unmanaged\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	err := install(project, assets, false)
+	err := install(project, assets, false, "local")
 	if err == nil || !strings.Contains(err.Error(), "refusing to overwrite") {
 		t.Fatalf("expected unmanaged conflict refusal, got %v", err)
 	}
@@ -114,10 +114,10 @@ func TestUpgradeRemovesRetiredFiles(t *testing.T) {
 		"docs/.documentation-tools/VERSION": {Content: "0.4.0\n", Mode: 0o644},
 	})
 	project := t.TempDir()
-	if err := install(project, oldAssets, false); err != nil {
+	if err := install(project, oldAssets, false, "local"); err != nil {
 		t.Fatal(err)
 	}
-	if err := install(project, newAssets, true); err != nil {
+	if err := install(project, newAssets, true, "local"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(project, "docs", ".documentation-tools", "retired-tool.py")); !os.IsNotExist(err) {
@@ -135,26 +135,145 @@ func TestUpgradeRefusesDriftAndDowngrade(t *testing.T) {
 		"docs/.documentation-tools/VERSION": {Content: "0.4.0\n", Mode: 0o644},
 	})
 	project := t.TempDir()
-	if err := install(project, assets, false); err != nil {
+	if err := install(project, assets, false, "local"); err != nil {
 		t.Fatal(err)
 	}
 	target := filepath.Join(project, "docs", "documentation")
 	if err := os.WriteFile(target, []byte("local change\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := install(project, assets, true); err == nil || !strings.Contains(err.Error(), "local drift") {
+	if err := install(project, assets, true, "local"); err == nil || !strings.Contains(err.Error(), "local drift") {
 		t.Fatalf("expected drift refusal, got %v", err)
 	}
 
 	newerProject := t.TempDir()
-	if err := install(newerProject, assets, false); err != nil {
+	if err := install(newerProject, assets, false, "local"); err != nil {
 		t.Fatal(err)
 	}
 	installed := readFixtureManifest(t, newerProject)
 	installed.ToolVersion = "9.0.0"
 	writeFixtureManifest(t, newerProject, installed)
-	if err := install(newerProject, assets, true); err == nil || !strings.Contains(err.Error(), "refusing to downgrade") {
+	if err := install(newerProject, assets, true, "local"); err == nil || !strings.Contains(err.Error(), "refusing to downgrade") {
 		t.Fatalf("expected downgrade refusal, got %v", err)
+	}
+}
+
+func TestRemoteProfileInstallsOnlyRuntimeFiles(t *testing.T) {
+	assets := fixtureAssets(t, "0.5.0", map[string]fixtureFile{
+		"docs/documentation":                                 {Content: "#!/bin/sh\n", Mode: 0o755},
+		"docs/.documentation-tools/VERSION":                  {Content: "0.5.0\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/header.tex":           {Content: "header\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/Dockerfile":           {Content: "FROM scratch\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/filters/source.lua":   {Content: "filter\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/cmd/renderer/main.go": {Content: "package main\n", Mode: 0o644},
+	})
+	project := t.TempDir()
+	if err := install(project, assets, false, "remote"); err != nil {
+		t.Fatal(err)
+	}
+	for _, relative := range []string{
+		"docs/documentation",
+		"docs/.documentation-tools/VERSION",
+		"docs/.documentation-tools/pdf/header.tex",
+	} {
+		if _, err := os.Stat(filepath.Join(project, filepath.FromSlash(relative))); err != nil {
+			t.Fatalf("expected remote runtime file %s: %v", relative, err)
+		}
+	}
+	for _, relative := range []string{
+		"docs/.documentation-tools/pdf/Dockerfile",
+		"docs/.documentation-tools/pdf/filters/source.lua",
+		"docs/.documentation-tools/pdf/cmd/renderer/main.go",
+	} {
+		if _, err := os.Stat(filepath.Join(project, filepath.FromSlash(relative))); !os.IsNotExist(err) {
+			t.Fatalf("remote profile unexpectedly installed %s", relative)
+		}
+	}
+	installed := readFixtureManifest(t, project)
+	if installed.InstallProfile != "remote" || len(installed.ManagedFiles) != 3 {
+		t.Fatalf("unexpected remote manifest: %#v", installed)
+	}
+}
+
+func TestUpgradeFromLocalToRemoteRetiresBuildSources(t *testing.T) {
+	assets := fixtureAssets(t, "0.5.0", map[string]fixtureFile{
+		"docs/documentation":                               {Content: "#!/bin/sh\n", Mode: 0o755},
+		"docs/.documentation-tools/VERSION":                {Content: "0.5.0\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/header.tex":         {Content: "header\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/Dockerfile":         {Content: "FROM scratch\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/filters/source.lua": {Content: "filter\n", Mode: 0o644},
+	})
+	project := t.TempDir()
+	if err := install(project, assets, false, "local"); err != nil {
+		t.Fatal(err)
+	}
+	if err := install(project, assets, true, "remote"); err != nil {
+		t.Fatal(err)
+	}
+	for _, relative := range []string{
+		"docs/.documentation-tools/pdf/Dockerfile",
+		"docs/.documentation-tools/pdf/filters/source.lua",
+	} {
+		if _, err := os.Stat(filepath.Join(project, filepath.FromSlash(relative))); !os.IsNotExist(err) {
+			t.Fatalf("expected remote upgrade to retire %s", relative)
+		}
+	}
+	installed := readFixtureManifest(t, project)
+	if installed.InstallProfile != "remote" {
+		t.Fatalf("unexpected install profile: %q", installed.InstallProfile)
+	}
+}
+
+func TestAutoProfilePreservesRemoteInstallation(t *testing.T) {
+	assets := fixtureAssets(t, "0.5.0", map[string]fixtureFile{
+		"docs/documentation":                               {Content: "#!/bin/sh\n", Mode: 0o755},
+		"docs/.documentation-tools/VERSION":                {Content: "0.5.0\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/header.tex":         {Content: "header\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/Dockerfile":         {Content: "FROM scratch\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/filters/source.lua": {Content: "filter\n", Mode: 0o644},
+	})
+	project := t.TempDir()
+	if err := install(project, assets, false, "remote"); err != nil {
+		t.Fatal(err)
+	}
+	if err := install(project, assets, true, "auto"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(project, "docs", ".documentation-tools", "pdf", "Dockerfile")); !os.IsNotExist(err) {
+		t.Fatal("auto profile unexpectedly restored local build sources")
+	}
+	installed := readFixtureManifest(t, project)
+	if installed.InstallProfile != "remote" {
+		t.Fatalf("unexpected install profile: %q", installed.InstallProfile)
+	}
+}
+
+func TestExplicitLocalProfileRestoresBuildSources(t *testing.T) {
+	assets := fixtureAssets(t, "0.5.0", map[string]fixtureFile{
+		"docs/documentation":                               {Content: "#!/bin/sh\n", Mode: 0o755},
+		"docs/.documentation-tools/VERSION":                {Content: "0.5.0\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/header.tex":         {Content: "header\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/Dockerfile":         {Content: "FROM scratch\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/filters/source.lua": {Content: "filter\n", Mode: 0o644},
+	})
+	project := t.TempDir()
+	if err := install(project, assets, false, "remote"); err != nil {
+		t.Fatal(err)
+	}
+	if err := install(project, assets, true, "local"); err != nil {
+		t.Fatal(err)
+	}
+	for _, relative := range []string{
+		"docs/.documentation-tools/pdf/Dockerfile",
+		"docs/.documentation-tools/pdf/filters/source.lua",
+	} {
+		if _, err := os.Stat(filepath.Join(project, filepath.FromSlash(relative))); err != nil {
+			t.Fatalf("expected local profile to restore %s: %v", relative, err)
+		}
+	}
+	installed := readFixtureManifest(t, project)
+	if installed.InstallProfile != "local" {
+		t.Fatalf("unexpected install profile: %q", installed.InstallProfile)
 	}
 }
 

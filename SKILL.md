@@ -33,6 +33,8 @@ scripts/install_project_tools /absolute/project/root
 
 Resolve the command path relative to this skill directory. It builds and runs the static Go installer in Docker, so the host needs neither Python nor Go. Use `--check` to detect drift and `--upgrade` only with explicit approval. Never overwrite locally modified managed files silently.
 
+After a hosted renderer digest has been published and configured in `docs/documentation.toml`, add `--remote` to install only the runtime wrapper, version marker, default header, and manifest. Use `--upgrade --remote` to migrate a clean local-profile installation; the installer retires the project-local Docker build sources. Use `--upgrade --local` to restore the complete build context. Keep the default local profile when a published digest is unavailable or an auditable project-local fallback is required.
+
 Create project-owned files from `assets/project-templates/`; do not overwrite existing files. Ensure these ignored paths unless project configuration explicitly commits PDFs:
 
 ```gitignore
