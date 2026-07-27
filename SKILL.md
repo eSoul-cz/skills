@@ -28,10 +28,10 @@ Implemented behavior is authoritative for current behavior. Record intended-vers
 After specification approval, run:
 
 ```bash
-python3 scripts/install_project_tools.py /absolute/project/root
+scripts/install_project_tools /absolute/project/root
 ```
 
-Resolve the script path relative to this skill directory. Use `--check` to detect drift and `--upgrade` only with explicit approval. Never overwrite locally modified managed files silently.
+Resolve the command path relative to this skill directory. It builds and runs the static Go installer in Docker, so the host needs neither Python nor Go. Use `--check` to detect drift and `--upgrade` only with explicit approval. Never overwrite locally modified managed files silently.
 
 Create project-owned files from `assets/project-templates/`; do not overwrite existing files. Ensure these ignored paths unless project configuration explicitly commits PDFs:
 
