@@ -42,7 +42,7 @@ Create project-owned files from `assets/project-templates/`; do not overwrite ex
 
 ## Author portable Markdown
 
-Use one H1 per source file, relative links, descriptive image alt text, ordinary Markdown tables, fenced code, Mermaid fences, `$...$` inline math, and `$$...$$` display math. Keep raw LaTeX and renderer directives out of authored pages. Configure layout exceptions and templates in `docs/documentation.toml`.
+Use one H1 per source file, relative links, descriptive image alt text, ordinary Markdown tables, fenced code, footnotes, GitHub alert callouts, Mermaid fences, `$...$` inline math, and `$$...$$` display math. Use a blockquote beginning with bold `Planned` for approved planned-content callouts. Keep raw LaTeX and renderer directives out of authored pages. Configure layout exceptions and templates in `docs/documentation.toml`.
 
 Default to separate user and developer/operator guides, but let the approved specification adapt their chapters. Keep planning, decisions, review records, and screenshot manifests outside PDF source lists.
 
@@ -68,4 +68,3 @@ Inspect every rendered PDF page. Use an installed PDF skill when available. Othe
 - Read [pdf-pipeline.md](references/pdf-pipeline.md) for configuration, commands, custom templates, math, version metadata, and remote-image mode.
 - Read [jenkins.md](references/jenkins.md) only when the user requests CI integration.
 - Read [hosted-image-plan.md](references/hosted-image-plan.md) only when planning or implementing the future hosted renderer image.
-

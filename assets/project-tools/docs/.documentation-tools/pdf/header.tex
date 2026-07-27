@@ -1,6 +1,7 @@
 \usepackage{graphicx}
 \usepackage{newunicodechar}
 \usepackage{pdflscape}
+\usepackage[most]{tcolorbox}
 \usepackage{xurl}
 \setkeys{Gin}{keepaspectratio}
 \newfontfamily\documentsymbolfont{Noto Sans Symbols}
@@ -12,6 +13,48 @@
 \newunicodechar{♀}{{\documentsymbolfont\char"2640}}
 \newunicodechar{♂}{{\documentsymbolfont\char"2642}}
 \setlength{\emergencystretch}{3em}
+\newtcolorbox{documentationnote}{
+  breakable,
+  colback=blue!3,
+  colframe=blue!55!black,
+  fonttitle=\bfseries,
+  title=Note
+}
+\newtcolorbox{documentationtip}{
+  breakable,
+  colback=green!3,
+  colframe=green!45!black,
+  fonttitle=\bfseries,
+  title=Tip
+}
+\newtcolorbox{documentationimportant}{
+  breakable,
+  colback=violet!3,
+  colframe=violet!55!black,
+  fonttitle=\bfseries,
+  title=Important
+}
+\newtcolorbox{documentationwarning}{
+  breakable,
+  colback=orange!5,
+  colframe=orange!70!black,
+  fonttitle=\bfseries,
+  title=Warning
+}
+\newtcolorbox{documentationcaution}{
+  breakable,
+  colback=red!3,
+  colframe=red!65!black,
+  fonttitle=\bfseries,
+  title=Caution
+}
+\newtcolorbox{documentationplanned}{
+  breakable,
+  colback=gray!5,
+  colframe=gray!65!black,
+  fonttitle=\bfseries,
+  title=Planned
+}
 \AtBeginDocument{%
   \lstset{
     breaklines=true,

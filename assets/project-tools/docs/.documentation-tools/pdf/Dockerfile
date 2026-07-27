@@ -1,29 +1,52 @@
+FROM golang:1.24-bookworm AS go_builder
+
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY cmd ./cmd
+RUN CGO_ENABLED=0 go build \
+    -trimpath \
+    -ldflags="-s -w" \
+    -o /out/documentation-renderer \
+    ./cmd/documentation-renderer
+
+FROM rust:1.95-bookworm AS merman_builder
+
+RUN cargo install \
+    --locked \
+    --root /out \
+    --version 0.7.0 \
+    merman-cli
+
 FROM pandoc/extra:3.6.2 AS pandoc_assets
 
-FROM node:22-bookworm-slim
+FROM debian:bookworm-slim
 
 ARG DOC_UID=1000
 ARG DOC_GID=1000
 
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-
+# Debian's TeX meta-packages depend on Python for optional maintenance helpers.
+# The renderer never invokes those helpers, so omit the interpreter at runtime.
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends \
-        chromium \
         fonts-noto-cjk \
         fonts-noto-core \
         fonts-noto-mono \
         imagemagick \
         librsvg2-bin \
+        libstdc++6 \
         lmodern \
         poppler-utils \
-        python3 \
         texlive-fonts-recommended \
         texlive-latex-extra \
         texlive-xetex \
-    && rm -rf /var/lib/apt/lists/* \
-    && npm install --global @mermaid-js/mermaid-cli@11.4.3
+    && rm -rf \
+        /usr/bin/python3 \
+        /usr/bin/python3.11 \
+        /usr/lib/python3 \
+        /usr/lib/python3.11 \
+        /usr/share/python3 \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=pandoc_assets /usr/local/bin/pandoc /usr/local/bin/pandoc
 COPY --from=pandoc_assets /lib/ld-musl-x86_64.so.1 /lib/ld-musl-x86_64.so.1
@@ -36,11 +59,11 @@ COPY --from=pandoc_assets /usr/lib/libgmp.so.10.5.0 /usr/lib/libgmp.so.10.5.0
 COPY --from=pandoc_assets /usr/lib/libffi.so.8 /usr/lib/libffi.so.8
 COPY --from=pandoc_assets /usr/lib/libffi.so.8.1.4 /usr/lib/libffi.so.8.1.4
 COPY --from=pandoc_assets /usr/local/share/pandoc/templates/eisvogel.latex /opt/eisvogel.latex
-COPY renderer.py /opt/documentation-tools/renderer.py
-COPY markdown_images.py /opt/documentation-tools/markdown_images.py
-COPY header.tex /opt/documentation-tools/header.tex
-COPY mermaid-config.json /opt/documentation-tools/mermaid-config.json
-COPY puppeteer-config.json /opt/documentation-tools/puppeteer-config.json
+
+COPY --from=go_builder /out/documentation-renderer /usr/local/bin/documentation-renderer
+COPY --from=merman_builder /out/bin/merman-cli /usr/local/bin/merman-cli
+COPY filters /opt/documentation-tools/filters
+COPY header.tex mermaid-config.json /opt/documentation-tools/
 
 RUN mkdir -p /workspace \
     && chown "${DOC_UID}:${DOC_GID}" /workspace
@@ -48,4 +71,4 @@ RUN mkdir -p /workspace \
 WORKDIR /workspace
 USER ${DOC_UID}:${DOC_GID}
 
-ENTRYPOINT ["python3", "/opt/documentation-tools/renderer.py"]
+ENTRYPOINT ["/usr/local/bin/documentation-renderer"]

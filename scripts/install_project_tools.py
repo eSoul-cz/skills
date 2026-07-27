@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 
-TOOL_VERSION = "0.1.4"
+TOOL_VERSION = "0.3.1"
 MANIFEST_PATH = Path("docs/.documentation-tools/managed-files.json")
 
 
@@ -50,6 +50,20 @@ def load_manifest(project_root: Path) -> dict[str, object] | None:
     return data
 
 
+def managed_target(project_root: Path, value: object) -> tuple[Path, Path]:
+    relative = Path(str(value))
+    if relative.is_absolute() or relative == Path("."):
+        raise ValueError(f"Invalid managed path: {value}")
+    target = (project_root / relative).resolve()
+    try:
+        target.relative_to(project_root.resolve())
+    except ValueError as error:
+        raise ValueError(f"Managed path escapes the project: {value}") from error
+    if relative.as_posix() != str(value):
+        raise ValueError(f"Managed path is not normalized: {value}")
+    return relative, target
+
+
 def drift(project_root: Path, manifest: dict[str, object]) -> list[str]:
     managed_files = manifest.get("managed_files")
     if not isinstance(managed_files, dict):
@@ -57,7 +71,11 @@ def drift(project_root: Path, manifest: dict[str, object]) -> list[str]:
 
     findings: list[str] = []
     for relative, expected in managed_files.items():
-        target = project_root / str(relative)
+        try:
+            _, target = managed_target(project_root, relative)
+        except ValueError as error:
+            findings.append(str(error))
+            continue
         if not target.is_file():
             findings.append(f"Missing managed file: {relative}")
             continue
@@ -84,6 +102,7 @@ def install(project_root: Path, upgrade: bool) -> None:
     files = source_files(asset_root)
     existing = load_manifest(project_root)
 
+    retired_files: list[Path] = []
     if existing is not None:
         findings = drift(project_root, existing)
         if findings:
@@ -108,6 +127,13 @@ def install(project_root: Path, upgrade: bool) -> None:
                 f"Refusing to downgrade managed tooling from {existing.get('tool_version')} "
                 f"to bundled version {TOOL_VERSION}."
             )
+        managed_files = existing.get("managed_files", {})
+        if isinstance(managed_files, dict):
+            for relative in managed_files:
+                normalized, _ = managed_target(project_root, relative)
+                if normalized not in files and normalized != MANIFEST_PATH:
+                    retired_files.append(normalized)
+            retired_files.sort()
 
     conflicting = [
         relative.as_posix()
@@ -119,6 +145,11 @@ def install(project_root: Path, upgrade: bool) -> None:
             "Refusing to overwrite files not owned by a managed manifest:\n"
             + "\n".join(f"- {path}" for path in conflicting)
         )
+
+    for relative in retired_files:
+        target = project_root / relative
+        if target.is_file():
+            target.unlink()
 
     for relative, source in files.items():
         target = project_root / relative
@@ -133,6 +164,8 @@ def install(project_root: Path, upgrade: bool) -> None:
 
     action = "Upgraded" if existing is not None else "Installed"
     print(f"{action} documentation tooling {TOOL_VERSION} in {project_root}")
+    if retired_files:
+        print(f"Removed {len(retired_files)} retired managed file(s).")
     print("Project-owned configuration and documentation templates were not overwritten.")
     print("Ensure /docs/.documentation-work/ is ignored by Git.")
     print("Ignore /docs/pdf/ unless documentation.toml intentionally commits PDF outputs.")
