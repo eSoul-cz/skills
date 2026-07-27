@@ -108,7 +108,12 @@ local function annotate_link(element, target)
   for _, inline in ipairs(element.content) do
     output:insert(inline)
   end
-  if link_notice_style == "parentheses" then
+  if link_notice_style == "plain" then
+    output:insert(pandoc.Space())
+    for _, inline in ipairs(literal_inlines(target)) do
+      output:insert(inline)
+    end
+  elseif link_notice_style == "parentheses" then
     output:insert(pandoc.Space())
     output:insert(pandoc.Str("("))
     for _, inline in ipairs(literal_inlines(target)) do

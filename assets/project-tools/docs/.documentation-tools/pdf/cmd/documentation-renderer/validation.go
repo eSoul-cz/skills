@@ -81,8 +81,16 @@ type publishedRaster struct {
 	Path   string
 }
 
+type linkIssue string
+
+const (
+	linkIssueFatal         linkIssue = "fatal"
+	linkIssueInvalid       linkIssue = "invalid"
+	linkIssueCrossDocument linkIssue = "cross-document"
+)
+
 type linkInspection struct {
-	Issue         string
+	Issue         linkIssue
 	Message       string
 	ProjectTarget string
 }
@@ -154,7 +162,7 @@ func validateProject(root string, cfg config) validationResult {
 			result.error(fmt.Sprintf("Guide %s: sources must be a non-empty array.", label))
 			continue
 		}
-		crossLinkSeverity, valid := crossDocumentLinkSeverity(guide.CrossDocumentLinks)
+		crossLinkSeverity, valid := linkSeverity(guide.CrossDocumentLinks)
 		if !valid {
 			result.error(fmt.Sprintf("Guide %s: cross_document_links must be 'error' or 'notice'.", label))
 		}
@@ -168,19 +176,27 @@ func validateProject(root string, cfg config) validationResult {
 		if _, valid := linkNoticePaths(guide.LinkNoticePaths); !valid {
 			result.error(fmt.Sprintf("Guide %s: link_notice_paths must be 'original' or 'project-relative'.", label))
 		}
-		guideSources := map[string]bool{}
-		for _, sourceValue := range guide.Sources {
-			source, err := securePath(root, sourceValue)
-			if err == nil {
-				guideSources[source] = true
-			}
+		type resolvedGuideSource struct {
+			value string
+			path  string
 		}
+		guideSources := map[string]bool{}
+		resolvedSources := make([]resolvedGuideSource, 0, len(guide.Sources))
 		for _, sourceValue := range guide.Sources {
 			source, err := securePath(root, sourceValue)
 			if err != nil {
 				result.error(err.Error())
 				continue
 			}
+			guideSources[source] = true
+			resolvedSources = append(resolvedSources, resolvedGuideSource{
+				value: sourceValue,
+				path:  source,
+			})
+		}
+		for _, entry := range resolvedSources {
+			sourceValue := entry.value
+			source := entry.path
 			if seenSources[source] {
 				result.warn("Source appears in multiple guides: " + sourceValue)
 			}
@@ -266,10 +282,6 @@ func validatePDFConfig(root string, pdf pdfConfig, result *validationResult) {
 		relative, _ := filepath.Rel(root, dockerfile)
 		result.error("Missing configured Dockerfile: " + filepath.ToSlash(relative))
 	}
-}
-
-func crossDocumentLinkSeverity(value string) (string, bool) {
-	return linkSeverity(value)
 }
 
 func linkSeverity(value string) (string, bool) {
@@ -576,25 +588,25 @@ func validateRawHTMLImages(root, source, relative, rawHTML string, result *valid
 func inspectLinkReference(root, source, target string, guideSources map[string]bool, anchorCache map[string]map[string]bool, documentCache map[string]pandocDocument) linkInspection {
 	parsed, err := url.Parse(target)
 	if err != nil {
-		return linkInspection{Issue: "fatal", Message: "invalid link target"}
+		return linkInspection{Issue: linkIssueFatal, Message: "invalid link target"}
 	}
 	if parsed.Scheme != "" || parsed.Host != "" || strings.HasPrefix(target, "//") {
 		return linkInspection{}
 	}
 	pathValue, err := url.PathUnescape(parsed.Path)
 	if err != nil {
-		return linkInspection{Issue: "fatal", Message: "invalid link target"}
+		return linkInspection{Issue: linkIssueFatal, Message: "invalid link target"}
 	}
 	resolved := source
 	if pathValue != "" {
 		resolved, err = securePath(root, filepath.Join(filepath.Dir(source), pathValue))
 		if err != nil {
-			return linkInspection{Issue: "fatal", Message: "local link escapes the project"}
+			return linkInspection{Issue: linkIssueFatal, Message: "local link escapes the project"}
 		}
 	}
 	projectTarget, err := filepath.Rel(root, resolved)
 	if err != nil {
-		return linkInspection{Issue: "fatal", Message: "cannot normalize local link"}
+		return linkInspection{Issue: linkIssueFatal, Message: "cannot normalize local link"}
 	}
 	projectTarget = filepath.ToSlash(projectTarget)
 	if parsed.RawQuery != "" {
@@ -606,18 +618,18 @@ func inspectLinkReference(root, source, target string, guideSources map[string]b
 	info, statErr := os.Stat(resolved)
 	if statErr != nil {
 		if !os.IsNotExist(statErr) {
-			return linkInspection{Issue: "fatal", Message: "cannot inspect local link"}
+			return linkInspection{Issue: linkIssueFatal, Message: "cannot inspect local link"}
 		}
-		return linkInspection{Issue: "invalid", Message: "broken local link", ProjectTarget: projectTarget}
+		return linkInspection{Issue: linkIssueInvalid, Message: "broken local link", ProjectTarget: projectTarget}
 	}
 	if pathValue != "" && info.IsDir() {
-		return linkInspection{Issue: "invalid", Message: "broken local link", ProjectTarget: projectTarget}
+		return linkInspection{Issue: linkIssueInvalid, Message: "broken local link", ProjectTarget: projectTarget}
 	}
 	if pathValue != "" &&
 		strings.EqualFold(filepath.Ext(resolved), ".md") &&
 		!guideSources[resolved] {
 		return linkInspection{
-			Issue:         "cross-document",
+			Issue:         linkIssueCrossDocument,
 			Message:       "Markdown link target is not part of the rendered guide",
 			ProjectTarget: projectTarget,
 		}
@@ -632,7 +644,7 @@ func inspectLinkReference(root, source, target string, guideSources map[string]b
 		anchorCache[resolved] = anchors
 	}
 	if !anchors[fragment] {
-		return linkInspection{Issue: "invalid", Message: "broken Markdown anchor", ProjectTarget: projectTarget}
+		return linkInspection{Issue: linkIssueInvalid, Message: "broken Markdown anchor", ProjectTarget: projectTarget}
 	}
 	return linkInspection{}
 }
@@ -642,12 +654,12 @@ func validateLinkReference(root, source, relative, target string, guideSources m
 	if inspection.Issue == "" {
 		return
 	}
-	if inspection.Issue == "fatal" {
+	if inspection.Issue == linkIssueFatal {
 		result.error(fmt.Sprintf("%s: %s: %s", relative, inspection.Message, target))
 		return
 	}
 	severity := invalidLinks
-	if inspection.Issue == "cross-document" {
+	if inspection.Issue == linkIssueCrossDocument {
 		severity = crossDocumentLinks
 	}
 	if severity == "notice" {
@@ -673,7 +685,7 @@ func collectLinkNotices(root string, sourcePaths []string, documents map[string]
 			documentCache[cleaned] = document
 		}
 	}
-	crossDocumentLinks, _ := crossDocumentLinkSeverity(guide.CrossDocumentLinks)
+	crossDocumentLinks, _ := linkSeverity(guide.CrossDocumentLinks)
 	invalidLinks, _ := linkSeverity(guide.InvalidLinks)
 	noticePaths, _ := linkNoticePaths(guide.LinkNoticePaths)
 	anchorCache := map[string]map[string]bool{}
@@ -696,11 +708,11 @@ func collectLinkNotices(root string, sourcePaths []string, documents map[string]
 				documentCache,
 			)
 			severity := invalidLinks
-			if inspection.Issue == "cross-document" {
+			if inspection.Issue == linkIssueCrossDocument {
 				severity = crossDocumentLinks
 			}
 			if severity != "notice" ||
-				(inspection.Issue != "invalid" && inspection.Issue != "cross-document") {
+				(inspection.Issue != linkIssueInvalid && inspection.Issue != linkIssueCrossDocument) {
 				continue
 			}
 			display := reference.Target

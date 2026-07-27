@@ -169,7 +169,7 @@ func TestBuildGuideUsesPandocJSONAndCheckedInFilters(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(source), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(source, []byte("# Guide\n\nContent.\n"), 0o644); err != nil {
+	if err := os.WriteFile(source, []byte("# Guide\n\n[Missing](../missing.md)\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	tools := filepath.Join(root, "tools")
@@ -188,7 +188,9 @@ func TestBuildGuideUsesPandocJSONAndCheckedInFilters(t *testing.T) {
 	  "meta": {},
 	  "blocks": [
 	    {"t":"Header","c":[1,["guide",[],[]],[{"t":"Str","c":"Guide"}]]},
-	    {"t":"Para","c":[{"t":"Str","c":"Content."}]}
+	    {"t":"Para","c":[
+	      {"t":"Link","c":[["",[],[]],[{"t":"Str","c":"Missing"}],["../missing.md",""]]}
+	    ]}
 	  ]
 	}`
 	var commands [][]string
@@ -257,6 +259,17 @@ func TestBuildGuideUsesPandocJSONAndCheckedInFilters(t *testing.T) {
 	if !containsArgument(sourceFilterEnv, "DOCUMENTATION_LINK_NOTICE_STYLE=footnote") {
 		t.Fatalf("link notice style was not passed to the source filter: %#v", sourceFilterEnv)
 	}
+	noticeMap := filepath.Join(root, "docs", "work", "build", "guide", "staging", "link-notice-map.lua")
+	if !containsArgument(sourceFilterEnv, "DOCUMENTATION_LINK_NOTICE_MAP="+noticeMap) {
+		t.Fatalf("link notice map path was not passed to the source filter: %#v", sourceFilterEnv)
+	}
+	content, err := os.ReadFile(noticeMap)
+	if err != nil {
+		t.Fatalf("missing link notice map: %v", err)
+	}
+	if !strings.Contains(string(content), `["../missing.md"] = "docs/missing.md"`) {
+		t.Fatalf("link notice map does not contain the expected mapping: %s", content)
+	}
 }
 
 func containsArgument(arguments []string, expected string) bool {
@@ -282,20 +295,23 @@ func TestValidationReportsSuccessAndErrors(t *testing.T) {
 	}
 }
 
-func TestCrossDocumentLinkSeverity(t *testing.T) {
+func TestLinkSeverity(t *testing.T) {
 	for value, expected := range map[string]string{
 		"":       "error",
 		"error":  "error",
 		"notice": "notice",
 	} {
-		severity, valid := crossDocumentLinkSeverity(value)
+		severity, valid := linkSeverity(value)
 		if !valid || severity != expected {
-			t.Errorf("crossDocumentLinkSeverity(%q) = %q, %t; want %q, true", value, severity, valid, expected)
+			t.Errorf("linkSeverity(%q) = %q, %t; want %q, true", value, severity, valid, expected)
 		}
 	}
-	if _, valid := crossDocumentLinkSeverity("warning"); valid {
-		t.Fatal("unsupported cross-document link severity must be rejected")
+	if _, valid := linkSeverity("warning"); valid {
+		t.Fatal("unsupported link severity must be rejected")
 	}
+}
+
+func TestLinkNoticeStyle(t *testing.T) {
 	for value, expected := range map[string]string{
 		"":            "plain",
 		"plain":       "plain",
@@ -307,6 +323,9 @@ func TestCrossDocumentLinkSeverity(t *testing.T) {
 			t.Errorf("linkNoticeStyle(%q) = %q, %t; want %q, true", value, style, valid, expected)
 		}
 	}
+}
+
+func TestLinkNoticePaths(t *testing.T) {
 	for value, expected := range map[string]string{
 		"":                 "original",
 		"original":         "original",
