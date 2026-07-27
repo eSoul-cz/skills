@@ -1,0 +1,17 @@
+{
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Noto Sans, DejaVu Sans, sans-serif",
+    "primaryColor": "#f4f7fa",
+    "primaryTextColor": "#13263a",
+    "primaryBorderColor": "#1b6b93",
+    "lineColor": "#547187",
+    "secondaryColor": "#e8f2f7",
+    "tertiaryColor": "#ffffff"
+  },
+  "flowchart": {
+    "curve": "basis",
+    "htmlLabels": false
+  }
+}
+

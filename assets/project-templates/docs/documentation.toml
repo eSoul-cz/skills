@@ -1,0 +1,48 @@
+schema_version = 1
+documentation_version = ""
+primary_language = "en"
+output_dir = "docs/pdf"
+work_dir = "docs/.documentation-work"
+commit_pdf_outputs = false
+
+[project]
+name = "Application name"
+logo = ""
+copyright = ""
+contact = ""
+
+[pdf]
+mode = "local"
+image = ""
+platform = "linux/amd64"
+dockerfile = "docs/.documentation-tools/pdf/Dockerfile"
+template = ""
+header_include = "docs/.documentation-tools/pdf/header.tex"
+paper_size = "a4"
+main_font = "Noto Sans"
+mono_font = "Noto Sans Mono"
+accent_color = "1B6B93"
+header_left = "Application name"
+footer_left = ""
+
+[privacy]
+allowed_email_domains = ["example.com", "example.org", "example.net"]
+allowed_hosts = []
+
+[[guides]]
+id = "user-guide"
+title = "Application User Guide"
+output = "application-user-guide.pdf"
+sources = [
+  "docs/user-guide/README.md",
+]
+landscape_sources = []
+
+[[guides]]
+id = "developer-guide"
+title = "Application Developer and Operator Guide"
+output = "application-developer-guide.pdf"
+sources = [
+  "docs/developer-guide/README.md",
+]
+landscape_sources = []

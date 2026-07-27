@@ -1,0 +1,4 @@
+interface:
+  display_name: "eSoul Maintain Application Documentation"
+  short_description: "Create, refresh, verify, and render application guides"
+  default_prompt: "Use $esoul-maintain-application-documentation to create or maintain this application’s user and developer documentation."

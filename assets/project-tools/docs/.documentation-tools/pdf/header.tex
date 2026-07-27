@@ -1,0 +1,66 @@
+\usepackage{graphicx}
+\usepackage{newunicodechar}
+\usepackage{pdflscape}
+\usepackage{xurl}
+\setkeys{Gin}{keepaspectratio}
+\newfontfamily\documentsymbolfont{Noto Sans Symbols}
+\newunicodechar{→}{{\documentsymbolfont\char"2192}}
+\newunicodechar{↓}{{\documentsymbolfont\char"2193}}
+\newunicodechar{−}{\ensuremath{-}}
+\newunicodechar{≤}{\ensuremath{\leq}}
+\newunicodechar{≥}{\ensuremath{\geq}}
+\newunicodechar{♀}{{\documentsymbolfont\char"2640}}
+\newunicodechar{♂}{{\documentsymbolfont\char"2642}}
+\setlength{\emergencystretch}{3em}
+\AtBeginDocument{%
+  \lstset{
+    breaklines=true,
+    breakatwhitespace=false,
+    columns=fullflexible,
+    literate=
+      {±}{{\ensuremath{\pm}}}1
+      {Á}{{\'{A}}}1
+      {É}{{\'{E}}}1
+      {Í}{{\'{I}}}1
+      {Ó}{{\'{O}}}1
+      {Ú}{{\'{U}}}1
+      {Ý}{{\'{Y}}}1
+      {á}{{\'{a}}}1
+      {é}{{\'{e}}}1
+      {í}{{\'{i}}}1
+      {ó}{{\'{o}}}1
+      {ú}{{\'{u}}}1
+      {ý}{{\'{y}}}1
+      {Č}{{\v{C}}}1
+      {Ď}{{\v{D}}}1
+      {Ě}{{\v{E}}}1
+      {Ň}{{\v{N}}}1
+      {Ř}{{\v{R}}}1
+      {Š}{{\v{S}}}1
+      {Ť}{{\v{T}}}1
+      {Ž}{{\v{Z}}}1
+      {č}{{\v{c}}}1
+      {ď}{{\v{d}}}1
+      {ě}{{\v{e}}}1
+      {ň}{{\v{n}}}1
+      {ř}{{\v{r}}}1
+      {š}{{\v{s}}}1
+      {ť}{{\v{t}}}1
+      {ž}{{\v{z}}}1
+      {Ů}{{\r{U}}}1
+      {ů}{{\r{u}}}1
+      {–}{{-}}1
+      {−}{{-}}1
+      {→}{{\ensuremath{\rightarrow}}}1
+      {↓}{{\ensuremath{\downarrow}}}1
+      {≤}{{\ensuremath{\leq}}}1
+      {≥}{{\ensuremath{\geq}}}1
+      {×}{{\ensuremath{\times}}}1
+      {µ}{{\ensuremath{\mu}}}1
+      {²}{{\ensuremath{^2}}}1
+      {♀}{{\documentsymbolfont\char"2640}}1
+      {♂}{{\documentsymbolfont\char"2642}}1
+  }
+}
+\RedeclareSectionCommand[tocnumwidth=5.75em]{subsection}
+\RedeclareSectionCommand[tocnumwidth=7em]{subsubsection}
