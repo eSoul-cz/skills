@@ -48,6 +48,21 @@ Use the bundled `documentation.toml` template. Define ordered `sources` arrays i
 
 The optional `[pdf.theme_overrides]` table accepts six-digit hexadecimal semantic colors, `a4` or `letter` paper, main/heading/monospace fonts, a font size from `6pt` through `20pt`, and a positive `mm`, `cm`, `in`, or `pt` margin. In the eSoul preset, `margin` controls the side margins while the branded header/footer retain their verified vertical geometry. Existing flat `paper_size`, `main_font`, `mono_font`, and `accent_color` keys remain supported and take precedence over the selected preset and typed overrides so upgrades do not silently alter established documents. A configured custom template or header remains project-owned and is applied after the generated theme preamble.
 
+Projects may load fonts without rebuilding or extending the renderer image. Add `.otf`, `.ttf`, `.otc`, or `.ttc` files under a project-owned directory, list that directory in `pdf.font_dirs`, and use the font's internal family name in `main_font`, `heading_font`, or `mono_font`:
+
+```toml
+[pdf]
+theme = "default"
+font_dirs = ["docs/fonts"]
+
+[pdf.theme_overrides]
+main_font = "Client Sans"
+heading_font = "Client Display"
+mono_font = "Client Mono"
+```
+
+Font directories are resolved relative to the project root, may contain nested directories, and must contain at least one supported font. Missing directories, files used in place of directories, empty font directories, and symbolic-link escapes fail validation. The renderer generates a guide-local Fontconfig file in the work directory and exposes it only to XeLaTeX; the checkout and font files remain read-only in both local and hosted modes. Font family names come from font metadata rather than filenames, so inspect unfamiliar files with `fc-scan` when configuration and filenames differ. Commit only fonts whose redistribution licence permits inclusion in the project.
+
 Each guide may set `cross_document_links` and `invalid_links` to `"error"` (the default) or `"notice"`. Cross-document policy applies to Markdown files that exist in the project but are not included in that guide's `sources`; invalid-link policy applies to missing local targets and broken Markdown anchors. Notice mode reports the issue and keeps the link label in the PDF. `link_notice_style` selects `plain`, `parentheses`, or `footnote` output, while `link_notice_paths` selects the authored `original` target or a normalized `project-relative` path. Malformed targets and project escapes remain errors regardless of these settings.
 
 Local mode builds the repository-local multi-stage Dockerfile. One stage downloads the pinned Go module graph, runs the Go tests and vet checks, and compiles the renderer with `CGO_ENABLED=0`; another uses the pinned Rust toolchain to compile the pinned Merman CLI; the final runtime receives only the compiled binaries and required runtime assets. The build is native on linux/amd64 and linux/arm64 and executes the end-to-end renderer smoke fixture before producing the final stage. Merman performs browserless Mermaid parsing, layout, and tightly fitted vector-PDF rendering, while the Lua filter preserves the existing Mermaid-fence authoring contract and text-alternative requirement. The filter emits a semantic Pandoc figure whose `diagram-alt` text is both the image alternative and the visible, sequentially numbered caption. Producing PDF directly keeps diagram geometry and labels vector and avoids relying on downstream SVG support for HTML `foreignObject` labels. Pandoc is sourced from its pinned multi-architecture core image, while the architecture-independent Eisvogel template is copied from its pinned image. Remote mode requires an immutable image reference such as `registry.example/docs@sha256:...` and an exact match in `DOCUMENTATION_REMOTE_RENDERER_IMAGE` supplied by trusted runtime configuration outside the repository. Standard Docker tooling owns registry authentication.
@@ -62,7 +77,7 @@ Authored pages cannot emit raw TeX or raw attributes. Rendering happens from an 
 
 ## Branding and templates
 
-The configurable default supports product and guide titles, subtitle/revision metadata, logo, semantic colors, paper size, margins, headers/footers, copyright/contact text, and fonts available in the image. The eSoul preset carries publisher identity separately from the optional project logo and embeds its licensed Poppins and Syne fonts plus vector publisher marks from the renderer image. A project may select a fully custom Pandoc/LaTeX template. Custom templates are project-owned, excluded from managed upgrades, and subject to the same build and visual gates.
+The configurable default supports product and guide titles, subtitle/revision metadata, logo, semantic colors, paper size, margins, headers/footers, copyright/contact text, fonts available in the image, and project-local fonts declared through `pdf.font_dirs`. The eSoul preset carries publisher identity separately from the optional project logo and embeds its licensed Poppins and Syne fonts plus vector publisher marks from the renderer image. A project may select a fully custom Pandoc/LaTeX template. Custom templates are project-owned, excluded from managed upgrades, and subject to the same build and visual gates.
 
 ## Revisions and versions
 
@@ -82,4 +97,4 @@ The Docker-built static Go installer records a semantic tool version, installati
 
 The default local profile installs the complete auditable build context. The explicit `--remote` profile installs only `docs/documentation`, the managed version and manifest, and the default PDF header. Before migrating with `--upgrade --remote`, configure `pdf.mode = "remote"` and set `pdf.image` to the published immutable digest; supply that same value as `DOCUMENTATION_REMOTE_RENDERER_IMAGE` when invoking the wrapper. Use `--upgrade --local` to restore the complete build context explicitly; an upgrade without either profile flag preserves an existing remote installation.
 
-Before releasing a bundled tool version, run `scripts/test_renderer_smoke`. It builds the Docker image and verifies the default and eSoul presets, complex footnotes and link notices, semantic callouts and tables, embedded Poppins/Syne fonts, visible sequential Mermaid captions, exactly two generated diagram PDFs per guide, and vector-only diagrams and combined PDFs.
+Before releasing a bundled tool version, run `scripts/test_renderer_smoke`. It builds the Docker image and verifies the default and eSoul presets, a project-local font absent from the runtime image, complex footnotes and link notices, semantic callouts and tables, embedded Poppins/Syne fonts, visible sequential Mermaid captions, exactly two generated diagram PDFs per full guide, and vector-only diagrams and combined PDFs.

@@ -19,9 +19,13 @@ dockerfile = "docs/.documentation-tools/pdf/Dockerfile"
 template = ""
 header_include = "docs/.documentation-tools/pdf/header.tex"
 theme = "default"
+font_dirs = []
 header_left = "Application name"
 footer_left = ""
 
+# Project-local fonts can be loaded without changing the renderer image:
+# font_dirs = ["docs/fonts"]
+#
 # Optional typed overrides for the selected theme:
 # [pdf.theme_overrides]
 # accent_color = "1B6B93"

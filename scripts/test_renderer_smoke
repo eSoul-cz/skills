@@ -92,6 +92,30 @@ docker run \
     --read-only \
     --cap-drop ALL \
     --security-opt no-new-privileges \
+    --pids-limit 512 \
+    --memory 2g \
+    --memory-swap 2g \
+    --shm-size 256m \
+    --network none \
+    --tmpfs /tmp:rw,nosuid,nodev,size=1g \
+    --env HOME=/tmp \
+    --env XDG_CACHE_HOME=/tmp/.cache \
+    --env DOC_COMMIT=smoke-test \
+    --env DOC_GENERATED_AT="2026-01-01 00:00 UTC" \
+    --platform "${platform}" \
+    --user "$(id -u):$(id -g)" \
+    --volume "${smoke_root}:/workspace:ro" \
+    --volume "${smoke_root}/docs/pdf:/workspace/docs/pdf:rw" \
+    --volume "${smoke_root}/docs/.documentation-work:/workspace/docs/.documentation-work:rw" \
+    "${renderer_image}" \
+    --project-root /workspace \
+    --config docs/local-font-documentation.toml
+
+docker run \
+    --rm \
+    --read-only \
+    --cap-drop ALL \
+    --security-opt no-new-privileges \
     --memory 512m \
     --memory-swap 512m \
     --network none \

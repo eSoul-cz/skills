@@ -126,6 +126,9 @@ func validateProject(root string, cfg config) validationResult {
 	}
 	validateGitState(root, cfg, &result)
 	validatePDFConfig(root, cfg.PDF, &result)
+	if _, err := resolveFontDirectories(root, cfg.PDF.FontDirs); err != nil {
+		result.error(err.Error() + ".")
+	}
 	if _, err := resolveTheme(cfg.PDF); err != nil {
 		result.error(err.Error() + ".")
 	}

@@ -1,0 +1,40 @@
+schema_version = 1
+documentation_version = "0.6.0-smoke"
+primary_language = "en"
+output_dir = "docs/pdf"
+work_dir = "docs/.documentation-work"
+commit_pdf_outputs = false
+
+[project]
+name = "Documentation Renderer Smoke Test"
+logo = ""
+copyright = ""
+contact = ""
+
+[pdf]
+mode = "local"
+image = ""
+platform = "linux/amd64"
+dockerfile = "docs/.documentation-tools/pdf/Dockerfile"
+template = ""
+header_include = ""
+theme = "default"
+font_dirs = ["docs/fonts"]
+header_left = "Local font smoke test"
+footer_left = ""
+
+[pdf.theme_overrides]
+heading_font = "Documentation Fixture"
+
+[[guides]]
+id = "local-font-smoke"
+title = "Project-local Font Guide"
+output = "local-font-smoke.pdf"
+cross_document_links = "notice"
+invalid_links = "notice"
+link_notice_style = "footnote"
+link_notice_paths = "project-relative"
+sources = [
+  "docs/guide/overview.md",
+]
+landscape_sources = []

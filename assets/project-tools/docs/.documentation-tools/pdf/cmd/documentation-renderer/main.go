@@ -68,6 +68,7 @@ type pdfConfig struct {
 	HeaderInclude  string               `toml:"header_include"`
 	Theme          string               `toml:"theme"`
 	ThemeOverrides themeOverridesConfig `toml:"theme_overrides"`
+	FontDirs       []string             `toml:"font_dirs"`
 	PaperSize      string               `toml:"paper_size"`
 	MainFont       string               `toml:"main_font"`
 	MonoFont       string               `toml:"mono_font"`
@@ -451,6 +452,10 @@ func buildGuide(root string, cfg config, guide guideConfig) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	fontEnv, err := prepareFontEnvironment(root, stagingDir, cfg.PDF.FontDirs)
+	if err != nil {
+		return "", err
+	}
 	metadataPath := filepath.Join(stagingDir, "metadata.yaml")
 	if err := writeMetadata(root, stagingDir, metadataPath, cfg, guide); err != nil {
 		return "", err
@@ -497,13 +502,14 @@ func buildGuide(root string, cfg config, guide guideConfig) (string, error) {
 	if themeFiles.BeforeBody != "" {
 		pandocArgs = append(pandocArgs, "--include-before-body="+themeFiles.BeforeBody)
 	}
+	renderEnv := append(fontEnv,
+		"DOCUMENTATION_INTERNAL_TOKEN="+token,
+		"DOCUMENTATION_THEME="+theme.Name,
+	)
 	_, err = runCommand(
 		pandocArgs,
 		stagingDir,
-		[]string{
-			"DOCUMENTATION_INTERNAL_TOKEN=" + token,
-			"DOCUMENTATION_THEME=" + theme.Name,
-		},
+		renderEnv,
 		nil,
 	)
 	if err != nil {

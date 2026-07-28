@@ -19,16 +19,27 @@ else
         documentation-renderer \
             --project-root /workspace \
             --config docs/esoul-documentation.toml
+    DOC_COMMIT=smoke-test \
+    DOC_GENERATED_AT="2026-01-01 00:00 UTC" \
+    HOME=/tmp \
+    XDG_CACHE_HOME=/tmp/.cache \
+        documentation-renderer \
+            --project-root /workspace \
+            --config docs/local-font-documentation.toml
 fi
 
 extracted=/workspace/docs/.documentation-work/review/smoke/extracted.txt
 pdf=/workspace/docs/pdf/smoke.pdf
 esoul_extracted=/workspace/docs/.documentation-work/review/esoul-smoke/extracted.txt
 esoul_pdf=/workspace/docs/pdf/esoul-smoke.pdf
+local_font_extracted=/workspace/docs/.documentation-work/review/local-font-smoke/extracted.txt
+local_font_pdf=/workspace/docs/pdf/local-font-smoke.pdf
 test -s "${extracted}"
 test -s "${pdf}"
 test -s "${esoul_extracted}"
 test -s "${esoul_pdf}"
+test -s "${local_font_extracted}"
+test -s "${local_font_pdf}"
 
 normalized=$(tr "\n" " " < "${extracted}" | tr -s " ")
 case "${normalized}" in
@@ -95,10 +106,20 @@ if ! pdffonts "${esoul_pdf}" | grep -q "Syne"; then
     echo "ERROR: eSoul PDF does not embed Syne." >&2
     exit 1
 fi
+if ! pdffonts "${local_font_pdf}" | grep -q "DocumentationFixture"; then
+    echo "ERROR: project-local font was not discovered and embedded." >&2
+    exit 1
+fi
 esoul_image_rows=$(pdfimages -list "${esoul_pdf}" | sed -n "3,\$p")
 if [ -n "${esoul_image_rows}" ]; then
     echo "ERROR: eSoul PDF contains raster image objects." >&2
     printf "%s\n" "${esoul_image_rows}" >&2
+    exit 1
+fi
+local_font_image_rows=$(pdfimages -list "${local_font_pdf}" | sed -n "3,\$p")
+if [ -n "${local_font_image_rows}" ]; then
+    echo "ERROR: project-local font PDF contains raster image objects." >&2
+    printf "%s\n" "${local_font_image_rows}" >&2
     exit 1
 fi
 
