@@ -33,7 +33,7 @@ scripts/install_project_tools /absolute/project/root
 
 Resolve the command path relative to this skill directory. It builds and runs the static Go installer in Docker, so the host needs neither Python nor Go. Use `--check` to detect drift and `--upgrade` only with explicit approval. Never overwrite locally modified managed files silently.
 
-After a hosted renderer digest has been published and configured in `docs/documentation.toml`, add `--remote` to install only the runtime wrapper, version marker, default header, and manifest. Use `--upgrade --remote` to migrate a clean local-profile installation; the installer retires the project-local Docker build sources. Use `--upgrade --local` to restore the complete build context. Keep the default local profile when a published digest is unavailable or an auditable project-local fallback is required.
+After a hosted renderer digest has been published and configured in `docs/documentation.toml`, use `--remote` for normal project installations. It installs only the runtime wrapper, version marker, default header, catalog, and manifest. Use `--upgrade --remote` to migrate a clean local-profile installation; the installer retires the project-local Docker build sources. Retain `--upgrade --local` only for renderer development or emergency recovery, not as a production-equivalence target.
 
 Run `docs/documentation doctor` after installation and before a hosted-profile migration. It checks the installed profile and managed-file hashes, validates the durable release catalog, confirms configuration-schema compatibility, diagnoses Docker and registry readiness, and verifies that the independently supplied `DOCUMENTATION_REMOTE_RENDERER_IMAGE` exactly matches the configured digest. The catalog resolves versions; it does not replace or weaken the trusted runtime allowlist.
 
@@ -46,6 +46,8 @@ scripts/upgrade_project_tools /absolute/project/root --to 0.6.0
 This Docker-first command is read-only. It resolves the requested semantic version through the bundled catalog, requires the skill bundle to match that release, rejects managed drift, downgrades, incompatible configuration schemas, and unsafe remote-image values, then reports the managed profile migration, project-owned TOML edits, retired files, and independent allowlist value. It does not apply the plan or update CI credentials.
 
 After reviewing the exact plan and obtaining approval, append `--apply`. The installer updates managed files and only the `[pdf].mode` and `[pdf].image` project settings in one transaction, validates the resulting manifest, checksums, profile, retired files, and configuration, and restores the previous files, manifest, and TOML if validation fails. It prints the trusted `DOCUMENTATION_REMOTE_RENDERER_IMAGE` value but never changes local secrets or CI credentials.
+
+After the transaction commits, the wrapper temporarily supplies that image value to `docs/documentation doctor`. Doctor failure makes the command fail but does not undo an internally consistent upgrade merely because Docker, registry authentication, network access, or another external prerequisite is unavailable. Resolve the reported readiness issue, persist the allowlist through trusted local and CI configuration, and rerun `docs/documentation doctor`.
 
 Create project-owned files from `assets/project-templates/`; do not overwrite existing files. Ensure these ignored paths unless project configuration explicitly commits PDFs:
 

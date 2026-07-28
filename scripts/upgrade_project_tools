@@ -6,6 +6,7 @@ SKILL_ROOT=$(CDPATH= cd "${SCRIPT_DIR}/.." && pwd)
 INSTALLER_DIR="${SCRIPT_DIR}/install-project-tools"
 VERSION_FILE="${SKILL_ROOT}/assets/project-tools/docs/.documentation-tools/VERSION"
 CATALOG_TOOL="${SKILL_ROOT}/assets/project-tools/docs/.documentation-tools/release-catalog"
+CATALOG_DIR="${SKILL_ROOT}/assets/project-tools/docs/.documentation-tools/releases"
 
 usage() {
     echo "Usage: scripts/upgrade_project_tools PROJECT_ROOT --to VERSION [--apply]" >&2
@@ -58,8 +59,8 @@ if [ ! -x "${CATALOG_TOOL}" ] || [ ! -f "${VERSION_FILE}" ]; then
     exit 1
 fi
 
-target_image=$("${CATALOG_TOOL}" resolve "${target_version}")
-release=$("${CATALOG_TOOL}" show "${target_version}")
+target_image=$(DOCUMENTATION_RELEASE_CATALOG_DIR="${CATALOG_DIR}" "${CATALOG_TOOL}" resolve "${target_version}")
+release=$(DOCUMENTATION_RELEASE_CATALOG_DIR="${CATALOG_DIR}" "${CATALOG_TOOL}" show "${target_version}")
 resolved_version=$(catalog_field "${release}" RENDERER_VERSION)
 target_config_schema=$(catalog_field "${release}" CONFIG_SCHEMA_VERSION)
 if [ "${resolved_version}" != "${target_version}" ]; then
@@ -83,7 +84,7 @@ docker build \
     --tag "${installer_image}" \
     "${SKILL_ROOT}"
 
-exec docker run \
+set -- docker run \
     --rm \
     --read-only \
     --cap-drop ALL \
@@ -101,3 +102,18 @@ exec docker run \
     --target-config-schema "${target_config_schema}" \
     --display-project-root "${PROJECT_ROOT}" \
     /project
+"$@"
+
+if [ "${operation}" = "--apply-remote-upgrade" ]; then
+    echo "Running post-upgrade doctor diagnostics..."
+    if DOCUMENTATION_REMOTE_RENDERER_IMAGE="${target_image}" \
+        "${PROJECT_ROOT}/docs/documentation" doctor
+    then
+        echo "Post-upgrade doctor diagnostics passed."
+    else
+        doctor_status=$?
+        echo "ERROR: The remote-upgrade transaction committed, but post-upgrade doctor diagnostics failed." >&2
+        echo "ERROR: The internally consistent upgrade was retained; resolve the reported Docker, registry, or environment issue and rerun docs/documentation doctor." >&2
+        exit "${doctor_status}"
+    fi
+fi

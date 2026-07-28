@@ -3,6 +3,7 @@ FROM golang:1.24-bookworm@sha256:1a6d4452c65dea36aac2e2d606b01b4a029ec90cc1ae538
 WORKDIR /src
 COPY scripts/install-project-tools/go.mod ./
 COPY scripts/install-project-tools/*.go ./
+COPY scripts/upgrade_project_tools /fixture/scripts/upgrade_project_tools
 COPY assets/project-tools /fixture/assets/project-tools
 COPY assets/project-templates/docs/documentation.toml /fixture/assets/project-templates/docs/documentation.toml
 RUN DOCUMENTATION_SKILL_ROOT=/fixture go test -count=1 ./... \

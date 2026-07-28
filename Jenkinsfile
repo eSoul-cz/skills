@@ -114,7 +114,7 @@ pipeline {
 							"SOURCE_COMMIT=${sourceCommit}",
 							'CONFIG_SCHEMA_VERSION=1',
 							'RELEASE_STATUS=active',
-							'UPGRADE_NOTES=Review compatibility notes before committing this generated release entry to the durable catalog.',
+							'UPGRADE_NOTES=Adds named themes, eSoul client branding, project-local fonts, styled footnotes and callouts, configurable link notices, doctor diagnostics, and transactional hosted upgrades; configuration schema remains 1.',
 							'SBOM=unavailable',
 							'SCAN=unavailable',
 							'PROVENANCE=unavailable',

@@ -698,6 +698,68 @@ func TestManagedReleaseCatalogValidatesAndRejectsRevokedRelease(t *testing.T) {
 	}
 }
 
+func TestUpgradeWrapperRunsDoctorAfterApply(t *testing.T) {
+	skillRoot := repositoryRoot(t)
+	targetImage := legacyPublishedImage
+	fakeBin := t.TempDir()
+	if err := os.WriteFile(
+		filepath.Join(fakeBin, "docker"),
+		[]byte("#!/bin/sh\ncase \"${1:-}\" in\n  info|build|run) exit 0 ;;\nesac\nexit 1\n"),
+		0o755,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	runUpgrade := func(t *testing.T, doctorExit int) (string, error) {
+		t.Helper()
+		project := t.TempDir()
+		doctor := filepath.Join(project, "docs", "documentation")
+		if err := os.MkdirAll(filepath.Dir(doctor), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		doctorScript := fmt.Sprintf(
+			"#!/bin/sh\n[ \"${1:-}\" = doctor ] || exit 9\n[ \"${DOCUMENTATION_REMOTE_RENDERER_IMAGE:-}\" = %q ] || exit 8\necho fixture-doctor\nexit %d\n",
+			targetImage,
+			doctorExit,
+		)
+		if err := os.WriteFile(doctor, []byte(doctorScript), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		command := exec.Command(
+			filepath.Join(skillRoot, "scripts", "upgrade_project_tools"),
+			project,
+			"--to",
+			"0.5.0",
+			"--apply",
+		)
+		command.Env = append(
+			os.Environ(),
+			"PATH="+fakeBin+string(os.PathListSeparator)+os.Getenv("PATH"),
+			"DOCUMENTATION_RELEASE_CATALOG_DIR="+t.TempDir(),
+		)
+		output, err := command.CombinedOutput()
+		return string(output), err
+	}
+
+	output, err := runUpgrade(t, 0)
+	if err != nil {
+		t.Fatalf("expected post-upgrade doctor success: %v\n%s", err, output)
+	}
+	if !strings.Contains(output, "fixture-doctor") ||
+		!strings.Contains(output, "Post-upgrade doctor diagnostics passed.") {
+		t.Fatalf("successful upgrade output is missing doctor diagnostics:\n%s", output)
+	}
+
+	output, err = runUpgrade(t, 7)
+	if err == nil {
+		t.Fatalf("expected post-upgrade doctor failure:\n%s", output)
+	}
+	if !strings.Contains(output, "transaction committed") ||
+		!strings.Contains(output, "internally consistent upgrade was retained") {
+		t.Fatalf("failed doctor output did not explain retained state:\n%s", output)
+	}
+}
+
 func TestDocumentationDoctorReportsLocalAndRemoteReadiness(t *testing.T) {
 	skillRoot := repositoryRoot(t)
 	assets := filepath.Join(skillRoot, "assets", "project-tools")
