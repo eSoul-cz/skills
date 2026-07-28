@@ -71,7 +71,7 @@ fi
 docker build \
     --file "${INSTALLER_DIR}/Dockerfile" \
     --tag "${installer_image}" \
-    "${INSTALLER_DIR}"
+    "${SKILL_ROOT}"
 
 set -- docker run \
     --rm \

@@ -22,9 +22,10 @@ const manifestRelativePath = "docs/.documentation-tools/managed-files.json"
 var semanticVersionPattern = regexp.MustCompile(`^(\d+)\.(\d+)\.(\d+)$`)
 
 var remoteProfileFiles = map[string]bool{
-	"docs/documentation":                       true,
-	"docs/.documentation-tools/VERSION":        true,
-	"docs/.documentation-tools/pdf/header.tex": true,
+	"docs/documentation":                        true,
+	"docs/.documentation-tools/VERSION":         true,
+	"docs/.documentation-tools/release-catalog": true,
+	"docs/.documentation-tools/pdf/header.tex":  true,
 }
 
 type manifest struct {
@@ -150,7 +151,9 @@ func sourceFiles(assetRoot, profile string) (map[string]string, error) {
 		if normalized == manifestRelativePath {
 			return nil
 		}
-		if profile == "remote" && !remoteProfileFiles[normalized] {
+		if profile == "remote" &&
+			!remoteProfileFiles[normalized] &&
+			!strings.HasPrefix(normalized, "docs/.documentation-tools/releases/") {
 			return nil
 		}
 		files[normalized] = path
