@@ -35,6 +35,8 @@ Resolve the command path relative to this skill directory. It builds and runs th
 
 After a hosted renderer digest has been published and configured in `docs/documentation.toml`, add `--remote` to install only the runtime wrapper, version marker, default header, and manifest. Use `--upgrade --remote` to migrate a clean local-profile installation; the installer retires the project-local Docker build sources. Use `--upgrade --local` to restore the complete build context. Keep the default local profile when a published digest is unavailable or an auditable project-local fallback is required.
 
+Run `docs/documentation doctor` after installation and before a hosted-profile migration. It checks the installed profile and managed-file hashes, validates the durable release catalog, confirms configuration-schema compatibility, diagnoses Docker and registry readiness, and verifies that the independently supplied `DOCUMENTATION_REMOTE_RENDERER_IMAGE` exactly matches the configured digest. The catalog resolves versions; it does not replace or weaken the trusted runtime allowlist.
+
 Create project-owned files from `assets/project-templates/`; do not overwrite existing files. Ensure these ignored paths unless project configuration explicitly commits PDFs:
 
 ```gitignore

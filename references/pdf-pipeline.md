@@ -24,6 +24,7 @@ docs/documentation validate
 docs/documentation build
 docs/documentation render
 docs/documentation redact docs/.documentation-work/redaction-plan.json
+docs/documentation doctor
 docs/documentation version
 ```
 
@@ -113,7 +114,9 @@ Mechanical validation checks basic heading structure, image alt text, descriptiv
 
 The Docker-built static Go installer records a semantic tool version, installation profile, and SHA-256 checksums for managed files. The host-side entrypoint needs only a POSIX shell and Docker. Bundled assets are always mounted read-only; `--check` also mounts the selected project read-only, while install and explicit upgrade mount only that project root read-write. `--check` reports drift and compares versions without calling a newer installed version an available update. `--upgrade` requires explicit invocation, aborts when managed files were locally modified, and refuses to downgrade a project whose managed version is newer than the bundle. Preserve project configuration, sources, specifications, decisions, and approved assets.
 
-The default local profile installs the complete auditable build context. The explicit `--remote` profile installs only `docs/documentation`, the managed version and manifest, and the default PDF header. Before migrating with `--upgrade --remote`, configure `pdf.mode = "remote"` and set `pdf.image` to the published immutable digest; supply that same value as `DOCUMENTATION_REMOTE_RENDERER_IMAGE` when invoking the wrapper. Use `--upgrade --local` to restore the complete build context explicitly; an upgrade without either profile flag preserves an existing remote installation.
+The default local profile installs the complete auditable build context. The explicit `--remote` profile installs only `docs/documentation`, the managed version and manifest, the release-catalog command and records, and the default PDF header. Before migrating with `--upgrade --remote`, resolve a cataloged release, configure `pdf.mode = "remote"`, and set `pdf.image` to its immutable digest; supply that same value independently as `DOCUMENTATION_REMOTE_RENDERER_IMAGE` when invoking the wrapper. Use `--upgrade --local` to restore the complete build context explicitly; an upgrade without either profile flag preserves an existing remote installation.
+
+`docs/documentation doctor` is read-only. It reports the installed version/profile, managed-file drift, latest catalog release, configuration-schema compatibility, configured digest, Docker readiness, private-registry manifest access, legacy flat theme settings, and trusted allowlist status. A catalog match never authorizes execution by itself: remote validation and rendering continue to require an exact external `DOCUMENTATION_REMOTE_RENDERER_IMAGE` match.
 
 Before releasing a bundled tool version, run `scripts/test_renderer_smoke`. It builds the Docker image and verifies the default and eSoul presets, populated and minimal client-title-page states, a project-local font absent from the runtime image, complex footnotes and link notices, semantic callouts and tables, embedded Poppins/Syne fonts, visible sequential Mermaid captions, and vector-only diagrams and combined PDFs. The same gate renders a dedicated showcase containing typography, lists, quotations, code, math, complex footnotes, every semantic callout, tables, project-local vector images, multiple Mermaid diagrams, and landscape content under both built-in themes.
 
