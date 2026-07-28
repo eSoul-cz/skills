@@ -1,0 +1,318 @@
+#!/bin/sh
+set -eu
+
+TOOLS_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
+CATALOG_DIR=${DOCUMENTATION_RELEASE_CATALOG_DIR:-"${TOOLS_DIR}/releases"}
+
+usage() {
+    echo "Usage: release-catalog {validate|latest|resolve VERSION|show VERSION|contains-image IMAGE}" >&2
+    exit 2
+}
+
+fail() {
+    echo "ERROR: $*" >&2
+    exit 1
+}
+
+require_semantic_version() {
+    value=$1
+    if ! printf '%s\n' "${value}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+        fail "release version is not semantic: ${value}"
+    fi
+}
+
+entry_path() {
+    version=$1
+    require_semantic_version "${version}"
+    printf '%s/%s.env\n' "${CATALOG_DIR}" "${version}"
+}
+
+entry_value() {
+    entry=$1
+    wanted=$2
+    awk -v wanted="${wanted}" '
+        index($0, wanted "=") == 1 {
+            if (found) {
+                duplicate = 1
+                exit
+            }
+            print substr($0, length(wanted) + 2)
+            found = 1
+        }
+        END {
+            if (duplicate) {
+                exit 2
+            }
+            if (!found) {
+                exit 1
+            }
+        }
+    ' "${entry}"
+}
+
+required_value() {
+    entry=$1
+    key=$2
+    if value=$(entry_value "${entry}" "${key}"); then
+        :
+    else
+        status=$?
+        if [ "${status}" -eq 2 ]; then
+            fail "${entry} contains duplicate ${key} values"
+        fi
+        fail "${entry} is missing ${key}"
+    fi
+    if [ -z "${value}" ]; then
+        fail "${entry} contains an empty ${key}"
+    fi
+    printf '%s\n' "${value}"
+}
+
+validate_supply_chain_artifact() {
+    entry=$1
+    key=$2
+    value=$3
+    renderer_only=$4
+    if [ "${value}" = "unavailable" ] &&
+        [ "${renderer_only}" = "1" ] &&
+        [ "${DOCUMENTATION_RELEASE_CATALOG_ALLOW_RENDERER_ONLY_CANDIDATE:-0}" = "1" ] &&
+        [ "${DOCUMENTATION_RELEASE_CATALOG_ALLOW_UNAVAILABLE_SUPPLY_CHAIN_CANDIDATE:-0}" = "1" ]
+    then
+        return
+    fi
+    if ! printf '%s\n' "${value}" |
+        grep -Eq '^https://[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*(:[0-9]+)?([/?#][^[:space:]]*)?$'
+    then
+        fail "${entry} active release ${key} must be an HTTPS artifact URL"
+    fi
+}
+
+validate_entry() {
+    entry=$1
+    filename=$(basename "${entry}" .env)
+    require_semantic_version "${filename}"
+
+    schema=$(required_value "${entry}" CATALOG_SCHEMA_VERSION)
+    version=$(required_value "${entry}" RENDERER_VERSION)
+    image=$(required_value "${entry}" RENDERER_IMAGE)
+    architectures=$(required_value "${entry}" ARCHITECTURES)
+    published_at=$(required_value "${entry}" PUBLISHED_AT)
+    source_commit=$(required_value "${entry}" SOURCE_COMMIT)
+    config_schema=$(required_value "${entry}" CONFIG_SCHEMA_VERSION)
+    status=$(required_value "${entry}" RELEASE_STATUS)
+    required_value "${entry}" UPGRADE_NOTES >/dev/null
+    sbom=$(required_value "${entry}" SBOM)
+    scan=$(required_value "${entry}" SCAN)
+    provenance=$(required_value "${entry}" PROVENANCE)
+    signature=$(required_value "${entry}" SIGNATURE)
+
+    if [ "${schema}" != "1" ]; then
+        fail "${entry} has unsupported CATALOG_SCHEMA_VERSION ${schema}"
+    fi
+    if [ "${version}" != "${filename}" ]; then
+        fail "${entry} version ${version} does not match its filename"
+    fi
+    if ! printf '%s\n' "${image}" | grep -Eq '^[^[:space:]@]+@sha256:[0-9a-f]{64}$'; then
+        fail "${entry} RENDERER_IMAGE is not pinned by an immutable sha256 digest"
+    fi
+    if ! printf '%s\n' "${architectures}" | awk -F, '
+        NF == 0 { exit 1 }
+        {
+            for (field_index = 1; field_index <= NF; field_index++) {
+                if ($field_index !~ /^linux\/(amd64|arm64)$/ || seen[$field_index]++) {
+                    exit 1
+                }
+            }
+        }
+    '; then
+        fail "${entry} contains unsupported or duplicate ARCHITECTURES"
+    fi
+    if [ "${published_at}" != "unknown" ] &&
+        ! printf '%s\n' "${published_at}" |
+            grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$'
+    then
+        fail "${entry} PUBLISHED_AT must be UTC RFC3339 seconds or unknown"
+    fi
+    case "${source_commit}" in
+        unknown) ;;
+        *)
+            if ! printf '%s\n' "${source_commit}" | grep -Eq '^[0-9a-f]{40}$'; then
+                fail "${entry} SOURCE_COMMIT must be a full Git commit or unknown"
+            fi
+            ;;
+    esac
+    if ! printf '%s\n' "${config_schema}" | grep -Eq '^[1-9][0-9]*$'; then
+        fail "${entry} CONFIG_SCHEMA_VERSION must be a positive integer"
+    fi
+    case "${status}" in
+        active|legacy|revoked) ;;
+        *) fail "${entry} RELEASE_STATUS must be active, legacy, or revoked" ;;
+    esac
+    if [ "${status}" != "legacy" ]; then
+        if [ "${published_at}" = "unknown" ]; then
+            fail "${entry} ${status} release must record PUBLISHED_AT"
+        fi
+        if [ "${source_commit}" = "unknown" ]; then
+            fail "${entry} ${status} release must record SOURCE_COMMIT"
+        fi
+    fi
+    renderer_only=0
+    if installer_image=$(entry_value "${entry}" INSTALLER_IMAGE); then
+        if ! printf '%s\n' "${installer_image}" |
+            grep -Eq '^[^[:space:]@]+@sha256:[0-9a-f]{64}$'
+        then
+            fail "${entry} INSTALLER_IMAGE is not pinned by an immutable sha256 digest"
+        fi
+    else
+        installer_status=$?
+        if [ "${installer_status}" -eq 2 ]; then
+            fail "${entry} contains duplicate INSTALLER_IMAGE values"
+        fi
+        if [ "${status}" = "active" ] &&
+            [ "${DOCUMENTATION_RELEASE_CATALOG_ALLOW_RENDERER_ONLY_CANDIDATE:-0}" != "1" ]
+        then
+            fail "${entry} active release is missing INSTALLER_IMAGE"
+        fi
+        renderer_only=1
+    fi
+    if [ "${status}" = "active" ]; then
+        validate_supply_chain_artifact "${entry}" SBOM "${sbom}" "${renderer_only}"
+        validate_supply_chain_artifact "${entry}" SCAN "${scan}" "${renderer_only}"
+        validate_supply_chain_artifact "${entry}" PROVENANCE "${provenance}" "${renderer_only}"
+        validate_supply_chain_artifact "${entry}" SIGNATURE "${signature}" "${renderer_only}"
+    fi
+}
+
+version_is_newer() {
+    candidate=$1
+    baseline=$2
+    awk -v candidate="${candidate}" -v baseline="${baseline}" '
+        BEGIN {
+            split(candidate, left, ".")
+            split(baseline, right, ".")
+            for (component = 1; component <= 3; component++) {
+                if ((left[component] + 0) > (right[component] + 0)) {
+                    exit 0
+                }
+                if ((left[component] + 0) < (right[component] + 0)) {
+                    exit 1
+                }
+            }
+            exit 1
+        }
+    '
+}
+
+latest_version() {
+    latest_file="${CATALOG_DIR}/LATEST"
+    if [ ! -f "${latest_file}" ]; then
+        fail "release catalog is missing LATEST"
+    fi
+    latest=$(sed -n '1p' "${latest_file}")
+    require_semantic_version "${latest}"
+    if [ "$(wc -l < "${latest_file}" | tr -d ' ')" -ne 1 ]; then
+        fail "release catalog LATEST must contain exactly one line"
+    fi
+    latest_entry=$(entry_path "${latest}")
+    if [ ! -f "${latest_entry}" ]; then
+        fail "release catalog LATEST points to missing release ${latest}"
+    fi
+    validate_entry "${latest_entry}"
+    latest_status=$(required_value "${latest_entry}" RELEASE_STATUS)
+    if [ "${latest_status}" = "revoked" ]; then
+        fail "release catalog LATEST points to revoked release ${latest}"
+    fi
+    for entry in "${CATALOG_DIR}"/*.env; do
+        [ -e "${entry}" ] || continue
+        candidate_status=$(required_value "${entry}" RELEASE_STATUS)
+        [ "${candidate_status}" != "revoked" ] || continue
+        candidate=$(basename "${entry}" .env)
+        if version_is_newer "${candidate}" "${latest}"; then
+            fail "release catalog LATEST ${latest} is older than non-revoked release ${candidate}"
+        fi
+    done
+    printf '%s\n' "${latest}"
+}
+
+validate_catalog() {
+    if [ ! -d "${CATALOG_DIR}" ]; then
+        fail "release catalog directory does not exist: ${CATALOG_DIR}"
+    fi
+    entries=0
+    for entry in "${CATALOG_DIR}"/*.env; do
+        [ -e "${entry}" ] || continue
+        validate_entry "${entry}"
+        entries=$((entries + 1))
+    done
+    if [ "${entries}" -eq 0 ]; then
+        fail "release catalog contains no releases"
+    fi
+    latest_version >/dev/null
+    echo "Release catalog is valid: ${entries} release(s)."
+}
+
+resolve_version() {
+    version=$1
+    entry=$(entry_path "${version}")
+    if [ ! -f "${entry}" ]; then
+        fail "release ${version} is not present in the catalog"
+    fi
+    validate_entry "${entry}"
+    status=$(required_value "${entry}" RELEASE_STATUS)
+    if [ "${status}" = "revoked" ]; then
+        fail "release ${version} is revoked"
+    fi
+    required_value "${entry}" RENDERER_IMAGE
+}
+
+show_version() {
+    version=$1
+    entry=$(entry_path "${version}")
+    if [ ! -f "${entry}" ]; then
+        fail "release ${version} is not present in the catalog"
+    fi
+    validate_entry "${entry}"
+    cat "${entry}"
+}
+
+contains_image() {
+    wanted=$1
+    for entry in "${CATALOG_DIR}"/*.env; do
+        [ -e "${entry}" ] || continue
+        validate_entry "${entry}"
+        image=$(required_value "${entry}" RENDERER_IMAGE)
+        status=$(required_value "${entry}" RELEASE_STATUS)
+        if [ "${image}" = "${wanted}" ] && [ "${status}" != "revoked" ]; then
+            required_value "${entry}" RENDERER_VERSION
+            return
+        fi
+    done
+    return 1
+}
+
+command=${1:-}
+case "${command}" in
+    validate)
+        [ "$#" -eq 1 ] || usage
+        validate_catalog
+        ;;
+    latest)
+        [ "$#" -eq 1 ] || usage
+        latest_version
+        ;;
+    resolve)
+        [ "$#" -eq 2 ] || usage
+        resolve_version "$2"
+        ;;
+    show)
+        [ "$#" -eq 2 ] || usage
+        show_version "$2"
+        ;;
+    contains-image)
+        [ "$#" -eq 2 ] || usage
+        contains_image "$2"
+        ;;
+    *)
+        usage
+        ;;
+esac
