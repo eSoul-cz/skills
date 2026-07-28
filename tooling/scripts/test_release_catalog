@@ -55,10 +55,10 @@ SOURCE_COMMIT=cccccccccccccccccccccccccccccccccccccccc
 CONFIG_SCHEMA_VERSION=1
 RELEASE_STATUS=active
 UPGRADE_NOTES=Current release.
-SBOM=unavailable
-SCAN=unavailable
-PROVENANCE=unavailable
-SIGNATURE=unavailable
+SBOM=https://example.invalid/releases/0.6.0/renderer.spdx.json
+SCAN=https://example.invalid/releases/0.6.0/renderer.scan.json
+PROVENANCE=https://example.invalid/releases/0.6.0/renderer.provenance.json
+SIGNATURE=https://example.invalid/releases/0.6.0/renderer.image.sigstore.json
 INSTALLER_IMAGE=registry.example/installer@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
 EOF
 
@@ -78,6 +78,21 @@ if DOCUMENTATION_RELEASE_CATALOG_DIR="${catalog_dir}" "${CATALOG_TOOL}" validate
 fi
 replace_value "${catalog_dir}/0.6.0.env" PUBLISHED_AT 2026-07-28T12:00:00Z
 
+replace_value "${catalog_dir}/0.6.0.env" SBOM unavailable
+if DOCUMENTATION_RELEASE_CATALOG_DIR="${catalog_dir}" "${CATALOG_TOOL}" validate >/dev/null 2>&1; then
+    echo "ERROR: Release catalog accepted unavailable active-release supply-chain metadata." >&2
+    exit 1
+fi
+if DOCUMENTATION_RELEASE_CATALOG_ALLOW_RENDERER_ONLY_CANDIDATE=1 \
+    DOCUMENTATION_RELEASE_CATALOG_ALLOW_UNAVAILABLE_SUPPLY_CHAIN_CANDIDATE=1 \
+    DOCUMENTATION_RELEASE_CATALOG_DIR="${catalog_dir}" \
+        "${CATALOG_TOOL}" validate >/dev/null 2>&1
+then
+    echo "ERROR: Release catalog accepted unavailable metadata for a complete active release." >&2
+    exit 1
+fi
+replace_value "${catalog_dir}/0.6.0.env" SBOM https://example.invalid/releases/0.6.0/renderer.spdx.json
+
 replace_value "${catalog_dir}/0.6.0.env" INSTALLER_IMAGE registry.example/installer:0.6.0
 if DOCUMENTATION_RELEASE_CATALOG_DIR="${catalog_dir}" "${CATALOG_TOOL}" validate >/dev/null 2>&1; then
     echo "ERROR: Release catalog accepted a mutable installer image." >&2
@@ -90,7 +105,9 @@ if DOCUMENTATION_RELEASE_CATALOG_DIR="${catalog_dir}" "${CATALOG_TOOL}" validate
     echo "ERROR: Release catalog accepted an active release without an installer." >&2
     exit 1
 fi
+replace_value "${catalog_dir}/0.6.0.env" SBOM unavailable
 DOCUMENTATION_RELEASE_CATALOG_ALLOW_RENDERER_ONLY_CANDIDATE=1 \
+DOCUMENTATION_RELEASE_CATALOG_ALLOW_UNAVAILABLE_SUPPLY_CHAIN_CANDIDATE=1 \
 DOCUMENTATION_RELEASE_CATALOG_DIR="${catalog_dir}" \
     "${CATALOG_TOOL}" validate >/dev/null
 

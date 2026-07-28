@@ -68,6 +68,23 @@ required_value() {
     printf '%s\n' "${value}"
 }
 
+validate_supply_chain_artifact() {
+    entry=$1
+    key=$2
+    value=$3
+    renderer_only=$4
+    if [ "${value}" = "unavailable" ] &&
+        [ "${renderer_only}" = "1" ] &&
+        [ "${DOCUMENTATION_RELEASE_CATALOG_ALLOW_RENDERER_ONLY_CANDIDATE:-0}" = "1" ] &&
+        [ "${DOCUMENTATION_RELEASE_CATALOG_ALLOW_UNAVAILABLE_SUPPLY_CHAIN_CANDIDATE:-0}" = "1" ]
+    then
+        return
+    fi
+    if ! printf '%s\n' "${value}" | grep -Eq '^https://[^[:space:]]+$'; then
+        fail "${entry} active release ${key} must be an HTTPS artifact URL"
+    fi
+}
+
 validate_entry() {
     entry=$1
     filename=$(basename "${entry}" .env)
@@ -82,10 +99,10 @@ validate_entry() {
     config_schema=$(required_value "${entry}" CONFIG_SCHEMA_VERSION)
     status=$(required_value "${entry}" RELEASE_STATUS)
     required_value "${entry}" UPGRADE_NOTES >/dev/null
-    required_value "${entry}" SBOM >/dev/null
-    required_value "${entry}" SCAN >/dev/null
-    required_value "${entry}" PROVENANCE >/dev/null
-    required_value "${entry}" SIGNATURE >/dev/null
+    sbom=$(required_value "${entry}" SBOM)
+    scan=$(required_value "${entry}" SCAN)
+    provenance=$(required_value "${entry}" PROVENANCE)
+    signature=$(required_value "${entry}" SIGNATURE)
 
     if [ "${schema}" != "1" ]; then
         fail "${entry} has unsupported CATALOG_SCHEMA_VERSION ${schema}"
@@ -137,6 +154,7 @@ validate_entry() {
             fail "${entry} ${status} release must record SOURCE_COMMIT"
         fi
     fi
+    renderer_only=0
     if installer_image=$(entry_value "${entry}" INSTALLER_IMAGE); then
         if ! printf '%s\n' "${installer_image}" |
             grep -Eq '^[^[:space:]@]+@sha256:[0-9a-f]{64}$'
@@ -153,6 +171,13 @@ validate_entry() {
         then
             fail "${entry} active release is missing INSTALLER_IMAGE"
         fi
+        renderer_only=1
+    fi
+    if [ "${status}" = "active" ]; then
+        validate_supply_chain_artifact "${entry}" SBOM "${sbom}" "${renderer_only}"
+        validate_supply_chain_artifact "${entry}" SCAN "${scan}" "${renderer_only}"
+        validate_supply_chain_artifact "${entry}" PROVENANCE "${provenance}" "${renderer_only}"
+        validate_supply_chain_artifact "${entry}" SIGNATURE "${signature}" "${renderer_only}"
     fi
 }
 

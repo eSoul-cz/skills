@@ -7,25 +7,26 @@ The hosted-image plan is active. The repository tooling tree remains the canonic
 The root Jenkins pipeline:
 
 1. runs the Docker-first renderer, visual-regression, and bootstrap-installer tests;
-2. builds native linux/amd64 and linux/arm64 images through the `dockerHelpers` shared library;
-3. runs Go tests, vet checks, and the complete Markdown/Mermaid/math/table/landscape PDF smoke fixture inside each architecture build;
-4. publishes or reuses the renderer and bootstrap installer independently, so a retry can complete a partially published release, using the semantic tool version, `latest`, and valid Git tags in the public `rg.fr-par.scw.cloud/esoul-internal-tools` registry;
-5. resolves both merged manifest digests and archives a fingerprinted catalog candidate containing the immutable renderer and installer references.
+2. requires the semantic tool version to be an existing Git tag on the build commit before starting release publication;
+3. builds native linux/amd64 and linux/arm64 images with BuildKit SPDX and maximum provenance attestations through the `dockerHelpers` shared library;
+4. runs Go tests, vet checks, and the complete Markdown/Mermaid/math/table/landscape PDF smoke fixture inside each architecture build;
+5. publishes or reuses an attested renderer and bootstrap installer independently, so a retry can complete a partially published release, using the semantic tool version, `latest`, and valid Git tags in the public `rg.fr-par.scw.cloud/esoul-internal-tools` registry;
+6. resolves both merged manifest digests, generates standalone SPDX, provenance, and Trivy reports, signs and verifies the images and reports with Cosign, and publishes the exact artifact set through a GitHub Release;
+7. archives a fingerprinted catalog candidate containing the immutable renderer and installer references and the renderer's GitHub artifact URLs.
 
 The reviewed catalog under `tooling/project-tools/docs/.documentation-tools/releases/` is the durable authority and outlives Jenkins retention. Jenkins validates the existing catalog before building and emits a candidate entry after publication. Commit that entry and update `LATEST` in a reviewed follow-up change; registry publication alone does not make a version resolvable. Legacy `0.5.0` is recorded with explicit `unknown`/`unavailable` provenance fields rather than invented metadata.
 
-Jenkins temporarily adds the renderer candidate to the installer-image build context so a newly published installer can bootstrap its matching renderer immediately, then adds the installer digest to the final archived candidate. The reviewed follow-up commit and immutable semantic release tag remain the durable catalog and bootstrap authority. The installer image contains the static Go installer, the default configuration template, and only the remote managed-file profile; it excludes renderer source, local Docker build inputs, fonts, and visual fixtures.
+Jenkins temporarily adds the renderer candidate to the installer-image build context so a newly published installer can bootstrap its matching renderer immediately, then publishes the signed release artifacts and adds the installer digest and artifact URLs to the final archived candidate. Only this unpublished intermediate candidate may use `unavailable` supply-chain fields; the final active candidate must contain HTTPS artifact URLs. The reviewed follow-up commit and immutable semantic release tag remain the durable catalog and bootstrap authority. The installer image contains the static Go installer, the default configuration template, and only the remote managed-file profile; it excludes renderer source, local Docker build inputs, fonts, and visual fixtures.
 
 The renderer image keeps project configuration and authored documentation outside the runtime and continues to enforce the same read-only checkout, network isolation, dropped capabilities, and writable-directory boundaries as local mode.
 
-## Remaining distribution hardening
+## Supply-chain publication
 
-Before treating the image as an externally governed distribution:
+The shared-library publication step uses portable GitHub-hosted Sigstore bundles by default, so image signatures do not depend on Scaleway supporting OCI Referrers. Jenkins must provide the exact pinned Cosign, Syft, GitHub CLI, and Trivy versions required by the installed `dockerHelpers` library, a repository-scoped GitHub release token, and an encrypted Cosign key and password through credentials.
 
-1. generate and retain an SBOM and provenance attestation;
-2. scan operating-system and language packages and define a vulnerability-remediation policy;
-3. sign releases when organizational infrastructure supports it;
-4. record the approved version-to-digest mapping outside ephemeral build retention.
+GitHub Release publication is resumable: matching draft assets are verified and reused, incomplete or invalid drafts remain unpublished, and an already-published release is accepted only when its tag, commit, images, checksums, public key, and signatures match exactly. Enabling immutable GitHub Releases provides an additional repository-side control.
+
+The remaining organizational task is to define a vulnerability-remediation policy for the generated Trivy reports. Scaleway registry-backed Cosign signatures can be tested separately against a disposable repository; they are not required by the default bundle workflow.
 
 ## Project migration
 

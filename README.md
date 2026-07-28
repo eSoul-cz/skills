@@ -121,6 +121,13 @@ npx skills add . --list
 
 ## Releases
 
-The root `Jenkinsfile` validates the tooling and publishes multi-architecture renderer and installer images to the public `rg.fr-par.scw.cloud/esoul-internal-tools` registry. The semantic version in `tooling/project-tools/docs/.documentation-tools/VERSION` is the primary tag.
+The root `Jenkinsfile` validates the tooling and publishes multi-architecture renderer and installer images to the public `rg.fr-par.scw.cloud/esoul-internal-tools` registry. Publication runs only when the semantic version in `tooling/project-tools/docs/.documentation-tools/VERSION` is an existing Git tag on the build commit. Both images include BuildKit SBOM and provenance attestations.
+
+After resolving the immutable image digests, Jenkins uses the `dockerHelpers` shared library to generate and sign standalone SPDX, provenance, and Trivy reports. It publishes the verified artifact set through a GitHub Release and records the renderer artifact URLs in the generated release-catalog candidate. Jenkins requires the pinned Cosign, Syft, GitHub CLI, and Trivy versions documented by `publishContainerReleaseArtifacts`, plus these credentials:
+
+- `github-documentation-skill-release-token` — repository-scoped GitHub Secret Text with `Contents: read and write`;
+- `cosign-documentation-skill-private-key` — encrypted Cosign private-key Secret File;
+- `cosign-documentation-skill-key-password` — Cosign key-password Secret Text;
+- `scaleway_secret_key` — existing Scaleway registry Secret Text.
 
 After publication, review and commit the generated release-catalog candidate. See [the hosted image release notes](docs/hosted-image-plan.md) for the publication and migration contract.
