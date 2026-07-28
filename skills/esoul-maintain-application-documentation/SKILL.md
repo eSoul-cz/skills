@@ -5,7 +5,7 @@ description: Create, refresh, verify, review, and render application documentati
 
 # Maintain Application Documentation
 
-Produce evidence-backed application documentation through a stable project command. This skill contains authoring guidance and starter documents; the Go, Lua, Docker, renderer, installer, and release implementation is distributed separately.
+Produce evidence-backed application documentation through a stable project command. This skill contains authoring guidance and starter documents; the Go, Lua, Docker, renderer, installer, and release implementation is distributed separately through public Scaleway images.
 
 ## Start Every Run
 
@@ -29,8 +29,9 @@ Create missing files from `assets/project-templates/`, resolving that path relat
 
 - `docs/documentation-spec.md`
 - `docs/documentation-decisions.md`
-- `docs/documentation.toml`
 - `docs/user-guide/SCREENSHOTS.md`
+
+The tooling bootstrap creates `docs/documentation.toml` when it is missing. Treat it as project-owned after creation.
 
 Ensure these ignored paths unless project configuration explicitly commits PDFs:
 
@@ -41,7 +42,18 @@ Ensure these ignored paths unless project configuration explicitly commits PDFs:
 
 Do not copy executable files or renderer sources out of this skill. The installed skill is intentionally independent from the documentation tool distribution.
 
-## Use the Project Tool Interface
+## Set Up and Use the Project Tool Interface
+
+When `docs/documentation` is absent and the user requested documentation setup or rendering, confirm the absolute project root and run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/eSoul-cz/documentation-skill/main/install.sh |
+  sh -s -- /absolute/project/root
+```
+
+The bootstrap requires Docker, pulls the installer and renderer from the public Scaleway registry, installs the remote profile, creates a missing `docs/documentation.toml`, records the immutable renderer digest in local Git configuration, and runs `doctor`. It does not clone the tooling repository or install Go, Lua, Pandoc, or LaTeX on the host.
+
+Do not run the bootstrap when tooling is already installed. Use the separately governed upgrade workflow for an existing managed installation.
 
 When `docs/documentation` exists, use only its stable commands:
 
@@ -56,7 +68,7 @@ docs/documentation version
 
 Read [pdf-pipeline.md](references/pdf-pipeline.md) before configuring or invoking the PDF pipeline.
 
-If `docs/documentation` is absent, continue non-rendering authoring work when safe and report that the separately distributed project tooling must be installed before validation or PDF work. Do not assume this skill lives inside a tooling checkout, search its parent directories for source code, or reconstruct the renderer from the reference documents.
+If Docker is unavailable or setup was not requested, continue non-rendering authoring work when safe and report that project tooling is required before validation or PDF work. Do not assume this skill lives inside a tooling checkout, search its parent directories for source code, or reconstruct the renderer from the reference documents.
 
 Run `doctor` before changing an installed tool profile or diagnosing a hosted renderer. It checks managed-file drift, configuration compatibility, Docker and registry readiness, and the independently supplied remote-image allowlist.
 

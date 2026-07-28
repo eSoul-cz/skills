@@ -42,10 +42,13 @@ type semanticVersion struct {
 }
 
 func main() {
-	assetRoot := flag.String("asset-root", "", "absolute bundled project-tools directory")
+	defaultAssetRoot := strings.TrimSpace(os.Getenv("DOCUMENTATION_INSTALLER_ASSET_ROOT"))
+	assetRoot := flag.String("asset-root", defaultAssetRoot, "absolute bundled project-tools directory")
 	checkOnly := flag.Bool("check", false, "check installed managed files without changing them")
 	upgrade := flag.Bool("upgrade", false, "upgrade an existing managed installation")
 	profile := flag.String("profile", "auto", "installation profile: auto, local, or remote")
+	configTemplate := flag.String("config-template", "", "create missing docs/documentation.toml from this template")
+	rendererImage := flag.String("renderer-image", "", "immutable renderer image written to a newly initialized remote configuration")
 	planRemoteUpgrade := flag.Bool("plan-remote-upgrade", false, "preview a catalog-resolved remote-profile upgrade without changing files")
 	applyRemoteUpgrade := flag.Bool("apply-remote-upgrade", false, "apply a catalog-resolved remote-profile upgrade transaction")
 	targetVersion := flag.String("target-version", "", "catalog-resolved renderer version for a remote-upgrade operation")
@@ -63,13 +66,29 @@ func main() {
 	if (*planRemoteUpgrade || *applyRemoteUpgrade) && (*checkOnly || *upgrade || *profile != "auto") {
 		exitError(errors.New("remote-upgrade operations cannot be combined with --check, --upgrade, or --profile"), 2)
 	}
+	if (*checkOnly || *upgrade || *planRemoteUpgrade || *applyRemoteUpgrade) &&
+		(*configTemplate != "" || *rendererImage != "") {
+		exitError(errors.New("--config-template and --renderer-image are only valid for a new installation"), 2)
+	}
 	if !*planRemoteUpgrade && !*applyRemoteUpgrade &&
 		(*targetVersion != "" || *targetImage != "" || *targetConfigSchema != 0 || *displayProjectRoot != "") {
 		exitError(errors.New("target release options require a remote-upgrade operation"), 2)
 	}
+	if *rendererImage != "" {
+		if *profile != "remote" {
+			exitError(errors.New("--renderer-image requires --profile remote"), 2)
+		}
+		if *configTemplate == "" {
+			exitError(errors.New("--renderer-image requires --config-template"), 2)
+		}
+		if !immutableImagePattern.MatchString(*rendererImage) {
+			exitError(errors.New("--renderer-image must be pinned by an immutable sha256 digest"), 2)
+		}
+	}
 	if strings.TrimSpace(*assetRoot) == "" || flag.NArg() != 1 {
 		exitError(errors.New(
-			"usage: install-project-tools --asset-root PATH { [--check|--upgrade] [--profile auto|local|remote] | "+
+			"usage: install-project-tools --asset-root PATH { [--check|--upgrade] [--profile auto|local|remote] "+
+				"[--config-template PATH] [--renderer-image IMAGE] | "+
 				"[--plan-remote-upgrade|--apply-remote-upgrade] --target-version VERSION "+
 				"--target-image IMAGE --target-config-schema SCHEMA [--display-project-root PATH] } PROJECT_ROOT",
 		), 2)
@@ -107,7 +126,14 @@ func main() {
 		}
 		os.Exit(code)
 	}
-	if err := install(projectRoot, assets, *upgrade, *profile); err != nil {
+	if err := installWithProjectConfig(
+		projectRoot,
+		assets,
+		*upgrade,
+		*profile,
+		*configTemplate,
+		*rendererImage,
+	); err != nil {
 		exitError(err, 1)
 	}
 }
@@ -377,7 +403,86 @@ func prepareExistingInstall(projectRoot string, existing manifest, files map[str
 }
 
 func install(projectRoot, assetRoot string, upgrade bool, profile string) error {
-	return installWithPostAction(projectRoot, assetRoot, upgrade, profile, nil, nil)
+	return installWithPostAction(projectRoot, assetRoot, upgrade, profile, nil, nil, "")
+}
+
+func installWithProjectConfig(
+	projectRoot,
+	assetRoot string,
+	upgrade bool,
+	profile,
+	configTemplate,
+	rendererImage string,
+) error {
+	if configTemplate == "" {
+		return install(projectRoot, assetRoot, upgrade, profile)
+	}
+	configPath, err := managedTarget(projectRoot, "docs/documentation.toml")
+	if err != nil {
+		return err
+	}
+	info, err := os.Lstat(configPath)
+	if err == nil {
+		if !info.Mode().IsRegular() {
+			return errors.New("existing docs/documentation.toml is not a regular file")
+		}
+		if rendererImage != "" {
+			config, readErr := readProjectConfig(projectRoot)
+			if readErr != nil {
+				return readErr
+			}
+			if config.PDFMode != "remote" || config.PDFImage != rendererImage {
+				return errors.New(
+					"existing docs/documentation.toml does not select the requested remote renderer; " +
+						"preserving project-owned configuration",
+				)
+			}
+		}
+		return install(projectRoot, assetRoot, upgrade, profile)
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("inspect project documentation configuration: %w", err)
+	}
+
+	templatePath, err := filepath.Abs(configTemplate)
+	if err != nil {
+		return fmt.Errorf("resolve documentation configuration template: %w", err)
+	}
+	templateInfo, err := os.Lstat(templatePath)
+	if err != nil {
+		return fmt.Errorf("inspect documentation configuration template: %w", err)
+	}
+	if !templateInfo.Mode().IsRegular() {
+		return errors.New("documentation configuration template is not a regular file")
+	}
+	content, err := os.ReadFile(templatePath)
+	if err != nil {
+		return fmt.Errorf("read documentation configuration template: %w", err)
+	}
+	if rendererImage != "" {
+		content, err = renderRemoteProjectConfig(content, rendererImage)
+		if err != nil {
+			return fmt.Errorf("prepare remote documentation configuration: %w", err)
+		}
+	} else if _, err := decodeProjectConfig(content); err != nil {
+		return fmt.Errorf("validate documentation configuration template: %w", err)
+	}
+
+	postAction := func() error {
+		return writeProjectConfig(configPath, content, 0o644)
+	}
+	if err := installWithPostAction(
+		projectRoot,
+		assetRoot,
+		upgrade,
+		profile,
+		[]string{"docs/documentation.toml"},
+		postAction,
+		"Created project-owned docs/documentation.toml in the managed-tool transaction.",
+	); err != nil {
+		return err
+	}
+	return nil
 }
 
 func installWithPostAction(
@@ -387,6 +492,7 @@ func installWithPostAction(
 	profile string,
 	projectBackupFiles []string,
 	postAction func() error,
+	postActionMessage string,
 ) (installErr error) {
 	info, err := os.Stat(projectRoot)
 	if err != nil || !info.IsDir() {
@@ -579,7 +685,7 @@ func installWithPostAction(
 	if postAction == nil {
 		fmt.Println("Project-owned configuration and documentation templates were not overwritten.")
 	} else {
-		fmt.Println("Only the explicitly planned project configuration settings were updated.")
+		fmt.Println(postActionMessage)
 	}
 	fmt.Println("Ensure /docs/.documentation-work/ is ignored by Git.")
 	fmt.Println("Ignore /docs/pdf/ unless documentation.toml intentionally commits PDF outputs.")

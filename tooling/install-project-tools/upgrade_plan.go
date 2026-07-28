@@ -124,7 +124,7 @@ func prepareRemoteProfileUpgrade(
 	}
 	if version != targetVersion {
 		return remoteUpgradePlan{}, fmt.Errorf(
-			"catalog release %s does not match bundled managed tooling %s; use the skill revision published for the target release",
+			"catalog release %s does not match bundled managed tooling %s; use the tooling revision published for the target release",
 			targetVersion,
 			version,
 		)
@@ -531,6 +531,7 @@ func applyRemoteProfileUpgradeWithValidator(
 		"remote",
 		[]string{"docs/documentation.toml"},
 		postAction,
+		"Only the explicitly planned project configuration settings were updated.",
 	); err != nil {
 		return err
 	}

@@ -1,0 +1,68 @@
+#!/bin/sh
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
+REPOSITORY_ROOT=$(CDPATH= cd "${SCRIPT_DIR}/../.." && pwd)
+VERSION_FILE="${REPOSITORY_ROOT}/tooling/project-tools/docs/.documentation-tools/VERSION"
+
+if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
+    echo "ERROR: Docker with an available daemon is required." >&2
+    exit 1
+fi
+
+version=$(sed -n '1p' "${VERSION_FILE}")
+bootstrap_version=$(sed -n 's/^TOOL_VERSION=${DOCUMENTATION_TOOLS_VERSION:-\([^}]*\)}$/\1/p' "${REPOSITORY_ROOT}/install.sh")
+if [ "${bootstrap_version}" != "${version}" ]; then
+    echo "ERROR: install.sh defaults to ${bootstrap_version}, but tooling VERSION is ${version}." >&2
+    exit 1
+fi
+installer_image="documentation-tools-installer:${version}-bootstrap-test"
+renderer_digest=$(printf '%064d' 0 | tr '0' 'a')
+renderer_pin="registry.example/documentation-tools@sha256:${renderer_digest}"
+project_root=$(mktemp -d "${TMPDIR:-/tmp}/documentation-bootstrap.XXXXXX")
+container_id=
+
+cleanup() {
+    if [ -n "${container_id}" ]; then
+        docker rm --force "${container_id}" >/dev/null 2>&1 || true
+    fi
+    rm -rf "${project_root}"
+    docker image rm "${installer_image}" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT HUP INT TERM
+
+git -C "${project_root}" init --quiet
+docker build \
+    --file "${REPOSITORY_ROOT}/tooling/install-project-tools/Dockerfile" \
+    --tag "${installer_image}" \
+    "${REPOSITORY_ROOT}"
+
+container_id=$(docker create "${installer_image}" /project)
+image_contents=$(docker export "${container_id}" | tar -tf -)
+docker rm "${container_id}" >/dev/null
+container_id=
+printf '%s\n' "${image_contents}" |
+    grep -Fq 'opt/documentation-tools/project-tools/docs/documentation'
+if printf '%s\n' "${image_contents}" |
+    grep -Eq 'project-tools/.*/(Dockerfile|[^/]+[.](go|lua))$'
+then
+    echo "ERROR: Installer image contains local renderer build sources." >&2
+    exit 1
+fi
+
+DOCUMENTATION_INSTALLER_IMAGE="${installer_image}" \
+DOCUMENTATION_RENDERER_PIN="${renderer_pin}" \
+DOCUMENTATION_INSTALL_SKIP_PULL=1 \
+DOCUMENTATION_INSTALL_SKIP_DOCTOR=1 \
+    "${REPOSITORY_ROOT}/install.sh" "${project_root}"
+
+test -x "${project_root}/docs/documentation"
+test -f "${project_root}/docs/documentation.toml"
+test ! -e "${project_root}/docs/.documentation-tools/pdf/Dockerfile"
+grep -Fq 'mode = "remote"' "${project_root}/docs/documentation.toml"
+grep -Fq "image = \"${renderer_pin}\"" "${project_root}/docs/documentation.toml"
+test "$(
+    git -C "${project_root}" config --local --get documentation.remoteRendererImage
+)" = "${renderer_pin}"
+
+echo "Bootstrap installation test passed."

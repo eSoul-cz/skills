@@ -209,6 +209,80 @@ func TestRemoteProfileInstallsOnlyRuntimeFiles(t *testing.T) {
 	}
 }
 
+func TestNewRemoteInstallInitializesProjectConfiguration(t *testing.T) {
+	assets := fixtureAssets(t, "0.6.0", map[string]fixtureFile{
+		"docs/documentation":                        {Content: "#!/bin/sh\n", Mode: 0o755},
+		"docs/.documentation-tools/VERSION":         {Content: "0.6.0\n", Mode: 0o644},
+		"docs/.documentation-tools/release-catalog": {Content: "#!/bin/sh\n", Mode: 0o755},
+		"docs/.documentation-tools/pdf/header.tex":  {Content: "header\n", Mode: 0o644},
+	})
+	template := documentationConfigTemplate(t)
+	rendererImage := "registry.example/docs@sha256:" + strings.Repeat("a", 64)
+	project := t.TempDir()
+
+	if err := installWithProjectConfig(
+		project,
+		assets,
+		false,
+		"remote",
+		template,
+		rendererImage,
+	); err != nil {
+		t.Fatal(err)
+	}
+	config, err := readProjectConfig(project)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if config.PDFMode != "remote" || config.PDFImage != rendererImage {
+		t.Fatalf("unexpected initialized configuration: %#v", config)
+	}
+	installed := readFixtureManifest(t, project)
+	if installed.InstallProfile != "remote" {
+		t.Fatalf("unexpected installed profile: %s", installed.InstallProfile)
+	}
+	if _, managed := installed.ManagedFiles["docs/documentation.toml"]; managed {
+		t.Fatal("project-owned documentation.toml must not be recorded as a managed file")
+	}
+}
+
+func TestNewRemoteInstallPreservesExistingProjectConfiguration(t *testing.T) {
+	assets := fixtureAssets(t, "0.6.0", map[string]fixtureFile{
+		"docs/documentation":                {Content: "#!/bin/sh\n", Mode: 0o755},
+		"docs/.documentation-tools/VERSION": {Content: "0.6.0\n", Mode: 0o644},
+	})
+	template := documentationConfigTemplate(t)
+	rendererImage := "registry.example/docs@sha256:" + strings.Repeat("b", 64)
+	project := t.TempDir()
+	templateContent, err := os.ReadFile(template)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeDoctorConfig(t, project, string(templateContent))
+
+	err = installWithProjectConfig(
+		project,
+		assets,
+		false,
+		"remote",
+		template,
+		rendererImage,
+	)
+	if err == nil || !strings.Contains(err.Error(), "preserving project-owned configuration") {
+		t.Fatalf("expected existing configuration mismatch to be preserved, got %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(project, manifestRelativePath)); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("managed files changed despite configuration mismatch: %v", err)
+	}
+	actual, err := os.ReadFile(filepath.Join(project, "docs", "documentation.toml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(actual) != string(templateContent) {
+		t.Fatal("existing project configuration was modified")
+	}
+}
+
 func TestInstallerInventoryExcludesHostMetadata(t *testing.T) {
 	assets := fixtureAssets(t, "0.5.0", map[string]fixtureFile{
 		".DS_Store":                            {Content: "host metadata\n", Mode: 0o644},
@@ -835,7 +909,7 @@ func TestUpgradeWrapperRunsDoctorAfterApply(t *testing.T) {
 func TestDocumentationDoctorReportsLocalAndRemoteReadiness(t *testing.T) {
 	repositoryRootPath := repositoryRoot(t)
 	assets := filepath.Join(repositoryRootPath, "tooling", "project-tools")
-	template, err := os.ReadFile(filepath.Join("testdata", "documentation.toml"))
+	template, err := os.ReadFile(documentationConfigTemplate(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -900,8 +974,27 @@ func TestDocumentationDoctorReportsLocalAndRemoteReadiness(t *testing.T) {
 	}
 
 	output, err = runDoctor(remoteProject, fakeBin, "")
-	if err == nil || !strings.Contains(output, "DOCUMENTATION_REMOTE_RENDERER_IMAGE is missing") {
+	if err == nil || !strings.Contains(output, "trusted renderer allowlist is missing") {
 		t.Fatalf("expected doctor to require the independent renderer allowlist, got %v\n%s", err, output)
+	}
+
+	if output, err := exec.Command("git", "-C", remoteProject, "init").CombinedOutput(); err != nil {
+		t.Fatalf("initialize Git fixture: %v\n%s", err, output)
+	}
+	if output, err := exec.Command(
+		"git",
+		"-C",
+		remoteProject,
+		"config",
+		"--local",
+		"documentation.remoteRendererImage",
+		legacyPublishedImage,
+	).CombinedOutput(); err != nil {
+		t.Fatalf("configure local renderer trust: %v\n%s", err, output)
+	}
+	output, err = runDoctor(remoteProject, fakeBin, "")
+	if err != nil || !strings.Contains(output, "trusted renderer allowlist matches configured pdf.image") {
+		t.Fatalf("expected doctor to accept local Git renderer trust, got %v\n%s", err, output)
 	}
 
 	header := filepath.Join(remoteProject, "docs", ".documentation-tools", "pdf", "header.tex")
@@ -929,6 +1022,17 @@ func repositoryRoot(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return filepath.Clean(filepath.Join(current, "..", ".."))
+}
+
+func documentationConfigTemplate(t *testing.T) string {
+	t.Helper()
+	return filepath.Join(
+		repositoryRoot(t),
+		"tooling",
+		"project-templates",
+		"docs",
+		"documentation.toml",
+	)
 }
 
 func writeDoctorConfig(t *testing.T, project, content string) {

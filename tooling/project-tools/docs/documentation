@@ -226,6 +226,18 @@ sha256_file() {
     return 1
 }
 
+resolve_trusted_renderer_image() {
+    if [ -n "${DOCUMENTATION_REMOTE_RENDERER_IMAGE:-}" ]; then
+        printf '%s\n' "${DOCUMENTATION_REMOTE_RENDERER_IMAGE}"
+        return
+    fi
+    if command -v git >/dev/null 2>&1 &&
+        git -C "${PROJECT_ROOT}" rev-parse --git-dir >/dev/null 2>&1
+    then
+        git -C "${PROJECT_ROOT}" config --local --get documentation.remoteRendererImage 2>/dev/null || true
+    fi
+}
+
 catalog_field() {
     release=$1
     wanted=$2
@@ -405,9 +417,9 @@ EOF
                     doctor_error "configured renderer image is not an active catalog release"
                 fi
             fi
-            if [ -z "${DOCUMENTATION_REMOTE_RENDERER_IMAGE:-}" ]; then
-                doctor_error "DOCUMENTATION_REMOTE_RENDERER_IMAGE is missing from trusted runtime configuration"
-            elif [ "${DOCUMENTATION_REMOTE_RENDERER_IMAGE}" != "${pdf_image}" ]; then
+            if [ -z "${trusted_renderer_image}" ]; then
+                doctor_error "trusted renderer allowlist is missing from DOCUMENTATION_REMOTE_RENDERER_IMAGE or local Git configuration"
+            elif [ "${trusted_renderer_image}" != "${pdf_image}" ]; then
                 doctor_error "trusted renderer allowlist does not match configured pdf.image"
             else
                 doctor_ok "trusted renderer allowlist matches configured pdf.image"
@@ -461,11 +473,11 @@ prepare_image() {
                 exit 1
                 ;;
         esac
-        if [ -z "${DOCUMENTATION_REMOTE_RENDERER_IMAGE:-}" ]; then
-            echo "ERROR: Remote mode requires DOCUMENTATION_REMOTE_RENDERER_IMAGE from trusted runtime configuration." >&2
+        if [ -z "${trusted_renderer_image}" ]; then
+            echo "ERROR: Remote mode requires DOCUMENTATION_REMOTE_RENDERER_IMAGE or documentation.remoteRendererImage in local Git configuration." >&2
             exit 1
         fi
-        if [ "${pdf_image}" != "${DOCUMENTATION_REMOTE_RENDERER_IMAGE}" ]; then
+        if [ "${pdf_image}" != "${trusted_renderer_image}" ]; then
             echo "ERROR: Configured remote renderer is not allowlisted." >&2
             exit 1
         fi
@@ -538,8 +550,8 @@ run_renderer() {
         --env "DOC_WORK_IGNORED=${work_ignored}" \
         --env "DOC_OUTPUT_IGNORED=${output_ignored}" \
         --volume "${PROJECT_ROOT}:/workspace:ro"
-    if [ -n "${DOCUMENTATION_REMOTE_RENDERER_IMAGE:-}" ]; then
-        set -- "$@" --env "DOCUMENTATION_REMOTE_RENDERER_IMAGE=${DOCUMENTATION_REMOTE_RENDERER_IMAGE}"
+    if [ -n "${trusted_renderer_image}" ]; then
+        set -- "$@" --env "DOCUMENTATION_REMOTE_RENDERER_IMAGE=${trusted_renderer_image}"
     fi
     if [ -n "${pdf_platform}" ]; then
         set -- "$@" --platform "${pdf_platform}"
@@ -611,6 +623,7 @@ pdf_mode=$(read_setting pdf mode local)
 pdf_image=$(read_setting pdf image "")
 pdf_platform=$(read_setting pdf platform "")
 pdf_dockerfile=$(read_setting pdf dockerfile "docs/.documentation-tools/pdf/Dockerfile")
+trusted_renderer_image=$(resolve_trusted_renderer_image)
 require_project_relative_path "output_dir" "${output_dir}"
 require_project_relative_path "work_dir" "${work_dir}"
 
