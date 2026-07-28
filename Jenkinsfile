@@ -22,6 +22,7 @@ pipeline {
 		RELEASE_CATALOG_DIR = 'tooling/project-tools/docs/.documentation-tools/releases'
 		GITHUB_REPOSITORY = 'eSoul-cz/documentation-skill'
 		GITHUB_RELEASE_CREDENTIALS_ID = 'github-documentation-skill-release-token'
+		SCALEWAY_REGISTRY_CREDENTIALS_ID = 'scaleway_secret_key'
 		COSIGN_PRIVATE_KEY_CREDENTIALS_ID = 'cosign-documentation-skill-private-key'
 		COSIGN_KEY_PASSWORD_CREDENTIALS_ID = 'cosign-documentation-skill-key-password'
 	}
@@ -70,68 +71,22 @@ pipeline {
 						}
 					}
 
-					def versionImage = "${env.REGISTRY}/${env.RENDERER_IMAGE}:${version}"
-					def installerVersionImage = "${env.REGISTRY}/${env.INSTALLER_IMAGE}:${version}"
-					def hasRequiredPlatforms = { image ->
-						def platforms = sh(
-							script: "docker buildx imagetools inspect '${image}' 2>/dev/null | sed -n 's/^[[:space:]]*Platform:[[:space:]]*//p' | sort -u",
-							returnStdout: true
-						).trim().split('\n').findAll { it }
-						return platforms.contains('linux/amd64') && platforms.contains('linux/arm64')
-					}
-					def hasRequiredAttestations = { image ->
-						return sh(
-							script: """#!/bin/sh
-								set -eu
-								docker buildx imagetools inspect '${image}' --raw |
-									grep -E '"vnd\\.docker\\.reference\\.type"[[:space:]]*:[[:space:]]*"attestation-manifest"' >/dev/null
-								sbom_json=\$(docker buildx imagetools inspect '${image}' --format '{{ json .SBOM }}')
-								test "\$(printf '%s' "\${sbom_json}" | tr -d '[:space:]')" != 'null'
-								printf '%s' "\${sbom_json}" | grep -F '"SPDX"' >/dev/null
-								amd64_provenance=\$(docker buildx imagetools inspect '${image}' \
-									--format '{{ if (index .Provenance "linux/amd64").SLSA }}true{{ else }}false{{ end }}')
-								test "\${amd64_provenance}" = true
-								arm64_provenance=\$(docker buildx imagetools inspect '${image}' \
-									--format '{{ if (index .Provenance "linux/arm64").SLSA }}true{{ else }}false{{ end }}')
-								test "\${arm64_provenance}" = true
-							""",
-							returnStatus: true
-						) == 0
-					}
-					def rendererExists = hasRequiredPlatforms(versionImage) && hasRequiredAttestations(versionImage)
-					def installerExists = hasRequiredPlatforms(installerVersionImage) && hasRequiredAttestations(installerVersionImage)
-
-					if (rendererExists) {
-						echo "Reusing already published renderer ${versionImage}."
-					} else {
-						echo "Building and publishing renderer ${version} for amd64 and arm64..."
-						withCredentials([string(credentialsId: 'scaleway_secret_key', variable: 'SECRET')]) {
-							dockerBuildMultiArch(
-								registry: env.REGISTRY,
-								registryHost: env.REGISTRY_HOST,
-								registryPassword: env.SECRET,
-								image: env.RENDERER_IMAGE,
-								contextDir: env.RENDERER_CONTEXT,
-								tags: buildTags,
-								dockerfile: env.RENDERER_DOCKERFILE,
-								sbom: true,
-								provenance: 'max',
-							)
-						}
-					}
-					if (!hasRequiredPlatforms(versionImage) || !hasRequiredAttestations(versionImage)) {
-						error("Renderer ${versionImage} is missing required platforms or BuildKit attestations.")
-					}
-
-					def digest = sh(
-						script: "docker buildx imagetools inspect '${versionImage}' | sed -n 's/^Digest:[[:space:]]*//p' | sed -n '1p'",
-						returnStdout: true
-					).trim()
-					if (!(digest ==~ /sha256:[a-f0-9]{64}/)) {
-						error("Could not resolve immutable digest for ${versionImage}")
-					}
-
-					def immutableImage = "${env.REGISTRY}/${env.RENDERER_IMAGE}@${digest}"
+					def releaseImageConfig = [
+						registry: env.REGISTRY,
+						registryHost: env.REGISTRY_HOST,
+						registryCredentialsId: env.SCALEWAY_REGISTRY_CREDENTIALS_ID,
+						tags: buildTags,
+						sbom: true,
+						provenance: 'max',
+					]
+					def rendererImage = dockerEnsureMultiArchImage(
+						releaseImageConfig + [
+							image: env.RENDERER_IMAGE,
+							contextDir: env.RENDERER_CONTEXT,
+							dockerfile: env.RENDERER_DOCKERFILE,
+						]
+					)
+					def immutableImage = rendererImage.immutableReference
 					def publishedAt = sh(
 						script: "date -u '+%Y-%m-%dT%H:%M:%SZ'",
 						returnStdout: true
@@ -175,35 +130,14 @@ pipeline {
 						DOCUMENTATION_RELEASE_CATALOG_ALLOW_RENDERER_ONLY_CANDIDATE=1 DOCUMENTATION_RELEASE_CATALOG_ALLOW_UNAVAILABLE_SUPPLY_CHAIN_CANDIDATE=1 ${env.RELEASE_CATALOG_TOOL} validate
 					"""
 
-					if (installerExists) {
-						echo "Reusing already published installer ${installerVersionImage}."
-					} else {
-						echo "Building and publishing bootstrap installer ${version} for amd64 and arm64..."
-						withCredentials([string(credentialsId: 'scaleway_secret_key', variable: 'SECRET')]) {
-							dockerBuildMultiArch(
-								registry: env.REGISTRY,
-								registryHost: env.REGISTRY_HOST,
-								registryPassword: env.SECRET,
-								image: env.INSTALLER_IMAGE,
-								contextDir: '.',
-								tags: buildTags,
-								dockerfile: env.INSTALLER_DOCKERFILE,
-								sbom: true,
-								provenance: 'max',
-							)
-						}
-					}
-					if (!hasRequiredPlatforms(installerVersionImage) || !hasRequiredAttestations(installerVersionImage)) {
-						error("Installer ${installerVersionImage} is missing required platforms or BuildKit attestations.")
-					}
-					def installerDigest = sh(
-						script: "docker buildx imagetools inspect '${installerVersionImage}' | sed -n 's/^Digest:[[:space:]]*//p' | sed -n '1p'",
-						returnStdout: true
-					).trim()
-					if (!(installerDigest ==~ /sha256:[a-f0-9]{64}/)) {
-						error("Could not resolve immutable digest for ${installerVersionImage}")
-					}
-					def immutableInstallerImage = "${env.REGISTRY}/${env.INSTALLER_IMAGE}@${installerDigest}"
+					def installerImage = dockerEnsureMultiArchImage(
+						releaseImageConfig + [
+							image: env.INSTALLER_IMAGE,
+							contextDir: '.',
+							dockerfile: env.INSTALLER_DOCKERFILE,
+						]
+					)
+					def immutableInstallerImage = installerImage.immutableReference
 
 					def artifacts = publishContainerReleaseArtifacts(
 						githubRepository: env.GITHUB_REPOSITORY,
