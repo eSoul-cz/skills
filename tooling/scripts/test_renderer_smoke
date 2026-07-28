@@ -2,10 +2,10 @@
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
-SKILL_ROOT=$(CDPATH= cd "${SCRIPT_DIR}/.." && pwd)
-TOOLS_ROOT="${SKILL_ROOT}/assets/project-tools/docs/.documentation-tools/pdf"
+TOOLING_ROOT=$(CDPATH= cd "${SCRIPT_DIR}/.." && pwd)
+TOOLS_ROOT="${TOOLING_ROOT}/project-tools/docs/.documentation-tools/pdf"
 FIXTURE_ROOT="${TOOLS_ROOT}/testdata/smoke"
-VERSION_FILE="${SKILL_ROOT}/assets/project-tools/docs/.documentation-tools/VERSION"
+VERSION_FILE="${TOOLING_ROOT}/project-tools/docs/.documentation-tools/VERSION"
 
 if ! command -v docker >/dev/null 2>&1; then
     echo "ERROR: Docker is required for the renderer smoke test." >&2

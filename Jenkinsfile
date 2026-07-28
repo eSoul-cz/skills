@@ -13,20 +13,20 @@ pipeline {
 		REGISTRY = 'rg.fr-par.scw.cloud/esoul-internal-tools'
 		REGISTRY_HOST = 'rg.fr-par.scw.cloud'
 		RENDERER_IMAGE = 'documentation-tools'
-		RENDERER_CONTEXT = 'assets/project-tools/docs/.documentation-tools/pdf'
-		RENDERER_DOCKERFILE = 'assets/project-tools/docs/.documentation-tools/pdf/Dockerfile'
-		VERSION_FILE = 'assets/project-tools/docs/.documentation-tools/VERSION'
-		RELEASE_CATALOG_TOOL = 'assets/project-tools/docs/.documentation-tools/release-catalog'
+		RENDERER_CONTEXT = 'tooling/project-tools/docs/.documentation-tools/pdf'
+		RENDERER_DOCKERFILE = 'tooling/project-tools/docs/.documentation-tools/pdf/Dockerfile'
+		VERSION_FILE = 'tooling/project-tools/docs/.documentation-tools/VERSION'
+		RELEASE_CATALOG_TOOL = 'tooling/project-tools/docs/.documentation-tools/release-catalog'
 	}
 
 	stages {
 		stage('Verify renderer') {
 			steps {
 				sh "${env.RELEASE_CATALOG_TOOL} validate"
-				sh 'scripts/test_renderer_smoke'
+				sh 'tooling/scripts/test_renderer_smoke'
 				sh '''
 					docker build \
-						--file scripts/install-project-tools/Dockerfile \
+						--file tooling/install-project-tools/Dockerfile \
 						--tag documentation-tools-installer:test-${BUILD_NUMBER} \
 						.
 				'''

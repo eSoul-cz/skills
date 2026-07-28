@@ -2,14 +2,15 @@
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
-SKILL_ROOT=$(CDPATH= cd "${SCRIPT_DIR}/.." && pwd)
-INSTALLER_DIR="${SCRIPT_DIR}/install-project-tools"
-VERSION_FILE="${SKILL_ROOT}/assets/project-tools/docs/.documentation-tools/VERSION"
-CATALOG_TOOL="${SKILL_ROOT}/assets/project-tools/docs/.documentation-tools/release-catalog"
-CATALOG_DIR="${SKILL_ROOT}/assets/project-tools/docs/.documentation-tools/releases"
+REPOSITORY_ROOT=$(CDPATH= cd "${SCRIPT_DIR}/../.." && pwd)
+TOOLING_ROOT="${REPOSITORY_ROOT}/tooling"
+INSTALLER_DIR="${TOOLING_ROOT}/install-project-tools"
+VERSION_FILE="${TOOLING_ROOT}/project-tools/docs/.documentation-tools/VERSION"
+CATALOG_TOOL="${TOOLING_ROOT}/project-tools/docs/.documentation-tools/release-catalog"
+CATALOG_DIR="${TOOLING_ROOT}/project-tools/docs/.documentation-tools/releases"
 
 usage() {
-    echo "Usage: scripts/upgrade_project_tools PROJECT_ROOT --to VERSION [--apply]" >&2
+    echo "Usage: tooling/scripts/upgrade_project_tools PROJECT_ROOT --to VERSION [--apply]" >&2
     exit 2
 }
 
@@ -82,7 +83,7 @@ installer_image="esoul-documentation-installer:${version}"
 docker build \
     --file "${INSTALLER_DIR}/Dockerfile" \
     --tag "${installer_image}" \
-    "${SKILL_ROOT}"
+    "${REPOSITORY_ROOT}"
 
 set -- docker run \
     --rm \
@@ -92,10 +93,10 @@ set -- docker run \
     --pids-limit 64 \
     --network none \
     --user "$(id -u):$(id -g)" \
-    --volume "${SKILL_ROOT}:/skill:ro" \
+    --volume "${TOOLING_ROOT}:/tooling:ro" \
     --volume "${PROJECT_ROOT}:/project:${project_mount_mode}" \
     "${installer_image}" \
-    --asset-root /skill/assets/project-tools \
+    --asset-root /tooling/project-tools \
     "${operation}" \
     --target-version "${resolved_version}" \
     --target-image "${target_image}" \

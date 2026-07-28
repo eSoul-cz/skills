@@ -1,0 +1,87 @@
+schema_version = 1
+documentation_version = ""
+primary_language = "en"
+output_dir = "docs/pdf"
+work_dir = "docs/.documentation-work"
+commit_pdf_outputs = false
+
+[project]
+name = "Application name"
+logo = ""
+copyright = ""
+contact = ""
+
+[pdf]
+mode = "local"
+image = ""
+platform = ""
+dockerfile = "docs/.documentation-tools/pdf/Dockerfile"
+template = ""
+header_include = "docs/.documentation-tools/pdf/header.tex"
+theme = "default"
+font_dirs = []
+header_left = "Application name"
+footer_left = ""
+
+# Project-local fonts can be loaded without changing the renderer image:
+# font_dirs = ["docs/fonts"]
+#
+# Optional typed overrides for the selected theme:
+# [pdf.theme_overrides]
+# accent_color = "1B6B93"
+# text_color = "1B1B1D"
+# heading_color = "0E0F11"
+# link_color = "1B6B93"
+# url_color = "1B6B93"
+# paper_size = "a4"
+# main_font = "Noto Sans"
+# heading_font = "Noto Sans"
+# mono_font = "Noto Sans Mono"
+# font_size = "11pt"
+# margin = "24mm"
+# note_background = "F7F7F7"
+# note_border = "4A494A"
+# tip_background = "F7F7F7"
+# tip_border = "4A494A"
+# important_background = "F7F7F7"
+# important_border = "4A494A"
+# warning_background = "F7F7F7"
+# warning_border = "4A494A"
+# caution_background = "F7F7F7"
+# caution_border = "4A494A"
+# planned_background = "F7F7F7"
+# planned_border = "4A494A"
+
+[privacy]
+allowed_email_domains = ["example.com", "example.org", "example.net"]
+allowed_hosts = []
+
+[[guides]]
+id = "user-guide"
+title = "Application User Guide"
+output = "application-user-guide.pdf"
+# Optional eSoul cover metadata:
+# document_version = "1.0"
+# document_date = "28 July 2026"
+# classification = "Client Confidential"
+cross_document_links = "error"
+invalid_links = "error"
+link_notice_style = "plain"
+link_notice_paths = "original"
+sources = [
+  "docs/user-guide/README.md",
+]
+landscape_sources = []
+
+[[guides]]
+id = "developer-guide"
+title = "Application Developer and Operator Guide"
+output = "application-developer-guide.pdf"
+cross_document_links = "error"
+invalid_links = "error"
+link_notice_style = "plain"
+link_notice_paths = "original"
+sources = [
+  "docs/developer-guide/README.md",
+]
+landscape_sources = []

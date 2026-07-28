@@ -2,12 +2,13 @@
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
-SKILL_ROOT=$(CDPATH= cd "${SCRIPT_DIR}/.." && pwd)
-INSTALLER_DIR="${SCRIPT_DIR}/install-project-tools"
-VERSION_FILE="${SKILL_ROOT}/assets/project-tools/docs/.documentation-tools/VERSION"
+REPOSITORY_ROOT=$(CDPATH= cd "${SCRIPT_DIR}/../.." && pwd)
+TOOLING_ROOT="${REPOSITORY_ROOT}/tooling"
+INSTALLER_DIR="${TOOLING_ROOT}/install-project-tools"
+VERSION_FILE="${TOOLING_ROOT}/project-tools/docs/.documentation-tools/VERSION"
 
 usage() {
-    echo "Usage: scripts/install_project_tools PROJECT_ROOT [--check|--upgrade] [--remote|--local]" >&2
+    echo "Usage: tooling/scripts/install_project_tools PROJECT_ROOT [--check|--upgrade] [--remote|--local]" >&2
     exit 2
 }
 
@@ -71,7 +72,7 @@ fi
 docker build \
     --file "${INSTALLER_DIR}/Dockerfile" \
     --tag "${installer_image}" \
-    "${SKILL_ROOT}"
+    "${REPOSITORY_ROOT}"
 
 set -- docker run \
     --rm \
@@ -81,10 +82,10 @@ set -- docker run \
     --pids-limit 64 \
     --network none \
     --user "$(id -u):$(id -g)" \
-    --volume "${SKILL_ROOT}:/skill:ro" \
+    --volume "${TOOLING_ROOT}:/tooling:ro" \
     --volume "${PROJECT_ROOT}:/project:${project_mount_mode}" \
     "${installer_image}" \
-    --asset-root /skill/assets/project-tools \
+    --asset-root /tooling/project-tools \
     --profile "${profile}"
 if [ -n "${action}" ]; then
     set -- "$@" "${action}"

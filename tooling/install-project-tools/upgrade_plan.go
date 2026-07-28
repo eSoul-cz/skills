@@ -213,7 +213,7 @@ func printRemoteUpgradePlan(plan remoteUpgradePlan) {
 	fmt.Printf("- DOCUMENTATION_REMOTE_RENDERER_IMAGE=%s\n", plan.TargetImage)
 	fmt.Println("Apply command:")
 	fmt.Printf(
-		"- scripts/upgrade_project_tools %s --to %s --apply\n",
+		"- tooling/scripts/upgrade_project_tools %s --to %s --apply\n",
 		shellQuote(plan.DisplayProjectRoot),
 		shellQuote(plan.TargetVersion),
 	)

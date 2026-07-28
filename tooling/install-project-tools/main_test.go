@@ -350,7 +350,7 @@ func TestRemoteUpgradePlanIsReadOnlyAndReportsExactChanges(t *testing.T) {
 		`[pdf].mode: "local" -> "remote"`,
 		`[pdf].image: "" -> "` + targetImage + `"`,
 		"DOCUMENTATION_REMOTE_RENDERER_IMAGE=" + targetImage,
-		"scripts/upgrade_project_tools '" + project + "' --to '0.6.0' --apply",
+		"tooling/scripts/upgrade_project_tools '" + project + "' --to '0.6.0' --apply",
 		"docs/.documentation-tools/pdf/Dockerfile",
 		"No files were changed.",
 	} {
@@ -713,10 +713,10 @@ func TestUpgradeRollbackRestoresManagedFileBeforeDirectoryMigration(t *testing.T
 }
 
 func TestManagedReleaseCatalogValidatesAndRejectsRevokedRelease(t *testing.T) {
-	skillRoot := repositoryRoot(t)
+	repositoryRootPath := repositoryRoot(t)
 	catalogTool := filepath.Join(
-		skillRoot,
-		"assets",
+		repositoryRootPath,
+		"tooling",
 		"project-tools",
 		"docs",
 		".documentation-tools",
@@ -772,7 +772,7 @@ func TestManagedReleaseCatalogValidatesAndRejectsRevokedRelease(t *testing.T) {
 }
 
 func TestUpgradeWrapperRunsDoctorAfterApply(t *testing.T) {
-	skillRoot := repositoryRoot(t)
+	repositoryRootPath := repositoryRoot(t)
 	targetImage := legacyPublishedImage
 	fakeBin := t.TempDir()
 	if err := os.WriteFile(
@@ -799,7 +799,7 @@ func TestUpgradeWrapperRunsDoctorAfterApply(t *testing.T) {
 			t.Fatal(err)
 		}
 		command := exec.Command(
-			filepath.Join(skillRoot, "scripts", "upgrade_project_tools"),
+			filepath.Join(repositoryRootPath, "tooling", "scripts", "upgrade_project_tools"),
 			project,
 			"--to",
 			"0.5.0",
@@ -833,9 +833,9 @@ func TestUpgradeWrapperRunsDoctorAfterApply(t *testing.T) {
 }
 
 func TestDocumentationDoctorReportsLocalAndRemoteReadiness(t *testing.T) {
-	skillRoot := repositoryRoot(t)
-	assets := filepath.Join(skillRoot, "assets", "project-tools")
-	template, err := os.ReadFile(filepath.Join(skillRoot, "assets", "project-templates", "docs", "documentation.toml"))
+	repositoryRootPath := repositoryRoot(t)
+	assets := filepath.Join(repositoryRootPath, "tooling", "project-tools")
+	template, err := os.ReadFile(filepath.Join("testdata", "documentation.toml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -921,7 +921,7 @@ type fixtureFile struct {
 
 func repositoryRoot(t *testing.T) string {
 	t.Helper()
-	if configured := os.Getenv("DOCUMENTATION_SKILL_ROOT"); configured != "" {
+	if configured := os.Getenv("DOCUMENTATION_REPOSITORY_ROOT"); configured != "" {
 		return configured
 	}
 	current, err := os.Getwd()
