@@ -60,6 +60,10 @@ allowed_hosts = []
 id = "user-guide"
 title = "Application User Guide"
 output = "application-user-guide.pdf"
+# Optional eSoul cover metadata:
+# document_version = "1.0"
+# document_date = "28 July 2026"
+# classification = "Client Confidential"
 cross_document_links = "error"
 invalid_links = "error"
 link_notice_style = "plain"

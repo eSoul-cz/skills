@@ -26,6 +26,13 @@ else
         documentation-renderer \
             --project-root /workspace \
             --config docs/local-font-documentation.toml
+    DOC_COMMIT=smoke-test \
+    DOC_GENERATED_AT="2026-01-01 00:00 UTC" \
+    HOME=/tmp \
+    XDG_CACHE_HOME=/tmp/.cache \
+        documentation-renderer \
+            --project-root /workspace \
+            --config docs/esoul-minimal-documentation.toml
 fi
 
 extracted=/workspace/docs/.documentation-work/review/smoke/extracted.txt
@@ -34,12 +41,16 @@ esoul_extracted=/workspace/docs/.documentation-work/review/esoul-smoke/extracted
 esoul_pdf=/workspace/docs/pdf/esoul-smoke.pdf
 local_font_extracted=/workspace/docs/.documentation-work/review/local-font-smoke/extracted.txt
 local_font_pdf=/workspace/docs/pdf/local-font-smoke.pdf
+esoul_minimal_extracted=/workspace/docs/.documentation-work/review/esoul-minimal/extracted.txt
+esoul_minimal_pdf=/workspace/docs/pdf/esoul-minimal.pdf
 test -s "${extracted}"
 test -s "${pdf}"
 test -s "${esoul_extracted}"
 test -s "${esoul_pdf}"
 test -s "${local_font_extracted}"
 test -s "${local_font_pdf}"
+test -s "${esoul_minimal_extracted}"
+test -s "${esoul_minimal_pdf}"
 
 normalized=$(tr "\n" " " < "${extracted}" | tr -s " ")
 case "${normalized}" in
@@ -98,6 +109,29 @@ case "${esoul_normalized}" in
     *"IČ: 17582571"*"DIČ: CZ17582571"*) ;;
     *) echo "ERROR: eSoul publisher identity is missing." >&2; exit 1 ;;
 esac
+for expected_metadata in \
+    "Northstar Systems" \
+    "Version" \
+    "1.4" \
+    "28 July 2026" \
+    "Client Confidential"
+do
+    case "${esoul_normalized}" in
+        *"${expected_metadata}"*) ;;
+        *) echo "ERROR: eSoul client-document metadata is missing: ${expected_metadata}." >&2; exit 1 ;;
+    esac
+done
+esoul_minimal_normalized=$(tr "\n" " " < "${esoul_minimal_extracted}" | tr -s " ")
+case "${esoul_minimal_normalized}" in
+    *"Minimal Client Guide"*) ;;
+    *) echo "ERROR: minimal eSoul title page is missing." >&2; exit 1 ;;
+esac
+case "${esoul_minimal_normalized}" in
+    *"Client Confidential"*|*"Northstar Systems"*)
+        echo "ERROR: minimal eSoul title page retained optional client metadata." >&2
+        exit 1
+        ;;
+esac
 if ! pdffonts "${esoul_pdf}" | grep -q "Poppins"; then
     echo "ERROR: eSoul PDF does not embed Poppins." >&2
     exit 1
@@ -120,6 +154,12 @@ local_font_image_rows=$(pdfimages -list "${local_font_pdf}" | sed -n "3,\$p")
 if [ -n "${local_font_image_rows}" ]; then
     echo "ERROR: project-local font PDF contains raster image objects." >&2
     printf "%s\n" "${local_font_image_rows}" >&2
+    exit 1
+fi
+esoul_minimal_image_rows=$(pdfimages -list "${esoul_minimal_pdf}" | sed -n "3,\$p")
+if [ -n "${esoul_minimal_image_rows}" ]; then
+    echo "ERROR: minimal eSoul PDF contains raster image objects." >&2
+    printf "%s\n" "${esoul_minimal_image_rows}" >&2
     exit 1
 fi
 

@@ -1,0 +1,36 @@
+schema_version = 1
+documentation_version = ""
+primary_language = "en"
+output_dir = "docs/pdf"
+work_dir = "docs/.documentation-work"
+commit_pdf_outputs = false
+
+[project]
+name = ""
+logo = ""
+copyright = ""
+contact = ""
+
+[pdf]
+mode = "local"
+image = ""
+platform = "linux/amd64"
+dockerfile = "docs/.documentation-tools/pdf/Dockerfile"
+template = ""
+header_include = ""
+theme = "esoul"
+header_left = ""
+footer_left = ""
+
+[[guides]]
+id = "esoul-minimal"
+title = "Minimal Client Guide"
+output = "esoul-minimal.pdf"
+cross_document_links = "error"
+invalid_links = "error"
+link_notice_style = "plain"
+link_notice_paths = "original"
+sources = [
+  "docs/guide/minimal.md",
+]
+landscape_sources = []

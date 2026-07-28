@@ -29,6 +29,7 @@ var (
 	dimensionPattern         = regexp.MustCompile(`^\s*(\d+)\s*[x×]\s*(\d+)\s*$`)
 	tableSeparatorPattern    = regexp.MustCompile(`^:?-{3,}:?$`)
 	rasterExtensions         = map[string]bool{".jpeg": true, ".jpg": true, ".png": true, ".tif": true, ".tiff": true, ".webp": true}
+	supportedLogoExtensions  = map[string]bool{".jpeg": true, ".jpg": true, ".pdf": true, ".png": true, ".svg": true}
 )
 
 type validationResult struct {
@@ -125,6 +126,7 @@ func validateProject(root string, cfg config) validationResult {
 		validateDedicatedDirectory(root, workDir, "work_dir", &result)
 	}
 	validateGitState(root, cfg, &result)
+	validateProjectLogo(root, cfg.Project.Logo, &result)
 	validatePDFConfig(root, cfg.PDF, &result)
 	if _, err := resolveFontDirectories(root, cfg.PDF.FontDirs); err != nil {
 		result.error(err.Error() + ".")
@@ -163,6 +165,9 @@ func validateProject(root string, cfg config) validationResult {
 		} else if seenOutputs[guide.Output] {
 			result.error("Duplicate guide output: " + guide.Output)
 		}
+		validateDisplayMetadata("document_version", guide.DocumentVersion, 80, label, &result)
+		validateDisplayMetadata("document_date", guide.DocumentDate, 80, label, &result)
+		validateDisplayMetadata("classification", guide.Classification, 80, label, &result)
 		seenOutputs[guide.Output] = true
 		if len(guide.Sources) == 0 {
 			result.error(fmt.Sprintf("Guide %s: sources must be a non-empty array.", label))
@@ -228,6 +233,42 @@ func validateProject(root string, cfg config) validationResult {
 	}
 	validateScreenshotManifests(root, rasters, &result)
 	return result
+}
+
+func validateProjectLogo(root, configured string, result *validationResult) {
+	if strings.TrimSpace(configured) == "" {
+		return
+	}
+	path, err := securePath(root, configured)
+	if err != nil {
+		result.error("project.logo: " + err.Error())
+		return
+	}
+	info, err := os.Stat(path)
+	if err != nil || !info.Mode().IsRegular() {
+		result.error("Missing project.logo: " + configured)
+		return
+	}
+	if !supportedLogoExtensions[strings.ToLower(filepath.Ext(path))] {
+		result.error("project.logo must be an SVG, PDF, PNG, JPEG, or JPG file.")
+	}
+}
+
+func validateDisplayMetadata(key, value string, maximum int, guide string, result *validationResult) {
+	if value == "" {
+		return
+	}
+	if strings.TrimSpace(value) == "" {
+		result.error(fmt.Sprintf("Guide %s: %s must not contain only whitespace.", guide, key))
+		return
+	}
+	if strings.ContainsAny(value, "\r\n") {
+		result.error(fmt.Sprintf("Guide %s: %s must be a single line.", guide, key))
+		return
+	}
+	if len([]rune(value)) > maximum {
+		result.error(fmt.Sprintf("Guide %s: %s must be at most %d characters.", guide, key, maximum))
+	}
 }
 
 func validateDedicatedDirectory(root, directory, key string, result *validationResult) {

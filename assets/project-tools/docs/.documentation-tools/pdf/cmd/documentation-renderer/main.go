@@ -86,6 +86,9 @@ type guideConfig struct {
 	ID                 string   `toml:"id"`
 	Title              string   `toml:"title"`
 	Output             string   `toml:"output"`
+	DocumentVersion    string   `toml:"document_version"`
+	DocumentDate       string   `toml:"document_date"`
+	Classification     string   `toml:"classification"`
 	CrossDocumentLinks string   `toml:"cross_document_links"`
 	InvalidLinks       string   `toml:"invalid_links"`
 	LinkNoticeStyle    string   `toml:"link_notice_style"`
@@ -448,7 +451,12 @@ func buildGuide(root string, cfg config, guide guideConfig) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	themeFiles, err := prepareThemeFiles(stagingDir, guide, theme)
+	themeFiles, err := prepareThemeFiles(
+		root,
+		stagingDir,
+		newThemeDocument(cfg, guide),
+		theme,
+	)
 	if err != nil {
 		return "", err
 	}
@@ -680,7 +688,7 @@ func writeMetadata(root, stagingDir, path string, cfg config, guide guideConfig)
 	if theme.Branded {
 		values = append(values, "disable-header-and-footer: true")
 	}
-	if cfg.Project.Logo != "" {
+	if cfg.Project.Logo != "" && !theme.Branded {
 		logo, err := securePath(root, cfg.Project.Logo)
 		if err != nil {
 			return err

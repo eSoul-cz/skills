@@ -84,6 +84,7 @@ func TestResolveThemeRejectsInvalidTypedValues(t *testing.T) {
 }
 
 func TestPrepareESoulThemeFilesUsesVectorLogos(t *testing.T) {
+	root := t.TempDir()
 	stagingDir := t.TempDir()
 	toolsDir := t.TempDir()
 	for _, relative := range []string{
@@ -99,6 +100,13 @@ func TestPrepareESoulThemeFilesUsesVectorLogos(t *testing.T) {
 		}
 	}
 	t.Setenv("DOCUMENTATION_TOOLS_ROOT", toolsDir)
+	clientLogo := filepath.Join(root, "docs", "client.svg")
+	if err := os.MkdirAll(filepath.Dir(clientLogo), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(clientLogo, []byte("<svg/>"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 
 	var commands [][]string
 	originalRunner := runCommand
@@ -112,15 +120,28 @@ func TestPrepareESoulThemeFilesUsesVectorLogos(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := prepareThemeFiles(stagingDir, guideConfig{Title: "Client & Operations"}, theme)
+	files, err := prepareThemeFiles(
+		root,
+		stagingDir,
+		themeDocument{
+			Title:           "Client & Operations",
+			ClientName:      "Northstar & Partners",
+			ClientLogo:      "docs/client.svg",
+			DocumentVersion: "1.2",
+			DocumentDate:    "28 July 2026",
+			Classification:  "Client Confidential",
+			Language:        "en",
+		},
+		theme,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if files.Header == "" || files.BeforeBody == "" {
 		t.Fatalf("missing prepared eSoul theme files: %#v", files)
 	}
-	if len(commands) != 2 {
-		t.Fatalf("expected two vector logo conversions, got %#v", commands)
+	if len(commands) != 3 {
+		t.Fatalf("expected three vector logo conversions, got %#v", commands)
 	}
 	for _, command := range commands {
 		if !containsArgument(command, "--format=pdf") {
@@ -131,8 +152,18 @@ func TestPrepareESoulThemeFilesUsesVectorLogos(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(cover), `Client \& Operations`) {
-		t.Fatalf("cover title was not safely escaped: %s", cover)
+	for _, expected := range []string{
+		`Client \& Operations`,
+		`Northstar \& Partners`,
+		"Client Confidential",
+		"28 July 2026",
+		"client-logo.pdf",
+		`width=58mm,height=24mm`,
+		`\makebox[34mm]`,
+	} {
+		if !strings.Contains(string(cover), expected) {
+			t.Fatalf("cover is missing %q: %s", expected, cover)
+		}
 	}
 	header, err := os.ReadFile(files.Header)
 	if err != nil {
@@ -144,6 +175,71 @@ func TestPrepareESoulThemeFilesUsesVectorLogos(t *testing.T) {
 	}
 	if !strings.Contains(string(header), `\fontsize{12}{16}\selectfont`) {
 		t.Fatalf("eSoul footer is not compact: %s", header)
+	}
+	for _, expected := range []string{
+		`width=38mm,height=13mm,keepaspectratio]{client-logo.pdf}`,
+		`\includegraphics[width=28mm]{esoul-logo-text.pdf}`,
+	} {
+		if !strings.Contains(string(header), expected) {
+			t.Fatalf("eSoul header is missing %q: %s", expected, header)
+		}
+	}
+	if strings.Contains(string(header), `\ihead{\hspace*{-17mm}`) {
+		t.Fatalf("eSoul publisher mark remained in a client-branded running header: %s", header)
+	}
+}
+
+func TestESoulCoverOmitsAbsentClientMetadata(t *testing.T) {
+	cover := esoulCover(themeDocument{Title: "Minimal Guide", Language: "en"}, "")
+	if strings.Contains(cover, `\makebox[34mm]`) || strings.Contains(cover, "client-logo") {
+		t.Fatalf("minimal cover contains optional client presentation: %s", cover)
+	}
+}
+
+func TestESoulLayoutUsesPublisherHeaderWithoutClientLogo(t *testing.T) {
+	header := esoulLayoutHeader("")
+	if !strings.Contains(header, `\ihead{\hspace*{-17mm}`) ||
+		!strings.Contains(header, `width=19mm]{esoul-logo-simple.pdf}`) {
+		t.Fatalf("minimal eSoul layout is missing its publisher header fallback: %s", header)
+	}
+	if !strings.Contains(header, `\includegraphics[width=28mm]{esoul-logo-text.pdf}`) {
+		t.Fatalf("minimal eSoul layout is missing its compact footer wordmark: %s", header)
+	}
+}
+
+func TestESoulCoverLocalizesMetadataLabels(t *testing.T) {
+	cover := esoulCover(themeDocument{
+		Title:           "Příručka",
+		ClientName:      "Ukázkový klient",
+		DocumentVersion: "1.0",
+		DocumentDate:    "28. 7. 2026",
+		Classification:  "Důvěrné",
+		Language:        "cs-CZ",
+	}, "")
+	for _, expected := range []string{"Klient", "Verze", "Datum", "Klasifikace"} {
+		if !strings.Contains(cover, expected) {
+			t.Fatalf("Czech cover is missing %q: %s", expected, cover)
+		}
+	}
+}
+
+func TestNewThemeDocumentUsesGuideMetadataOverrides(t *testing.T) {
+	document := newThemeDocument(
+		config{
+			DocumentationVersion: "1.0",
+			PrimaryLanguage:      "cs",
+			Project:              projectConfig{Name: "Client", Logo: "docs/client.svg"},
+		},
+		guideConfig{
+			Title:           "Guide",
+			DocumentVersion: "2.0",
+			DocumentDate:    "2026-07-28",
+			Classification:  "Internal",
+		},
+	)
+	if document.DocumentVersion != "2.0" || document.ClientName != "Client" ||
+		document.ClientLogo != "docs/client.svg" || document.Language != "cs" {
+		t.Fatalf("unexpected theme document: %#v", document)
 	}
 }
 

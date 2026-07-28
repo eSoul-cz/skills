@@ -83,6 +83,16 @@ type preparedThemeFiles struct {
 	BeforeBody string
 }
 
+type themeDocument struct {
+	Title           string
+	ClientName      string
+	ClientLogo      string
+	DocumentVersion string
+	DocumentDate    string
+	Classification  string
+	Language        string
+}
+
 func builtInTheme(name string) (resolvedTheme, bool) {
 	base := resolvedTheme{
 		Name:                name,
@@ -283,7 +293,19 @@ func normalizedThemeHex(value string) string {
 	return strings.ToUpper(value)
 }
 
-func prepareThemeFiles(stagingDir string, guide guideConfig, theme resolvedTheme) (preparedThemeFiles, error) {
+func newThemeDocument(cfg config, guide guideConfig) themeDocument {
+	return themeDocument{
+		Title:           valueOr(guide.Title, "Documentation"),
+		ClientName:      strings.TrimSpace(cfg.Project.Name),
+		ClientLogo:      strings.TrimSpace(cfg.Project.Logo),
+		DocumentVersion: valueOr(guide.DocumentVersion, cfg.DocumentationVersion),
+		DocumentDate:    strings.TrimSpace(guide.DocumentDate),
+		Classification:  strings.TrimSpace(guide.Classification),
+		Language:        valueOr(cfg.PrimaryLanguage, "en"),
+	}
+}
+
+func prepareThemeFiles(root, stagingDir string, document themeDocument, theme resolvedTheme) (preparedThemeFiles, error) {
 	header := filepath.Join(stagingDir, "documentation-theme.tex")
 	if err := os.WriteFile(header, []byte(themeHeader(theme)), 0o644); err != nil {
 		return preparedThemeFiles{}, fmt.Errorf("write theme header: %w", err)
@@ -316,16 +338,56 @@ func prepareThemeFiles(stagingDir string, guide guideConfig, theme resolvedTheme
 			return preparedThemeFiles{}, fmt.Errorf("prepare eSoul theme logo: %w", err)
 		}
 	}
+	clientLogo, err := prepareThemeClientLogo(root, stagingDir, document.ClientLogo)
+	if err != nil {
+		return preparedThemeFiles{}, err
+	}
 
-	if err := os.WriteFile(header, []byte(themeHeader(theme)+esoulLayoutHeader()), 0o644); err != nil {
+	if err := os.WriteFile(header, []byte(themeHeader(theme)+esoulLayoutHeader(clientLogo)), 0o644); err != nil {
 		return preparedThemeFiles{}, fmt.Errorf("write eSoul theme header: %w", err)
 	}
 	cover := filepath.Join(stagingDir, "documentation-esoul-cover.tex")
-	if err := os.WriteFile(cover, []byte(esoulCover(guide)), 0o644); err != nil {
+	if err := os.WriteFile(cover, []byte(esoulCover(document, clientLogo)), 0o644); err != nil {
 		return preparedThemeFiles{}, fmt.Errorf("write eSoul cover: %w", err)
 	}
 	files.BeforeBody = cover
 	return files, nil
+}
+
+func prepareThemeClientLogo(root, stagingDir, configured string) (string, error) {
+	if strings.TrimSpace(configured) == "" {
+		return "", nil
+	}
+	source, err := securePath(root, configured)
+	if err != nil {
+		return "", fmt.Errorf("prepare client logo: %w", err)
+	}
+	extension := strings.ToLower(filepath.Ext(source))
+	if !supportedLogoExtensions[extension] {
+		return "", fmt.Errorf("project.logo must be an SVG, PDF, PNG, JPEG, or JPG file")
+	}
+	if extension == ".svg" {
+		output := filepath.Join(stagingDir, "client-logo.pdf")
+		if _, err := runCommand(
+			[]string{"rsvg-convert", "--format=pdf", "--output=" + output, source},
+			stagingDir,
+			nil,
+			nil,
+		); err != nil {
+			return "", fmt.Errorf("prepare client logo: %w", err)
+		}
+		return filepath.Base(output), nil
+	}
+
+	output := filepath.Join(stagingDir, "client-logo"+extension)
+	content, err := os.ReadFile(source)
+	if err != nil {
+		return "", fmt.Errorf("read client logo: %w", err)
+	}
+	if err := os.WriteFile(output, content, 0o644); err != nil {
+		return "", fmt.Errorf("write client logo: %w", err)
+	}
+	return filepath.Base(output), nil
 }
 
 func themeHeader(theme resolvedTheme) string {
@@ -377,8 +439,15 @@ func writeThemeColor(output *strings.Builder, name string, color themeColor) {
 	fmt.Fprintf(output, "\\colorlet{%s}{%s}\n", name, color.value)
 }
 
-func esoulLayoutHeader() string {
-	return `\usepackage{scrlayer-scrpage}
+func esoulLayoutHeader(clientLogo string) string {
+	runningLogo := `\hspace*{-17mm}\raisebox{-6.5mm}[0pt][0pt]{\includegraphics[width=19mm]{esoul-logo-simple.pdf}}`
+	if clientLogo != "" {
+		runningLogo = fmt.Sprintf(
+			`\raisebox{-2mm}[0pt][0pt]{\includegraphics[width=38mm,height=13mm,keepaspectratio]{%s}}`,
+			latexEscape(clientLogo),
+		)
+	}
+	header := `\usepackage{scrlayer-scrpage}
 \usepackage{etoolbox}
 \setlength{\headheight}{20mm}
 \setlength{\footheight}{10mm}
@@ -392,9 +461,9 @@ func esoulLayoutHeader() string {
     IČ: 17582571\\
     DIČ: CZ17582571}}
 \newcommand{\documentationesoulfooterright}{%
-  \includegraphics[width=35mm]{esoul-logo-text.pdf}}
+  \includegraphics[width=28mm]{esoul-logo-text.pdf}}
 \newpairofpagestyles{documentationesoul}{%
-  \ihead{\hspace*{-17mm}\raisebox{-6.5mm}[0pt][0pt]{\includegraphics[width=19mm]{esoul-logo-simple.pdf}}}
+  \ihead{DOCUMENTATION_RUNNING_LOGO}
   \ohead{\raisebox{-1mm}[0pt][0pt]{\fontsize{12}{14}\selectfont\pagemark}}
   \ifoot{\raisebox{-6mm}[0pt][0pt]{\hspace*{2mm}\documentationesoulfooterleft}}
   \cfoot{\raisebox{-6mm}[0pt][0pt]{\hspace*{-25mm}\documentationesoulfootercenter}}
@@ -412,23 +481,86 @@ func esoulLayoutHeader() string {
 \AtEndEnvironment{landscape}{\pagestyle{documentationesoul}}
 \pagestyle{documentationesoul}
 `
+	return strings.Replace(header, "DOCUMENTATION_RUNNING_LOGO", runningLogo, 1)
 }
 
-func esoulCover(guide guideConfig) string {
-	title := latexEscape(valueOr(guide.Title, "Documentation"))
+func esoulCover(document themeDocument, clientLogo string) string {
+	title := latexEscape(document.Title)
+	var logo string
+	if clientLogo != "" {
+		logo = fmt.Sprintf(
+			`\hfill\raisebox{1mm}[0pt][0pt]{\includegraphics[width=58mm,height=24mm,keepaspectratio]{%s}}`,
+			latexEscape(clientLogo),
+		)
+	}
+	metadata := esoulCoverMetadata(document)
 	return fmt.Sprintf(`\begin{titlepage}
 \newgeometry{top=4mm,right=25.4mm,bottom=45mm,left=25.4mm}
 \thispagestyle{documentationesoulcover}
-\noindent\hspace*{-16.4mm}\includegraphics[width=35.2mm]{esoul-logo-simple.pdf}
+\noindent\makebox[\textwidth][l]{\hspace*{-16.4mm}\includegraphics[width=35.2mm]{esoul-logo-simple.pdf}%s}
 \par\vspace{12.5mm}
 \begin{minipage}{155mm}
   {\documentationheadingfont\color{documentationheading}\fontsize{26}{31}\selectfont\bfseries %s\par}
 \end{minipage}
+%s
 \end{titlepage}
 \restoregeometry
 \setcounter{page}{1}
 \pagestyle{documentationesoul}
-`, title)
+`, logo, title, metadata)
+}
+
+func esoulCoverMetadata(document themeDocument) string {
+	labels := map[string]string{
+		"client":         "Client",
+		"version":        "Version",
+		"date":           "Date",
+		"classification": "Classification",
+	}
+	language := strings.ToLower(document.Language)
+	if language == "cs" || strings.HasPrefix(language, "cs-") {
+		labels = map[string]string{
+			"client":         "Klient",
+			"version":        "Verze",
+			"date":           "Datum",
+			"classification": "Klasifikace",
+		}
+	}
+	rows := []struct {
+		label string
+		value string
+	}{
+		{labels["client"], document.ClientName},
+		{labels["version"], document.DocumentVersion},
+		{labels["date"], document.DocumentDate},
+		{labels["classification"], document.Classification},
+	}
+	var content strings.Builder
+	for _, row := range rows {
+		if strings.TrimSpace(row.value) == "" {
+			continue
+		}
+		fmt.Fprintf(
+			&content,
+			"  \\noindent\\makebox[34mm][l]{{\\color{documentationaccent}\\bfseries %s}}"+
+				"\\hspace{4mm}%s\\par\\vspace{1mm}\n",
+			latexEscape(row.label),
+			latexEscape(row.value),
+		)
+	}
+	if content.Len() == 0 {
+		return ""
+	}
+	return fmt.Sprintf(`
+\par\vspace{18mm}
+\begingroup
+\setlength{\fboxsep}{4mm}
+\noindent\colorbox{documentationplannedbackground}{%%
+  \parbox{147mm}{%%
+  \fontsize{10}{14}\selectfont
+%s}}
+\endgroup
+`, content.String())
 }
 
 func latexEscape(value string) string {

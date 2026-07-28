@@ -6,8 +6,8 @@ work_dir = "docs/.documentation-work"
 commit_pdf_outputs = false
 
 [project]
-name = "Documentation Renderer Smoke Test"
-logo = ""
+name = "Northstar Systems"
+logo = "docs/assets/northstar-logo.svg"
 copyright = ""
 contact = ""
 
@@ -26,6 +26,9 @@ footer_left = ""
 id = "esoul-smoke"
 title = "Client & Operations Guide"
 output = "esoul-smoke.pdf"
+document_version = "1.4"
+document_date = "28 July 2026"
+classification = "Client Confidential"
 cross_document_links = "notice"
 invalid_links = "notice"
 link_notice_style = "footnote"
