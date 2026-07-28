@@ -40,7 +40,7 @@ PDF-local anchors follow Pandoc identifiers: Unicode letters and diacritics are 
 
 ## Configuration
 
-Use the `documentation.toml` created by the tooling bootstrap. Define ordered `sources` arrays in each `[[guides]]` block. Project-owned settings include branding, paths, language, theme, custom template/header, landscape source pages, documentation version, output tracking, privacy allowlists, and local/remote Docker mode.
+Use the project-owned `documentation.toml`; the tooling bootstrap creates it only when it is missing and never replaces an existing configuration. Define ordered `sources` arrays in each `[[guides]]` block. Project-owned settings include branding, paths, language, theme, custom template/header, landscape source pages, documentation version, output tracking, privacy allowlists, and local/remote Docker mode.
 
 `pdf.theme` selects a built-in preset:
 

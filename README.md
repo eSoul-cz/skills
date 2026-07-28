@@ -47,24 +47,24 @@ Only the nested skill directory is installed. The repository README, Jenkins pip
 Tool installation is an explicit, separate operation from installing the agent skill. From the application repository, run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/eSoul-cz/documentation-skill/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/eSoul-cz/documentation-skill/878614bc46cbe75038b3223fb064a54befb8e1c3/install.sh | sh
 ```
 
 An explicit project path is also supported:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/eSoul-cz/documentation-skill/main/install.sh |
+curl -fsSL https://raw.githubusercontent.com/eSoul-cz/documentation-skill/878614bc46cbe75038b3223fb064a54befb8e1c3/install.sh |
   sh -s -- /absolute/project/root
 ```
 
-The script requires Docker and pulls public images from `rg.fr-par.scw.cloud/esoul-internal-tools`. It installs the remote profile, creates `docs/documentation.toml` only when missing, pins the renderer by its immutable digest, stores that digest in local Git configuration, and runs `docs/documentation doctor`. It does not clone this repository or install Go, Lua, Pandoc, or LaTeX on the host.
+The command downloads the script from an immutable source commit. The script requires Docker, reads the digest-pinned installer reference from that release's catalog record, and pulls public images from `rg.fr-par.scw.cloud/esoul-internal-tools`. It installs the remote profile, creates `docs/documentation.toml` only when missing, pins the renderer by its immutable digest, stores that digest in local Git configuration, and runs `docs/documentation doctor`. It does not clone this repository or install Go, Lua, Pandoc, or LaTeX on the host.
 
 The installed agent skill can perform the same setup when asked to configure documentation tooling. Existing managed installations are not overwritten; use the reviewed upgrade workflow for them.
 
 To select a published tooling version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/eSoul-cz/documentation-skill/main/install.sh |
+curl -fsSL https://raw.githubusercontent.com/eSoul-cz/documentation-skill/878614bc46cbe75038b3223fb064a54befb8e1c3/install.sh |
   DOCUMENTATION_TOOLS_VERSION=0.6.0 sh
 ```
 
@@ -110,6 +110,7 @@ Run the complete Docker-first renderer and visual-regression fixture:
 ```bash
 tooling/scripts/test_renderer_smoke
 tooling/scripts/test_bootstrap_install
+tooling/scripts/test_release_catalog
 ```
 
 Validate skill discovery:

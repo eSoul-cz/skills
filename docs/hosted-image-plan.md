@@ -9,12 +9,12 @@ The root Jenkins pipeline:
 1. runs the Docker-first renderer, visual-regression, and bootstrap-installer tests;
 2. builds native linux/amd64 and linux/arm64 images through the `dockerHelpers` shared library;
 3. runs Go tests, vet checks, and the complete Markdown/Mermaid/math/table/landscape PDF smoke fixture inside each architecture build;
-4. publishes the renderer and bootstrap installer with the semantic tool version, `latest`, and valid Git tags to the public `rg.fr-par.scw.cloud/esoul-internal-tools` registry;
-5. resolves both merged manifest digests, archives a fingerprinted renderer catalog candidate, and archives the immutable installer reference separately.
+4. publishes or reuses the renderer and bootstrap installer independently, so a retry can complete a partially published release, using the semantic tool version, `latest`, and valid Git tags in the public `rg.fr-par.scw.cloud/esoul-internal-tools` registry;
+5. resolves both merged manifest digests and archives a fingerprinted catalog candidate containing the immutable renderer and installer references.
 
 The reviewed catalog under `tooling/project-tools/docs/.documentation-tools/releases/` is the durable authority and outlives Jenkins retention. Jenkins validates the existing catalog before building and emits a candidate entry after publication. Commit that entry and update `LATEST` in a reviewed follow-up change; registry publication alone does not make a version resolvable. Legacy `0.5.0` is recorded with explicit `unknown`/`unavailable` provenance fields rather than invented metadata.
 
-Jenkins temporarily adds the generated candidate to the installer-image build context so a newly published installer can bootstrap its matching renderer immediately. The reviewed follow-up commit remains the durable catalog authority. The installer image contains the static Go installer, the default configuration template, and only the remote managed-file profile; it excludes renderer source, local Docker build inputs, fonts, and visual fixtures.
+Jenkins temporarily adds the renderer candidate to the installer-image build context so a newly published installer can bootstrap its matching renderer immediately, then adds the installer digest to the final archived candidate. The reviewed follow-up commit and immutable semantic release tag remain the durable catalog and bootstrap authority. The installer image contains the static Go installer, the default configuration template, and only the remote managed-file profile; it excludes renderer source, local Docker build inputs, fonts, and visual fixtures.
 
 The renderer image keeps project configuration and authored documentation outside the runtime and continues to enforce the same read-only checkout, network isolation, dropped capabilities, and writable-directory boundaries as local mode.
 

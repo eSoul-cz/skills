@@ -16,7 +16,7 @@ Never place raw captures directly in the published images directory. Warn that d
 
 ## Sensitivity review
 
-Inspect names, email addresses, credentials, tokens, secrets, payloads, errors, IDs, hostnames, browser chrome, avatars, notifications, and client-confidential data. Suggest precise regions and risk-appropriate treatments. The user may approve an unredacted image.
+Inspect names, email addresses, credentials, tokens, secrets, payloads, errors, IDs, hostnames, browser chrome, avatars, notifications, and client-confidential data. Suggest precise regions and risk-appropriate treatments. A user may approve non-secret sensitive content in an unredacted image, but live credentials, tokens, and other reusable secrets must never be published. Use fixture data before capture. If a reusable secret is captured accidentally, revoke it immediately, redact it from the publication image, and never publish or promote the raw capture.
 
 ## Redaction plan
 
