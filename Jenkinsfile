@@ -13,27 +13,25 @@ pipeline {
 		REGISTRY = 'rg.fr-par.scw.cloud/esoul-internal-tools'
 		REGISTRY_HOST = 'rg.fr-par.scw.cloud'
 		RENDERER_IMAGE = 'documentation-tools'
+		INSTALLER_IMAGE = 'documentation-tools-installer'
 		RENDERER_CONTEXT = 'tooling/project-tools/docs/.documentation-tools/pdf'
 		RENDERER_DOCKERFILE = 'tooling/project-tools/docs/.documentation-tools/pdf/Dockerfile'
+		INSTALLER_DOCKERFILE = 'tooling/install-project-tools/Dockerfile'
 		VERSION_FILE = 'tooling/project-tools/docs/.documentation-tools/VERSION'
 		RELEASE_CATALOG_TOOL = 'tooling/project-tools/docs/.documentation-tools/release-catalog'
+		RELEASE_CATALOG_DIR = 'tooling/project-tools/docs/.documentation-tools/releases'
 	}
 
 	stages {
-		stage('Verify renderer') {
+		stage('Verify tooling') {
 			steps {
 				sh "${env.RELEASE_CATALOG_TOOL} validate"
 				sh 'tooling/scripts/test_renderer_smoke'
-				sh '''
-					docker build \
-						--file tooling/install-project-tools/Dockerfile \
-						--tag documentation-tools-installer:test-${BUILD_NUMBER} \
-						.
-				'''
+				sh 'tooling/scripts/test_bootstrap_install'
 			}
 		}
 
-		stage('Build and publish renderer image') {
+		stage('Build and publish tooling images') {
 			when {
 				anyOf {
 					branch 'main'
@@ -69,12 +67,15 @@ pipeline {
 							password: env.SECRET
 						)
 						def versionImage = "${env.REGISTRY}/${env.RENDERER_IMAGE}:${version}"
-						def versionExists = sh(
-							script: "if docker buildx imagetools inspect '${versionImage}' >/dev/null 2>&1; then echo yes; fi",
-							returnStdout: true
-						).trim()
-						if (versionExists == 'yes') {
-							error("Immutable renderer tag already exists: ${versionImage}. Bump VERSION before publishing.")
+						def installerVersionImage = "${env.REGISTRY}/${env.INSTALLER_IMAGE}:${version}"
+						[versionImage, installerVersionImage].each { image ->
+							def versionExists = sh(
+								script: "if docker buildx imagetools inspect '${image}' >/dev/null 2>&1; then echo yes; fi",
+								returnStdout: true
+							).trim()
+							if (versionExists == 'yes') {
+								error("Immutable tooling tag already exists: ${image}. Bump VERSION before publishing.")
+							}
 						}
 
 						echo "Building and publishing renderer ${version} for amd64 and arm64..."
@@ -136,12 +137,45 @@ pipeline {
 							text: "${version}\n"
 						)
 						sh "DOCUMENTATION_RELEASE_CATALOG_DIR=release-catalog-candidate ${env.RELEASE_CATALOG_TOOL} validate"
+						sh """
+							cp 'release-catalog-candidate/${version}.env' '${env.RELEASE_CATALOG_DIR}/${version}.env'
+							cp 'release-catalog-candidate/LATEST' '${env.RELEASE_CATALOG_DIR}/LATEST'
+							${env.RELEASE_CATALOG_TOOL} validate
+						"""
+
+						echo "Building and publishing bootstrap installer ${version} for amd64 and arm64..."
+						dockerBuildMultiArch(
+							registry: env.REGISTRY,
+							registryHost: env.REGISTRY_HOST,
+							registryPassword: env.SECRET,
+							image: env.INSTALLER_IMAGE,
+							contextDir: '.',
+							tags: buildTags,
+							dockerfile: env.INSTALLER_DOCKERFILE,
+						)
+						def installerDigest = sh(
+							script: "docker buildx imagetools inspect '${installerVersionImage}' | sed -n 's/^Digest:[[:space:]]*//p' | sed -n '1p'",
+							returnStdout: true
+						).trim()
+						if (!(installerDigest ==~ /sha256:[a-f0-9]{64}/)) {
+							error("Could not resolve immutable digest for ${installerVersionImage}")
+						}
+						def immutableInstallerImage = "${env.REGISTRY}/${env.INSTALLER_IMAGE}@${installerDigest}"
+						writeFile(
+							file: "documentation-installer-${version}.env",
+							text: [
+								"DOCUMENTATION_INSTALLER_VERSION=${version}",
+								"DOCUMENTATION_INSTALLER_IMAGE=${immutableInstallerImage}",
+								''
+							].join('\n')
+						)
 						archiveArtifacts(
-							artifacts: "documentation-renderer-${version}.env,release-catalog-candidate/*",
+							artifacts: "documentation-renderer-${version}.env,documentation-installer-${version}.env,release-catalog-candidate/*",
 							allowEmptyArchive: false,
 							fingerprint: true
 						)
 						echo "Published immutable renderer: ${immutableImage}"
+						echo "Published immutable installer: ${immutableInstallerImage}"
 						echo "Archive release-catalog-candidate/ in a reviewed follow-up commit to make this release durably resolvable."
 					}
 				}
@@ -154,14 +188,13 @@ pipeline {
 			sh '''
 				version=$(sed -n '1p' "${VERSION_FILE}")
 				docker image rm "esoul-documentation-tools:${version}-smoke" >/dev/null 2>&1 || true
-				docker image rm "documentation-tools-installer:test-${BUILD_NUMBER}" >/dev/null 2>&1 || true
 			'''
 		}
 		success {
-			echo 'Documentation renderer pipeline completed successfully.'
+			echo 'Documentation tooling pipeline completed successfully.'
 		}
 		failure {
-			echo 'Documentation renderer pipeline failed.'
+			echo 'Documentation tooling pipeline failed.'
 		}
 	}
 }
