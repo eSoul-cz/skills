@@ -6,9 +6,11 @@ PROJECT_ROOT=$(CDPATH= cd "${DOCS_DIR}/.." && pwd)
 CONFIG="${PROJECT_ROOT}/docs/documentation.toml"
 TOOLS_DIR="${PROJECT_ROOT}/docs/.documentation-tools"
 VERSION_FILE="${TOOLS_DIR}/VERSION"
+MANIFEST_FILE="${TOOLS_DIR}/managed-files.json"
+CATALOG_TOOL="${TOOLS_DIR}/release-catalog"
 
 usage() {
-    echo "Usage: docs/documentation {validate|build|render|redact PLAN|version}" >&2
+    echo "Usage: docs/documentation {doctor|validate|build|render|redact PLAN|version}" >&2
     exit 2
 }
 
@@ -110,6 +112,344 @@ reject_symlink_components() {
 
 git_ignored() {
     git -C "${PROJECT_ROOT}" check-ignore --no-index -q "$1"
+}
+
+toml_root_integer() {
+    wanted_key=$1
+    awk -v wanted_key="${wanted_key}" '
+        /^[[:space:]]*\[/ {
+            exit
+        }
+        {
+            line = $0
+            sub(/^[[:space:]]*/, "", line)
+            if (index(line, wanted_key) != 1) {
+                next
+            }
+            rest = substr(line, length(wanted_key) + 1)
+            if (rest !~ /^[[:space:]]*=/) {
+                next
+            }
+            sub(/^[[:space:]]*=[[:space:]]*/, "", rest)
+            sub(/[[:space:]]*(#.*)?$/, "", rest)
+            if (rest !~ /^[1-9][0-9]*$/) {
+                exit 2
+            }
+            print rest
+            found = 1
+            exit
+        }
+        END {
+            if (!found) {
+                exit 1
+            }
+        }
+    ' "${CONFIG}"
+}
+
+manifest_string() {
+    wanted_key=$1
+    awk -v wanted_key="${wanted_key}" '
+        {
+            line = $0
+            sub(/^[[:space:]]*/, "", line)
+            prefix = "\"" wanted_key "\": \""
+            if (index(line, prefix) != 1) {
+                next
+            }
+            value = substr(line, length(prefix) + 1)
+            quote = index(value, "\"")
+            if (quote == 0) {
+                exit 2
+            }
+            print substr(value, 1, quote - 1)
+            found = 1
+            exit
+        }
+        END {
+            if (!found) {
+                exit 1
+            }
+        }
+    ' "${MANIFEST_FILE}"
+}
+
+manifest_entries() {
+    awk '
+        /^[[:space:]]*"managed_files":[[:space:]]*\{/ {
+            managed_files = 1
+            next
+        }
+        managed_files && /^[[:space:]]*\}/ {
+            found_end = 1
+            exit
+        }
+        managed_files {
+            line = $0
+            sub(/^[[:space:]]*/, "", line)
+            sub(/,[[:space:]]*$/, "", line)
+            if (line !~ /^"[^"]+":[[:space:]]*"[0-9a-f]+"$/) {
+                invalid = 1
+                exit
+            }
+            sub(/^"/, "", line)
+            separator = index(line, "\":")
+            path = substr(line, 1, separator - 1)
+            digest = substr(line, separator + 2)
+            sub(/^[[:space:]]*"/, "", digest)
+            sub(/"$/, "", digest)
+            if (length(digest) != 64 || digest !~ /^[0-9a-f]+$/) {
+                invalid = 1
+                exit
+            }
+            printf "%s\t%s\n", path, digest
+            entries++
+        }
+        END {
+            if (!managed_files || !found_end || invalid || entries == 0) {
+                exit 1
+            }
+        }
+    ' "${MANIFEST_FILE}"
+}
+
+sha256_file() {
+    path=$1
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "${path}" | awk '{print $1}'
+        return
+    fi
+    if command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 "${path}" | awk '{print $1}'
+        return
+    fi
+    return 1
+}
+
+catalog_field() {
+    release=$1
+    wanted=$2
+    printf '%s\n' "${release}" | awk -v wanted="${wanted}" '
+        index($0, wanted "=") == 1 {
+            print substr($0, length(wanted) + 2)
+            found = 1
+            exit
+        }
+        END {
+            if (!found) {
+                exit 1
+            }
+        }
+    '
+}
+
+doctor_ok() {
+    echo "OK: $*"
+}
+
+doctor_warning() {
+    echo "WARNING: $*"
+    doctor_warnings=$((doctor_warnings + 1))
+}
+
+doctor_error() {
+    echo "ERROR: $*"
+    doctor_errors=$((doctor_errors + 1))
+}
+
+doctor() {
+    doctor_errors=0
+    doctor_warnings=0
+    installed_version=
+    if [ -f "${VERSION_FILE}" ]; then
+        installed_version=$(sed -n '1p' "${VERSION_FILE}")
+    fi
+    if [ ! -f "${VERSION_FILE}" ]; then
+        doctor_error "managed tool VERSION file is missing: ${VERSION_FILE}"
+    elif printf '%s\n' "${installed_version}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+        doctor_ok "installed tool version ${installed_version}"
+    else
+        doctor_error "managed tool VERSION is not semantic: ${installed_version}"
+    fi
+
+    install_profile=unknown
+    if [ ! -f "${MANIFEST_FILE}" ]; then
+        doctor_error "managed-file manifest is missing"
+    else
+        if install_profile=$(manifest_string install_profile); then
+            [ -n "${install_profile}" ] || install_profile=local
+            doctor_ok "installation profile ${install_profile}"
+        else
+            manifest_status=$?
+            if [ "${manifest_status}" -eq 1 ]; then
+                install_profile=local
+                doctor_warning "managed-file manifest predates installation profiles; assuming local"
+            else
+                doctor_error "managed-file manifest contains an invalid installation profile"
+            fi
+        fi
+
+        if ! command -v sha256sum >/dev/null 2>&1 &&
+            ! command -v shasum >/dev/null 2>&1
+        then
+            doctor_warning "managed-file drift could not be checked because no SHA-256 command is available"
+        elif entries=$(manifest_entries); then
+            tab=$(printf '\t')
+            drift=$(
+                while IFS="${tab}" read -r managed_path expected_hash; do
+                    target="${PROJECT_ROOT}/${managed_path}"
+                    if [ -L "${target}" ]; then
+                        echo "${managed_path}: symbolic link"
+                    elif [ ! -f "${target}" ]; then
+                        echo "${managed_path}: missing"
+                    elif ! actual_hash=$(sha256_file "${target}"); then
+                        echo "${managed_path}: could not calculate checksum"
+                    elif [ "${actual_hash}" != "${expected_hash}" ]; then
+                        echo "${managed_path}: checksum differs"
+                    fi
+                done <<EOF
+${entries}
+EOF
+            )
+            if [ -n "${drift}" ]; then
+                doctor_error "managed-file drift detected"
+                printf '%s\n' "${drift}" | sed 's/^/  - /'
+            else
+                doctor_ok "managed files match their recorded checksums"
+            fi
+        else
+            doctor_error "managed-file manifest contains an invalid managed_files map"
+        fi
+    fi
+
+    latest_release=
+    latest_metadata=
+    config_schema=
+    if [ ! -x "${CATALOG_TOOL}" ]; then
+        doctor_error "managed release catalog command is missing or not executable"
+    elif ! "${CATALOG_TOOL}" validate >/dev/null 2>&1; then
+        doctor_error "managed release catalog is invalid"
+    else
+        latest_release=$("${CATALOG_TOOL}" latest)
+        latest_metadata=$("${CATALOG_TOOL}" show "${latest_release}")
+        latest_image=$(catalog_field "${latest_metadata}" RENDERER_IMAGE)
+        doctor_ok "release catalog latest is ${latest_release} (${latest_image})"
+
+        if "${CATALOG_TOOL}" show "${installed_version}" >/dev/null 2>&1; then
+            doctor_ok "installed version ${installed_version} is recorded in the release catalog"
+        else
+            doctor_warning "installed version ${installed_version} is not a published catalog release"
+        fi
+
+        if config_schema=$(toml_root_integer schema_version); then
+            required_schema=$(catalog_field "${latest_metadata}" CONFIG_SCHEMA_VERSION)
+            if [ "${config_schema}" = "${required_schema}" ]; then
+                doctor_ok "configuration schema ${config_schema} is compatible with release ${latest_release}"
+            else
+                doctor_warning "configuration schema ${config_schema} cannot upgrade directly to release ${latest_release}, which requires ${required_schema}"
+            fi
+        else
+            doctor_error "configuration schema_version is missing or invalid"
+        fi
+    fi
+
+    docker_ready=0
+    if ! command -v docker >/dev/null 2>&1; then
+        doctor_error "Docker is not installed"
+    elif ! docker info >/dev/null 2>&1; then
+        doctor_error "Docker is installed but the daemon is unavailable"
+    else
+        docker_ready=1
+        doctor_ok "Docker daemon is available"
+    fi
+
+    case "${pdf_mode}" in
+        local)
+            if [ "${install_profile}" = "remote" ]; then
+                doctor_error "configuration selects local mode but the remote installation profile has no build sources"
+            fi
+            case "${pdf_dockerfile}" in
+                ""|"."|".."|/*|.git|.git/*|*/.git|*/.git/*|../*|*/../*|*/..|*//*|*/./*|./*|*/|*\\*)
+                    doctor_error "pdf.dockerfile is not a normalized project-relative path: ${pdf_dockerfile}"
+                    ;;
+                *)
+                    if [ -f "${PROJECT_ROOT}/${pdf_dockerfile}" ] &&
+                        [ ! -L "${PROJECT_ROOT}/${pdf_dockerfile}" ]
+                    then
+                        doctor_ok "local renderer Dockerfile is available"
+                    else
+                        doctor_error "local renderer Dockerfile is missing or symbolic: ${pdf_dockerfile}"
+                    fi
+                    ;;
+            esac
+            ;;
+        remote)
+            if ! printf '%s\n' "${pdf_image}" | grep -Eq '^[^[:space:]@]+@sha256:[0-9a-f]{64}$'; then
+                doctor_error "remote pdf.image is not pinned by an immutable sha256 digest"
+            else
+                doctor_ok "configured renderer image is digest-pinned"
+                if [ -x "${CATALOG_TOOL}" ] &&
+                    catalog_version=$("${CATALOG_TOOL}" contains-image "${pdf_image}" 2>/dev/null)
+                then
+                    doctor_ok "configured renderer matches catalog release ${catalog_version}"
+                    if [ -n "${config_schema}" ] && [ "${catalog_version}" != "${latest_release}" ]; then
+                        configured_metadata=$("${CATALOG_TOOL}" show "${catalog_version}")
+                        configured_schema=$(catalog_field "${configured_metadata}" CONFIG_SCHEMA_VERSION)
+                        if [ "${config_schema}" = "${configured_schema}" ]; then
+                            doctor_ok "configuration schema ${config_schema} is compatible with configured release ${catalog_version}"
+                        else
+                            doctor_error "configuration schema ${config_schema} is incompatible with configured release ${catalog_version}, which requires ${configured_schema}"
+                        fi
+                    fi
+                else
+                    doctor_error "configured renderer image is not an active catalog release"
+                fi
+            fi
+            if [ -z "${DOCUMENTATION_REMOTE_RENDERER_IMAGE:-}" ]; then
+                doctor_error "DOCUMENTATION_REMOTE_RENDERER_IMAGE is missing from trusted runtime configuration"
+            elif [ "${DOCUMENTATION_REMOTE_RENDERER_IMAGE}" != "${pdf_image}" ]; then
+                doctor_error "trusted renderer allowlist does not match configured pdf.image"
+            else
+                doctor_ok "trusted renderer allowlist matches configured pdf.image"
+            fi
+            if [ "${docker_ready}" -eq 1 ]; then
+                if docker manifest inspect "${pdf_image}" >/dev/null 2>&1; then
+                    doctor_ok "registry manifest is reachable"
+                else
+                    doctor_error "registry manifest is unavailable; verify authentication and network access"
+                fi
+            fi
+            ;;
+        *)
+            doctor_error "pdf.mode must be local or remote: ${pdf_mode}"
+            ;;
+    esac
+
+    deprecated_keys=$(awk '
+        /^[[:space:]]*\[[^[]/ {
+            section = $0
+            sub(/^[[:space:]]*\[/, "", section)
+            sub(/\][[:space:]]*(#.*)?$/, "", section)
+            next
+        }
+        section == "pdf" &&
+            /^[[:space:]]*(paper_size|main_font|mono_font|accent_color)[[:space:]]*=/ {
+            line = $0
+            sub(/^[[:space:]]*/, "", line)
+            sub(/[[:space:]]*=.*$/, "", line)
+            print line
+        }
+    ' "${CONFIG}" | tr '\n' ' ' | sed 's/[[:space:]]*$//')
+    if [ -n "${deprecated_keys}" ]; then
+        doctor_warning "legacy flat PDF settings are present (${deprecated_keys}); prefer pdf.theme_overrides"
+    else
+        doctor_ok "no deprecated configuration settings detected"
+    fi
+
+    echo "Doctor completed with ${doctor_errors} error(s) and ${doctor_warnings} warning(s)."
+    if [ "${doctor_errors}" -gt 0 ]; then
+        return 1
+    fi
 }
 
 prepare_image() {
@@ -242,6 +582,9 @@ case "${command}" in
         sed -n '1p' "${VERSION_FILE}"
         exit 0
         ;;
+    doctor)
+        [ "$#" -eq 1 ] || usage
+        ;;
     validate|build|render)
         [ "$#" -eq 1 ] || usage
         ;;
@@ -257,16 +600,8 @@ if [ ! -f "${CONFIG}" ]; then
     echo "ERROR: Missing docs/documentation.toml" >&2
     exit 1
 fi
-if [ ! -f "${VERSION_FILE}" ]; then
+if [ "${command}" != "doctor" ] && [ ! -f "${VERSION_FILE}" ]; then
     echo "ERROR: Missing managed tool VERSION file." >&2
-    exit 1
-fi
-if ! command -v docker >/dev/null 2>&1; then
-    echo "ERROR: Docker is required for '${command}'." >&2
-    exit 1
-fi
-if ! docker info >/dev/null 2>&1; then
-    echo "ERROR: Docker is installed but the daemon is unavailable." >&2
     exit 1
 fi
 
@@ -278,6 +613,20 @@ pdf_platform=$(read_setting pdf platform "")
 pdf_dockerfile=$(read_setting pdf dockerfile "docs/.documentation-tools/pdf/Dockerfile")
 require_project_relative_path "output_dir" "${output_dir}"
 require_project_relative_path "work_dir" "${work_dir}"
+
+if [ "${command}" = "doctor" ]; then
+    doctor
+    exit $?
+fi
+
+if ! command -v docker >/dev/null 2>&1; then
+    echo "ERROR: Docker is required for '${command}'." >&2
+    exit 1
+fi
+if ! docker info >/dev/null 2>&1; then
+    echo "ERROR: Docker is installed but the daemon is unavailable." >&2
+    exit 1
+fi
 
 doc_commit=unknown
 doc_git_tag=

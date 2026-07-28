@@ -1,0 +1,42 @@
+schema_version = 1
+documentation_version = "0.6.0-smoke"
+primary_language = "en"
+output_dir = "docs/pdf"
+work_dir = "docs/.documentation-work"
+commit_pdf_outputs = false
+
+[project]
+name = "Northstar Systems"
+logo = "docs/assets/northstar-logo.svg"
+copyright = ""
+contact = ""
+
+[pdf]
+mode = "local"
+image = ""
+platform = "linux/amd64"
+dockerfile = "docs/.documentation-tools/pdf/Dockerfile"
+template = ""
+header_include = ""
+theme = "esoul"
+header_left = ""
+footer_left = ""
+
+[[guides]]
+id = "esoul-smoke"
+title = "Client & Operations Guide"
+output = "esoul-smoke.pdf"
+document_version = "1.4"
+document_date = "28 July 2026"
+classification = "Client Confidential"
+cross_document_links = "notice"
+invalid_links = "notice"
+link_notice_style = "footnote"
+link_notice_paths = "project-relative"
+sources = [
+  "docs/guide/overview.md",
+  "docs/guide/appendix.md",
+]
+landscape_sources = [
+  "docs/guide/appendix.md",
+]

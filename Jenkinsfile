@@ -16,17 +16,19 @@ pipeline {
 		RENDERER_CONTEXT = 'assets/project-tools/docs/.documentation-tools/pdf'
 		RENDERER_DOCKERFILE = 'assets/project-tools/docs/.documentation-tools/pdf/Dockerfile'
 		VERSION_FILE = 'assets/project-tools/docs/.documentation-tools/VERSION'
+		RELEASE_CATALOG_TOOL = 'assets/project-tools/docs/.documentation-tools/release-catalog'
 	}
 
 	stages {
 		stage('Verify renderer') {
 			steps {
+				sh "${env.RELEASE_CATALOG_TOOL} validate"
 				sh 'scripts/test_renderer_smoke'
 				sh '''
 					docker build \
 						--file scripts/install-project-tools/Dockerfile \
 						--tag documentation-tools-installer:test-${BUILD_NUMBER} \
-						scripts/install-project-tools
+						.
 				'''
 			}
 		}
@@ -86,11 +88,6 @@ pipeline {
 							dockerfile: env.RENDERER_DOCKERFILE,
 						)
 
-						dockerRegistryLogin(
-							registryUrl: env.REGISTRY_HOST,
-							username: 'nologin',
-							password: env.SECRET
-						)
 						def digest = sh(
 							script: "docker buildx imagetools inspect '${versionImage}' | sed -n 's/^Digest:[[:space:]]*//p' | sed -n '1p'",
 							returnStdout: true
@@ -100,16 +97,52 @@ pipeline {
 						}
 
 						def immutableImage = "${env.REGISTRY}/${env.RENDERER_IMAGE}@${digest}"
+						def publishedAt = sh(
+							script: "date -u '+%Y-%m-%dT%H:%M:%SZ'",
+							returnStdout: true
+						).trim()
+						def sourceCommit = sh(
+							script: 'git rev-parse HEAD',
+							returnStdout: true
+						).trim()
+						def releaseEntry = [
+							'CATALOG_SCHEMA_VERSION=1',
+							"RENDERER_VERSION=${version}",
+							"RENDERER_IMAGE=${immutableImage}",
+							'ARCHITECTURES=linux/amd64,linux/arm64',
+							"PUBLISHED_AT=${publishedAt}",
+							"SOURCE_COMMIT=${sourceCommit}",
+							'CONFIG_SCHEMA_VERSION=1',
+							'RELEASE_STATUS=active',
+							'UPGRADE_NOTES=Adds named themes, eSoul client branding, project-local fonts, styled footnotes and callouts, configurable link notices, doctor diagnostics, and transactional hosted upgrades; configuration schema remains 1.',
+							'SBOM=unavailable',
+							'SCAN=unavailable',
+							'PROVENANCE=unavailable',
+							'SIGNATURE=unavailable',
+							"DOCUMENTATION_RENDERER_VERSION=${version}",
+							"DOCUMENTATION_REMOTE_RENDERER_IMAGE=${immutableImage}",
+							''
+						].join('\n')
 						writeFile(
 							file: "documentation-renderer-${version}.env",
-							text: "DOCUMENTATION_RENDERER_VERSION=${version}\nDOCUMENTATION_REMOTE_RENDERER_IMAGE=${immutableImage}\n"
+							text: releaseEntry
 						)
+						writeFile(
+							file: "release-catalog-candidate/${version}.env",
+							text: releaseEntry
+						)
+						writeFile(
+							file: 'release-catalog-candidate/LATEST',
+							text: "${version}\n"
+						)
+						sh "DOCUMENTATION_RELEASE_CATALOG_DIR=release-catalog-candidate ${env.RELEASE_CATALOG_TOOL} validate"
 						archiveArtifacts(
-							artifacts: "documentation-renderer-${version}.env",
+							artifacts: "documentation-renderer-${version}.env,release-catalog-candidate/*",
 							allowEmptyArchive: false,
 							fingerprint: true
 						)
 						echo "Published immutable renderer: ${immutableImage}"
+						echo "Archive release-catalog-candidate/ in a reviewed follow-up commit to make this release durably resolvable."
 					}
 				}
 			}

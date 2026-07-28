@@ -1,6 +1,7 @@
 # Renderer smoke test
 
-This page verifies ordinary Markdown and a footnote.[^footnote]
+This page verifies ordinary Markdown, a shared footnote[^shared], and another
+reference to that same note.[^shared] It also exercises a complex footnote.[^complex]
 
 > [!WARNING]
 > This warning is rendered as a styled, page-breakable box.
@@ -27,4 +28,9 @@ flowchart LR
     Pandoc --> PDF
 ```
 
-[^footnote]: Footnotes are handled by Pandoc and remain available to Lua filters.
+[^shared]: Repeated references remain attached to the same authored note.
+
+[^complex]: A multiline footnote keeps *emphasis*, inline `code`, a
+    [reference link](https://example.com), and Czech text: příliš žluťoučký kůň.
+
+    A second paragraph verifies that longer notes retain their structure.

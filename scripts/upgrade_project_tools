@@ -1,0 +1,119 @@
+#!/bin/sh
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
+SKILL_ROOT=$(CDPATH= cd "${SCRIPT_DIR}/.." && pwd)
+INSTALLER_DIR="${SCRIPT_DIR}/install-project-tools"
+VERSION_FILE="${SKILL_ROOT}/assets/project-tools/docs/.documentation-tools/VERSION"
+CATALOG_TOOL="${SKILL_ROOT}/assets/project-tools/docs/.documentation-tools/release-catalog"
+CATALOG_DIR="${SKILL_ROOT}/assets/project-tools/docs/.documentation-tools/releases"
+
+usage() {
+    echo "Usage: scripts/upgrade_project_tools PROJECT_ROOT --to VERSION [--apply]" >&2
+    exit 2
+}
+
+catalog_field() {
+    release=$1
+    wanted=$2
+    printf '%s\n' "${release}" | awk -v wanted="${wanted}" '
+        index($0, wanted "=") == 1 {
+            print substr($0, length(wanted) + 2)
+            found = 1
+            exit
+        }
+        END {
+            if (!found) {
+                exit 1
+            }
+        }
+    '
+}
+
+if { [ "$#" -ne 3 ] && [ "$#" -ne 4 ]; } || [ "$2" != "--to" ]; then
+    usage
+fi
+
+project_argument=$1
+target_version=$3
+operation=--plan-remote-upgrade
+project_mount_mode=ro
+if [ "$#" -eq 4 ]; then
+    if [ "$4" != "--apply" ]; then
+        usage
+    fi
+    operation=--apply-remote-upgrade
+    project_mount_mode=rw
+fi
+if [ ! -d "${project_argument}" ]; then
+    echo "ERROR: Project root does not exist: ${project_argument}" >&2
+    exit 1
+fi
+PROJECT_ROOT=$(CDPATH= cd "${project_argument}" && pwd -P)
+if [ "${PROJECT_ROOT}" = "/" ]; then
+    echo "ERROR: Refusing to inspect tooling in the filesystem root." >&2
+    exit 1
+fi
+if [ ! -x "${CATALOG_TOOL}" ] || [ ! -f "${VERSION_FILE}" ]; then
+    echo "ERROR: The bundled documentation release catalog is incomplete." >&2
+    exit 1
+fi
+
+target_image=$(DOCUMENTATION_RELEASE_CATALOG_DIR="${CATALOG_DIR}" "${CATALOG_TOOL}" resolve "${target_version}")
+release=$(DOCUMENTATION_RELEASE_CATALOG_DIR="${CATALOG_DIR}" "${CATALOG_TOOL}" show "${target_version}")
+resolved_version=$(catalog_field "${release}" RENDERER_VERSION)
+target_config_schema=$(catalog_field "${release}" CONFIG_SCHEMA_VERSION)
+if [ "${resolved_version}" != "${target_version}" ]; then
+    echo "ERROR: Resolved catalog version does not match the requested version." >&2
+    exit 1
+fi
+
+if ! command -v docker >/dev/null 2>&1; then
+    echo "ERROR: Docker is required to plan or apply a documentation tooling upgrade." >&2
+    exit 1
+fi
+if ! docker info >/dev/null 2>&1; then
+    echo "ERROR: Docker is installed but the daemon is unavailable." >&2
+    exit 1
+fi
+
+version=$(sed -n '1{s/[^A-Za-z0-9_.-]/-/g;p;}' "${VERSION_FILE}")
+installer_image="esoul-documentation-installer:${version}"
+docker build \
+    --file "${INSTALLER_DIR}/Dockerfile" \
+    --tag "${installer_image}" \
+    "${SKILL_ROOT}"
+
+set -- docker run \
+    --rm \
+    --read-only \
+    --cap-drop ALL \
+    --security-opt no-new-privileges \
+    --pids-limit 64 \
+    --network none \
+    --user "$(id -u):$(id -g)" \
+    --volume "${SKILL_ROOT}:/skill:ro" \
+    --volume "${PROJECT_ROOT}:/project:${project_mount_mode}" \
+    "${installer_image}" \
+    --asset-root /skill/assets/project-tools \
+    "${operation}" \
+    --target-version "${resolved_version}" \
+    --target-image "${target_image}" \
+    --target-config-schema "${target_config_schema}" \
+    --display-project-root "${PROJECT_ROOT}" \
+    /project
+"$@"
+
+if [ "${operation}" = "--apply-remote-upgrade" ]; then
+    echo "Running post-upgrade doctor diagnostics..."
+    if DOCUMENTATION_REMOTE_RENDERER_IMAGE="${target_image}" \
+        "${PROJECT_ROOT}/docs/documentation" doctor
+    then
+        echo "Post-upgrade doctor diagnostics passed."
+    else
+        doctor_status=$?
+        echo "ERROR: The remote-upgrade transaction committed, but post-upgrade doctor diagnostics failed." >&2
+        echo "ERROR: The internally consistent upgrade was retained; resolve the reported Docker, registry, or environment issue and rerun docs/documentation doctor." >&2
+        exit "${doctor_status}"
+    fi
+fi

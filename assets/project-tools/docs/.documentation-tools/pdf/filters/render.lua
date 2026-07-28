@@ -1,4 +1,5 @@
 local internal_token = assert(os.getenv("DOCUMENTATION_INTERNAL_TOKEN"), "missing renderer token")
+local theme = os.getenv("DOCUMENTATION_THEME") or "default"
 
 local allowed_math_commands = {
   alpha = true, approx = true, bar = true, beta = true, cdot = true,
@@ -75,4 +76,68 @@ function Div(element)
     end
   end
   return nil
+end
+
+function Table(element)
+  if theme ~= "esoul" then
+    return nil
+  end
+
+  local has_explicit_width = false
+  local column_lengths = {}
+  for index, colspec in ipairs(element.colspecs) do
+    if colspec[2] ~= nil and colspec[2] > 0 then
+      has_explicit_width = true
+    end
+    column_lengths[index] = 8
+  end
+
+  local function measure_rows(rows)
+    for _, row in ipairs(rows) do
+      local column = 1
+      for _, cell in ipairs(row.cells) do
+        local span = cell.col_span or 1
+        if span == 1 then
+          local length = #pandoc.utils.stringify(cell.contents)
+          column_lengths[column] = math.max(column_lengths[column] or 8, length)
+        end
+        column = column + span
+      end
+    end
+  end
+
+  if not has_explicit_width then
+    measure_rows(element.head.rows)
+    for _, body in ipairs(element.bodies) do
+      measure_rows(body.head)
+      measure_rows(body.body)
+    end
+    measure_rows(element.foot.rows)
+
+    local total_weight = 0
+    local weights = {}
+    for index, length in ipairs(column_lengths) do
+      weights[index] = math.sqrt(length)
+      total_weight = total_weight + weights[index]
+    end
+    for index, colspec in ipairs(element.colspecs) do
+      element.colspecs[index] = {colspec[1], weights[index] / total_weight}
+    end
+  end
+
+  for _, row in ipairs(element.head.rows) do
+    for _, cell in ipairs(row.cells) do
+      if #cell.contents > 0 then
+        local first_block = cell.contents[1]
+        if first_block.t == "Plain" or first_block.t == "Para" then
+          table.insert(
+            first_block.content,
+            1,
+            pandoc.RawInline("latex", "\\color{documentationaccent}\\bfseries ")
+          )
+        end
+      end
+    end
+  end
+  return element
 end

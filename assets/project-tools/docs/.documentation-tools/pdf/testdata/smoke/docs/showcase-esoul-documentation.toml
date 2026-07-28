@@ -1,0 +1,40 @@
+schema_version = 1
+documentation_version = "0.6.0-showcase"
+primary_language = "en"
+output_dir = "docs/pdf"
+work_dir = "docs/.documentation-work"
+commit_pdf_outputs = false
+
+[project]
+name = "Northstar Systems"
+logo = "docs/assets/northstar-logo.svg"
+copyright = ""
+contact = ""
+
+[pdf]
+mode = "local"
+image = ""
+platform = "linux/amd64"
+dockerfile = "docs/.documentation-tools/pdf/Dockerfile"
+template = ""
+header_include = ""
+theme = "esoul"
+header_left = ""
+footer_left = ""
+
+[[guides]]
+id = "theme-showcase-esoul"
+title = "Documentation Theme Showcase"
+output = "theme-showcase-esoul.pdf"
+document_version = "1.0"
+document_date = "28 July 2026"
+classification = "Client Confidential"
+sources = [
+  "docs/showcase/typography.md",
+  "docs/showcase/semantic-components.md",
+  "docs/showcase/visual-content.md",
+  "docs/showcase/landscape.md",
+]
+landscape_sources = [
+  "docs/showcase/landscape.md",
+]

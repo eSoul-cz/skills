@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 90" role="img" aria-labelledby="title">
+  <title id="title">Northstar Systems</title>
+  <path fill="#657C7A" d="m45 5 9.8 25.2L80 40 54.8 49.8 45 75 35.2 49.8 10 40l25.2-9.8z"/>
+  <circle cx="45" cy="40" r="9" fill="#f4f3f1"/>
+  <text x="98" y="52" fill="#343638" font-family="Poppins, sans-serif" font-size="29" font-weight="600" letter-spacing="1.6">NORTHSTAR</text>
+  <text x="100" y="72" fill="#657C7A" font-family="Poppins, sans-serif" font-size="12" font-weight="400" letter-spacing="4.3">SYSTEMS</text>
+</svg>

@@ -36,7 +36,6 @@ const (
 var (
 	guideIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 	pagesPattern   = regexp.MustCompile(`(?m)^Pages:\s+([0-9]+)$`)
-	hexPattern     = regexp.MustCompile(`[^0-9A-Fa-f]`)
 	runCommand     = execute
 )
 
@@ -61,18 +60,21 @@ type projectConfig struct {
 }
 
 type pdfConfig struct {
-	Mode          string `toml:"mode"`
-	Image         string `toml:"image"`
-	Platform      string `toml:"platform"`
-	Dockerfile    string `toml:"dockerfile"`
-	Template      string `toml:"template"`
-	HeaderInclude string `toml:"header_include"`
-	PaperSize     string `toml:"paper_size"`
-	MainFont      string `toml:"main_font"`
-	MonoFont      string `toml:"mono_font"`
-	AccentColor   string `toml:"accent_color"`
-	HeaderLeft    string `toml:"header_left"`
-	FooterLeft    string `toml:"footer_left"`
+	Mode           string               `toml:"mode"`
+	Image          string               `toml:"image"`
+	Platform       string               `toml:"platform"`
+	Dockerfile     string               `toml:"dockerfile"`
+	Template       string               `toml:"template"`
+	HeaderInclude  string               `toml:"header_include"`
+	Theme          string               `toml:"theme"`
+	ThemeOverrides themeOverridesConfig `toml:"theme_overrides"`
+	FontDirs       []string             `toml:"font_dirs"`
+	PaperSize      string               `toml:"paper_size"`
+	MainFont       string               `toml:"main_font"`
+	MonoFont       string               `toml:"mono_font"`
+	AccentColor    string               `toml:"accent_color"`
+	HeaderLeft     string               `toml:"header_left"`
+	FooterLeft     string               `toml:"footer_left"`
 }
 
 type privacyConfig struct {
@@ -84,6 +86,9 @@ type guideConfig struct {
 	ID                 string   `toml:"id"`
 	Title              string   `toml:"title"`
 	Output             string   `toml:"output"`
+	DocumentVersion    string   `toml:"document_version"`
+	DocumentDate       string   `toml:"document_date"`
+	Classification     string   `toml:"classification"`
 	CrossDocumentLinks string   `toml:"cross_document_links"`
 	InvalidLinks       string   `toml:"invalid_links"`
 	LinkNoticeStyle    string   `toml:"link_notice_style"`
@@ -442,6 +447,23 @@ func buildGuide(root string, cfg config, guide guideConfig) (string, error) {
 		return "", fmt.Errorf("write combined Pandoc AST: %w", err)
 	}
 
+	theme, err := resolveTheme(cfg.PDF)
+	if err != nil {
+		return "", err
+	}
+	themeFiles, err := prepareThemeFiles(
+		root,
+		stagingDir,
+		newThemeDocument(cfg, guide),
+		theme,
+	)
+	if err != nil {
+		return "", err
+	}
+	fontEnv, err := prepareFontEnvironment(root, stagingDir, cfg.PDF.FontDirs)
+	if err != nil {
+		return "", err
+	}
 	metadataPath := filepath.Join(stagingDir, "metadata.yaml")
 	if err := writeMetadata(root, stagingDir, metadataPath, cfg, guide); err != nil {
 		return "", err
@@ -468,25 +490,34 @@ func buildGuide(root string, cfg config, guide guideConfig) (string, error) {
 			return "", err
 		}
 	}
+	pandocArgs := []string{
+		"pandoc",
+		filepath.Base(combinedPath),
+		"--from=json",
+		"--lua-filter=" + renderLua,
+		"--metadata-file=" + filepath.Base(metadataPath),
+		"--template=" + template,
+		"--pdf-engine=xelatex",
+		"--toc",
+		"--number-sections",
+		"--listings",
+		"--include-in-header=" + themeFiles.Header,
+		"--include-in-header=" + header,
+		"--resource-path=" + stagingDir,
+		"--output",
+		output,
+	}
+	if themeFiles.BeforeBody != "" {
+		pandocArgs = append(pandocArgs, "--include-before-body="+themeFiles.BeforeBody)
+	}
+	renderEnv := append(fontEnv,
+		"DOCUMENTATION_INTERNAL_TOKEN="+token,
+		"DOCUMENTATION_THEME="+theme.Name,
+	)
 	_, err = runCommand(
-		[]string{
-			"pandoc",
-			filepath.Base(combinedPath),
-			"--from=json",
-			"--lua-filter=" + renderLua,
-			"--metadata-file=" + filepath.Base(metadataPath),
-			"--template=" + template,
-			"--pdf-engine=xelatex",
-			"--toc",
-			"--number-sections",
-			"--listings",
-			"--include-in-header=" + header,
-			"--resource-path=" + stagingDir,
-			"--output",
-			output,
-		},
+		pandocArgs,
 		stagingDir,
-		[]string{"DOCUMENTATION_INTERNAL_TOKEN=" + token},
+		renderEnv,
 		nil,
 	)
 	if err != nil {
@@ -610,6 +641,10 @@ func runtimePath(name, fallback string) string {
 }
 
 func writeMetadata(root, stagingDir, path string, cfg config, guide guideConfig) error {
+	theme, err := resolveTheme(cfg.PDF)
+	if err != nil {
+		return err
+	}
 	generated := strings.TrimSpace(os.Getenv("DOC_GENERATED_AT"))
 	if generated == "" {
 		generated = time.Now().UTC().Format("2006-01-02 15:04 UTC")
@@ -624,12 +659,7 @@ func writeMetadata(root, stagingDir, path string, cfg config, guide guideConfig)
 	}
 	metadata = append(metadata, "Generated "+generated)
 
-	accent := hexPattern.ReplaceAllString(valueOr(cfg.PDF.AccentColor, "1B6B93"), "")
-	if len(accent) != 6 {
-		accent = "1B6B93"
-	}
 	title := valueOr(guide.Title, "Documentation")
-	mainFont := valueOr(cfg.PDF.MainFont, "Noto Sans")
 	projectName := cfg.Project.Name
 	headerLeft := valueOr(cfg.PDF.HeaderLeft, projectName)
 	footerLeft := valueOr(cfg.PDF.FooterLeft, cfg.Project.Copyright)
@@ -637,32 +667,36 @@ func writeMetadata(root, stagingDir, path string, cfg config, guide guideConfig)
 		"title: " + yamlString(title),
 		"subtitle: " + yamlString(strings.Join(metadata, " | ")),
 		"lang: " + yamlString(valueOr(cfg.PrimaryLanguage, "en")),
-		"titlepage: true",
+		"titlepage: " + strconv.FormatBool(!theme.Branded),
 		"toc: true",
 		"toc-own-page: true",
 		"numbersections: true",
-		"papersize: " + yamlString(valueOr(cfg.PDF.PaperSize, "a4")),
-		"mainfont: " + yamlString(mainFont),
-		"sansfont: " + yamlString(mainFont),
-		"monofont: " + yamlString(valueOr(cfg.PDF.MonoFont, "Noto Sans Mono")),
+		"papersize: " + yamlString(theme.PaperSize),
+		"fontsize: " + yamlString(theme.FontSize),
+		"mainfont: " + yamlString(theme.MainFont),
+		"sansfont: " + yamlString(theme.MainFont),
+		"monofont: " + yamlString(theme.MonoFont),
 		"colorlinks: true",
-		"linkcolor: blue",
-		"urlcolor: blue",
-		"titlepage-rule-color: " + yamlString(accent),
+		"linkcolor: documentationlink",
+		"urlcolor: documentationurl",
+		"titlepage-rule-color: " + yamlString(theme.AccentColor),
 		"header-left: " + yamlString(headerLeft),
 		"header-right: " + yamlString(title),
 		"footer-left: " + yamlString(footerLeft),
-		"geometry: " + yamlString("margin=24mm"),
+		"geometry: " + yamlString(themeGeometry(theme)),
 	}
-	if cfg.Project.Logo != "" {
+	if theme.Branded {
+		values = append(values, "disable-header-and-footer: true")
+	}
+	if cfg.Project.Logo != "" && !theme.Branded {
 		logo, err := securePath(root, cfg.Project.Logo)
 		if err != nil {
 			return err
 		}
 		if strings.EqualFold(filepath.Ext(logo), ".svg") {
-			output := filepath.Join(stagingDir, "cover-logo.png")
+			output := filepath.Join(stagingDir, "cover-logo.pdf")
 			if _, err := runCommand(
-				[]string{"rsvg-convert", "--width", "900", "--output", output, logo},
+				[]string{"rsvg-convert", "--format=pdf", "--output=" + output, logo},
 				stagingDir,
 				nil,
 				nil,
@@ -684,6 +718,18 @@ func writeMetadata(root, stagingDir, path string, cfg config, guide guideConfig)
 
 func yamlString(value string) string {
 	return strconv.Quote(value)
+}
+
+func themeGeometry(theme resolvedTheme) string {
+	if theme.Branded {
+		return strings.Join([]string{
+			"left=" + theme.Margin,
+			"right=" + theme.Margin,
+			"top=12.5mm",
+			"bottom=45mm",
+		}, ",")
+	}
+	return "margin=" + theme.Margin
 }
 
 func inspectPDF(root string, cfg config, guide guideConfig, pdfPath string) error {

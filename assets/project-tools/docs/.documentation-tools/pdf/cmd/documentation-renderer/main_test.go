@@ -132,6 +132,34 @@ func TestValidateGuideOutput(t *testing.T) {
 	}
 }
 
+func TestValidateDisplayMetadataRejectsUnsafePresentationValues(t *testing.T) {
+	result := validationResult{}
+	validateDisplayMetadata("classification", "line one\nline two", 80, "guide", &result)
+	validateDisplayMetadata("document_date", strings.Repeat("x", 81), 80, "guide", &result)
+	validateDisplayMetadata("document_version", "   ", 80, "guide", &result)
+	for _, expected := range []string{"single line", "at most 80", "only whitespace"} {
+		if !validationContains(result.Errors, expected) {
+			t.Errorf("expected validation error containing %q: %#v", expected, result.Errors)
+		}
+	}
+}
+
+func TestValidateProjectLogoRequiresSupportedProjectFile(t *testing.T) {
+	root := t.TempDir()
+	unsupported := filepath.Join(root, "logo.txt")
+	if err := os.WriteFile(unsupported, []byte("logo"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	result := validationResult{}
+	validateProjectLogo(root, "logo.txt", &result)
+	validateProjectLogo(root, "missing.svg", &result)
+	for _, expected := range []string{"must be an SVG", "Missing project.logo"} {
+		if !validationContains(result.Errors, expected) {
+			t.Errorf("expected validation error containing %q: %#v", expected, result.Errors)
+		}
+	}
+}
+
 func TestWriteHeadingMapEscapesValues(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "map.lua")
 	headings := map[string]string{"/workspace/docs/quo\"te.md": "café"}

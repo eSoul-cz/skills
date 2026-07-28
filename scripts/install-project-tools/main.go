@@ -22,9 +22,10 @@ const manifestRelativePath = "docs/.documentation-tools/managed-files.json"
 var semanticVersionPattern = regexp.MustCompile(`^(\d+)\.(\d+)\.(\d+)$`)
 
 var remoteProfileFiles = map[string]bool{
-	"docs/documentation":                       true,
-	"docs/.documentation-tools/VERSION":        true,
-	"docs/.documentation-tools/pdf/header.tex": true,
+	"docs/documentation":                        true,
+	"docs/.documentation-tools/VERSION":         true,
+	"docs/.documentation-tools/release-catalog": true,
+	"docs/.documentation-tools/pdf/header.tex":  true,
 }
 
 type manifest struct {
@@ -45,13 +46,33 @@ func main() {
 	checkOnly := flag.Bool("check", false, "check installed managed files without changing them")
 	upgrade := flag.Bool("upgrade", false, "upgrade an existing managed installation")
 	profile := flag.String("profile", "auto", "installation profile: auto, local, or remote")
+	planRemoteUpgrade := flag.Bool("plan-remote-upgrade", false, "preview a catalog-resolved remote-profile upgrade without changing files")
+	applyRemoteUpgrade := flag.Bool("apply-remote-upgrade", false, "apply a catalog-resolved remote-profile upgrade transaction")
+	targetVersion := flag.String("target-version", "", "catalog-resolved renderer version for a remote-upgrade operation")
+	targetImage := flag.String("target-image", "", "catalog-resolved immutable renderer image for a remote-upgrade operation")
+	targetConfigSchema := flag.Int("target-config-schema", 0, "required project configuration schema for a remote-upgrade operation")
+	displayProjectRoot := flag.String("display-project-root", "", "host project path shown by a remote-upgrade operation")
 	flag.Parse()
 
 	if *checkOnly && *upgrade {
 		exitError(errors.New("--check and --upgrade cannot be combined"), 2)
 	}
+	if *planRemoteUpgrade && *applyRemoteUpgrade {
+		exitError(errors.New("--plan-remote-upgrade and --apply-remote-upgrade cannot be combined"), 2)
+	}
+	if (*planRemoteUpgrade || *applyRemoteUpgrade) && (*checkOnly || *upgrade || *profile != "auto") {
+		exitError(errors.New("remote-upgrade operations cannot be combined with --check, --upgrade, or --profile"), 2)
+	}
+	if !*planRemoteUpgrade && !*applyRemoteUpgrade &&
+		(*targetVersion != "" || *targetImage != "" || *targetConfigSchema != 0 || *displayProjectRoot != "") {
+		exitError(errors.New("target release options require a remote-upgrade operation"), 2)
+	}
 	if strings.TrimSpace(*assetRoot) == "" || flag.NArg() != 1 {
-		exitError(errors.New("usage: install-project-tools --asset-root PATH [--check|--upgrade] [--profile auto|local|remote] PROJECT_ROOT"), 2)
+		exitError(errors.New(
+			"usage: install-project-tools --asset-root PATH { [--check|--upgrade] [--profile auto|local|remote] | "+
+				"[--plan-remote-upgrade|--apply-remote-upgrade] --target-version VERSION "+
+				"--target-image IMAGE --target-config-schema SCHEMA [--display-project-root PATH] } PROJECT_ROOT",
+		), 2)
 	}
 	if *profile != "auto" && *profile != "local" && *profile != "remote" {
 		exitError(errors.New("--profile must be 'auto', 'local', or 'remote'"), 2)
@@ -63,6 +84,21 @@ func main() {
 	assets, err := filepath.Abs(*assetRoot)
 	if err != nil {
 		exitError(fmt.Errorf("resolve asset root: %w", err), 1)
+	}
+	if *planRemoteUpgrade || *applyRemoteUpgrade {
+		if strings.TrimSpace(*targetVersion) == "" ||
+			strings.TrimSpace(*targetImage) == "" ||
+			*targetConfigSchema < 1 {
+			exitError(errors.New("remote-upgrade operations require --target-version, --target-image, and --target-config-schema"), 2)
+		}
+		operation := planRemoteProfileUpgrade
+		if *applyRemoteUpgrade {
+			operation = applyRemoteProfileUpgrade
+		}
+		if err := operation(projectRoot, assets, *targetVersion, *targetImage, *targetConfigSchema, *displayProjectRoot); err != nil {
+			exitError(err, 1)
+		}
+		return
 	}
 	if *checkOnly {
 		code, err := check(projectRoot, assets)
@@ -139,7 +175,9 @@ func sourceFiles(assetRoot, profile string) (map[string]string, error) {
 		if entry.Type()&os.ModeSymlink != 0 {
 			return fmt.Errorf("bundled asset must not be a symbolic link: %s", path)
 		}
-		if !entry.Type().IsRegular() || strings.HasSuffix(entry.Name(), ".pyc") {
+		if !entry.Type().IsRegular() ||
+			entry.Name() == ".DS_Store" ||
+			strings.HasSuffix(entry.Name(), ".pyc") {
 			return nil
 		}
 		relative, err := filepath.Rel(assetRoot, path)
@@ -150,7 +188,9 @@ func sourceFiles(assetRoot, profile string) (map[string]string, error) {
 		if normalized == manifestRelativePath {
 			return nil
 		}
-		if profile == "remote" && !remoteProfileFiles[normalized] {
+		if profile == "remote" &&
+			!remoteProfileFiles[normalized] &&
+			!strings.HasPrefix(normalized, "docs/.documentation-tools/releases/") {
 			return nil
 		}
 		files[normalized] = path
@@ -271,7 +311,83 @@ func drift(projectRoot string, installed manifest) ([]string, error) {
 	return findings, nil
 }
 
-func install(projectRoot, assetRoot string, upgrade bool, profile string) (installErr error) {
+func requireNoManagedDrift(projectRoot string, existing manifest) error {
+	findings, err := drift(projectRoot, existing)
+	if err != nil {
+		return err
+	}
+	if len(findings) > 0 {
+		return fmt.Errorf(
+			"managed tooling has local drift; resolve it before installation:\n- %s",
+			strings.Join(findings, "\n- "),
+		)
+	}
+	return nil
+}
+
+func prepareManagedFileChanges(projectRoot string, existing manifest, files map[string]string) ([]string, error) {
+	var retired []string
+	for relative := range existing.ManagedFiles {
+		if _, retained := files[relative]; !retained && relative != manifestRelativePath {
+			retired = append(retired, relative)
+		}
+	}
+	sort.Strings(retired)
+
+	var conflicts []string
+	for relative := range files {
+		if _, managed := existing.ManagedFiles[relative]; managed {
+			continue
+		}
+		blockedByRetiredFile := false
+		for _, retiredPath := range retired {
+			if strings.HasPrefix(relative, retiredPath+"/") {
+				blockedByRetiredFile = true
+				break
+			}
+		}
+		if blockedByRetiredFile {
+			continue
+		}
+		target, err := managedTarget(projectRoot, relative)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := os.Lstat(target); err == nil {
+			conflicts = append(conflicts, relative)
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("inspect target %s: %w", relative, err)
+		}
+	}
+	sort.Strings(conflicts)
+	if len(conflicts) > 0 {
+		return nil, fmt.Errorf(
+			"refusing to overwrite files not owned by a managed manifest:\n- %s",
+			strings.Join(conflicts, "\n- "),
+		)
+	}
+	return retired, nil
+}
+
+func prepareExistingInstall(projectRoot string, existing manifest, files map[string]string) ([]string, error) {
+	if err := requireNoManagedDrift(projectRoot, existing); err != nil {
+		return nil, err
+	}
+	return prepareManagedFileChanges(projectRoot, existing, files)
+}
+
+func install(projectRoot, assetRoot string, upgrade bool, profile string) error {
+	return installWithPostAction(projectRoot, assetRoot, upgrade, profile, nil, nil)
+}
+
+func installWithPostAction(
+	projectRoot,
+	assetRoot string,
+	upgrade bool,
+	profile string,
+	projectBackupFiles []string,
+	postAction func() error,
+) (installErr error) {
 	info, err := os.Stat(projectRoot)
 	if err != nil || !info.IsDir() {
 		return fmt.Errorf("project root does not exist: %s", projectRoot)
@@ -297,15 +413,8 @@ func install(projectRoot, assetRoot string, upgrade bool, profile string) (insta
 
 	var retired []string
 	if existing != nil {
-		findings, err := drift(projectRoot, *existing)
-		if err != nil {
+		if err := requireNoManagedDrift(projectRoot, *existing); err != nil {
 			return err
-		}
-		if len(findings) > 0 {
-			return fmt.Errorf(
-				"managed tooling has local drift; resolve it before installation:\n- %s",
-				strings.Join(findings, "\n- "),
-			)
 		}
 		if !upgrade {
 			return fmt.Errorf(
@@ -318,43 +427,9 @@ func install(projectRoot, assetRoot string, upgrade bool, profile string) (insta
 		if installedOK && bundleOK && compareVersions(installedVersion, bundleVersion) > 0 {
 			return fmt.Errorf("refusing to downgrade managed tooling from %s to bundled version %s", existing.ToolVersion, version)
 		}
-		for relative := range existing.ManagedFiles {
-			if _, retained := files[relative]; !retained && relative != manifestRelativePath {
-				retired = append(retired, relative)
-			}
-		}
-		sort.Strings(retired)
-		var conflicts []string
-		for relative := range files {
-			if _, managed := existing.ManagedFiles[relative]; managed {
-				continue
-			}
-			blockedByRetiredFile := false
-			for _, retiredPath := range retired {
-				if strings.HasPrefix(relative, retiredPath+"/") {
-					blockedByRetiredFile = true
-					break
-				}
-			}
-			if blockedByRetiredFile {
-				continue
-			}
-			target, err := managedTarget(projectRoot, relative)
-			if err != nil {
-				return err
-			}
-			if _, err := os.Lstat(target); err == nil {
-				conflicts = append(conflicts, relative)
-			} else if !errors.Is(err, os.ErrNotExist) {
-				return fmt.Errorf("inspect target %s: %w", relative, err)
-			}
-		}
-		sort.Strings(conflicts)
-		if len(conflicts) > 0 {
-			return fmt.Errorf(
-				"refusing to overwrite files not owned by a managed manifest:\n- %s",
-				strings.Join(conflicts, "\n- "),
-			)
+		retired, err = prepareManagedFileChanges(projectRoot, *existing, files)
+		if err != nil {
+			return err
 		}
 	} else {
 		var conflicts []string
@@ -387,6 +462,7 @@ func install(projectRoot, assetRoot string, upgrade bool, profile string) (insta
 	backupRoot := ""
 	backups := map[string]string{}
 	copyStarted := false
+	manifestWritten := false
 	transactionCommitted := false
 	backupRoot, err = os.MkdirTemp(projectRoot, ".documentation-tools-upgrade-")
 	if err != nil {
@@ -396,7 +472,11 @@ func install(projectRoot, assetRoot string, upgrade bool, profile string) (insta
 		if !transactionCommitted {
 			replacements := []string(nil)
 			if copyStarted {
-				replacements = relativeFiles
+				replacements = append(replacements, relativeFiles...)
+			}
+			replacements = append(replacements, projectBackupFiles...)
+			if manifestWritten {
+				replacements = append(replacements, manifestRelativePath)
 			}
 			if restoreErr := restoreManagedFiles(projectRoot, backups, replacements); restoreErr != nil {
 				installErr = errors.Join(
@@ -417,6 +497,9 @@ func install(projectRoot, assetRoot string, upgrade bool, profile string) (insta
 		for relative := range existing.ManagedFiles {
 			previousFiles = append(previousFiles, relative)
 		}
+		if _, alreadyManaged := existing.ManagedFiles[manifestRelativePath]; !alreadyManaged {
+			previousFiles = append(previousFiles, manifestRelativePath)
+		}
 		sort.Strings(previousFiles)
 		for _, relative := range previousFiles {
 			backupPath, err := backupManagedFile(projectRoot, backupRoot, relative)
@@ -426,6 +509,18 @@ func install(projectRoot, assetRoot string, upgrade bool, profile string) (insta
 			if backupPath != "" {
 				backups[relative] = backupPath
 			}
+		}
+	}
+	for _, relative := range projectBackupFiles {
+		if _, alreadyBackedUp := backups[relative]; alreadyBackedUp {
+			return fmt.Errorf("project transaction backup duplicates managed file: %s", relative)
+		}
+		backupPath, err := backupProjectFile(projectRoot, backupRoot, relative)
+		if err != nil {
+			return err
+		}
+		if backupPath != "" {
+			backups[relative] = backupPath
 		}
 	}
 
@@ -465,6 +560,12 @@ func install(projectRoot, assetRoot string, upgrade bool, profile string) (insta
 	if err := writeManifest(manifestPath, payload); err != nil {
 		return err
 	}
+	manifestWritten = true
+	if postAction != nil {
+		if err := postAction(); err != nil {
+			return fmt.Errorf("complete managed-tool upgrade transaction: %w", err)
+		}
+	}
 	transactionCommitted = true
 
 	action := "Installed"
@@ -475,7 +576,11 @@ func install(projectRoot, assetRoot string, upgrade bool, profile string) (insta
 	if len(retired) > 0 {
 		fmt.Printf("Removed %d retired managed file(s).\n", len(retired))
 	}
-	fmt.Println("Project-owned configuration and documentation templates were not overwritten.")
+	if postAction == nil {
+		fmt.Println("Project-owned configuration and documentation templates were not overwritten.")
+	} else {
+		fmt.Println("Only the explicitly planned project configuration settings were updated.")
+	}
 	fmt.Println("Ensure /docs/.documentation-work/ is ignored by Git.")
 	fmt.Println("Ignore /docs/pdf/ unless documentation.toml intentionally commits PDF outputs.")
 	return nil
@@ -502,6 +607,28 @@ func backupManagedFile(projectRoot, backupRoot, relative string) (string, error)
 	}
 	if err := os.Rename(target, backupPath); err != nil {
 		return "", fmt.Errorf("back up managed file %s: %w", relative, err)
+	}
+	return backupPath, nil
+}
+
+func backupProjectFile(projectRoot, backupRoot, relative string) (string, error) {
+	target, err := managedTarget(projectRoot, relative)
+	if err != nil {
+		return "", err
+	}
+	info, err := os.Lstat(target)
+	if errors.Is(err, os.ErrNotExist) {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("inspect project file for transaction backup %s: %w", relative, err)
+	}
+	if !info.Mode().IsRegular() {
+		return "", fmt.Errorf("refusing to back up project non-file path: %s", relative)
+	}
+	backupPath := filepath.Join(backupRoot, filepath.FromSlash(relative))
+	if err := copyManagedFile(target, backupPath); err != nil {
+		return "", fmt.Errorf("back up project file %s: %w", relative, err)
 	}
 	return backupPath, nil
 }

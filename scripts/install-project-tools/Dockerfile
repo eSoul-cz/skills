@@ -1,9 +1,12 @@
 FROM golang:1.24-bookworm@sha256:1a6d4452c65dea36aac2e2d606b01b4a029ec90cc1ae53890540ce6173ea77ac AS builder
 
 WORKDIR /src
-COPY go.mod ./
-COPY *.go ./
-RUN go test ./... \
+COPY scripts/install-project-tools/go.mod scripts/install-project-tools/go.sum ./
+COPY scripts/install-project-tools/*.go ./
+COPY scripts/upgrade_project_tools /fixture/scripts/upgrade_project_tools
+COPY assets/project-tools /fixture/assets/project-tools
+COPY assets/project-templates/docs/documentation.toml /fixture/assets/project-templates/docs/documentation.toml
+RUN DOCUMENTATION_SKILL_ROOT=/fixture go test -count=1 ./... \
     && go vet ./... \
     && CGO_ENABLED=0 go build \
         -trimpath \
