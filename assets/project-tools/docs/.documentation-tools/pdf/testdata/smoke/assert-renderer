@@ -91,9 +91,12 @@ case "${normalized}" in
     *"missing release notes"*"docs/missing.md#draft"*) ;;
     *) echo "ERROR: invalid-link notice is missing or mapped incorrectly." >&2; exit 1 ;;
 esac
-case "${normalized}" in
-    *"A multiline footnote keeps emphasis, inline code, a reference link, and Czech text: příliš žluťoučký kůň."*) ;;
-    *) echo "ERROR: complex Markdown footnote content is missing." >&2; exit 1 ;;
+extracted_text=$(cat "${extracted}")
+expected_footnote_paragraphs='A multiline footnote keeps emphasis, inline code, a reference link, and Czech text: příliš žluťoučký kůň.
+A second paragraph verifies that longer notes retain their structure.'
+case "${extracted_text}" in
+    *"${expected_footnote_paragraphs}"*) ;;
+    *) echo "ERROR: complex Markdown footnote paragraphs are missing or were merged." >&2; exit 1 ;;
 esac
 
 image_rows=$(pdfimages -list "${pdf}" | sed -n "3,\$p")
@@ -219,6 +222,11 @@ for staging_dir in theme-showcase-default theme-showcase-esoul; do
     for showcase_diagram_pdf do
         if [ ! -f "${showcase_diagram_pdf}" ]; then
             echo "ERROR: missing theme-showcase diagram: ${showcase_diagram_pdf}" >&2
+            exit 1
+        fi
+        diagram_images=$(pdfimages -list "${showcase_diagram_pdf}" | sed -n "3,\$p")
+        if [ -n "${diagram_images}" ]; then
+            echo "ERROR: Mermaid PDF contains raster image objects: ${showcase_diagram_pdf}" >&2
             exit 1
         fi
     done
