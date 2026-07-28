@@ -8,7 +8,7 @@ VERSION_FILE="${SKILL_ROOT}/assets/project-tools/docs/.documentation-tools/VERSI
 CATALOG_TOOL="${SKILL_ROOT}/assets/project-tools/docs/.documentation-tools/release-catalog"
 
 usage() {
-    echo "Usage: scripts/upgrade_project_tools PROJECT_ROOT --to VERSION" >&2
+    echo "Usage: scripts/upgrade_project_tools PROJECT_ROOT --to VERSION [--apply]" >&2
     exit 2
 }
 
@@ -29,12 +29,21 @@ catalog_field() {
     '
 }
 
-if [ "$#" -ne 3 ] || [ "$2" != "--to" ]; then
+if { [ "$#" -ne 3 ] && [ "$#" -ne 4 ]; } || [ "$2" != "--to" ]; then
     usage
 fi
 
 project_argument=$1
 target_version=$3
+operation=--plan-remote-upgrade
+project_mount_mode=ro
+if [ "$#" -eq 4 ]; then
+    if [ "$4" != "--apply" ]; then
+        usage
+    fi
+    operation=--apply-remote-upgrade
+    project_mount_mode=rw
+fi
 if [ ! -d "${project_argument}" ]; then
     echo "ERROR: Project root does not exist: ${project_argument}" >&2
     exit 1
@@ -59,7 +68,7 @@ if [ "${resolved_version}" != "${target_version}" ]; then
 fi
 
 if ! command -v docker >/dev/null 2>&1; then
-    echo "ERROR: Docker is required to plan a documentation tooling upgrade." >&2
+    echo "ERROR: Docker is required to plan or apply a documentation tooling upgrade." >&2
     exit 1
 fi
 if ! docker info >/dev/null 2>&1; then
@@ -83,10 +92,10 @@ exec docker run \
     --network none \
     --user "$(id -u):$(id -g)" \
     --volume "${SKILL_ROOT}:/skill:ro" \
-    --volume "${PROJECT_ROOT}:/project:ro" \
+    --volume "${PROJECT_ROOT}:/project:${project_mount_mode}" \
     "${installer_image}" \
     --asset-root /skill/assets/project-tools \
-    --plan-remote-upgrade \
+    "${operation}" \
     --target-version "${resolved_version}" \
     --target-image "${target_image}" \
     --target-config-schema "${target_config_schema}" \

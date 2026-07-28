@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -208,6 +209,30 @@ func TestRemoteProfileInstallsOnlyRuntimeFiles(t *testing.T) {
 	}
 }
 
+func TestInstallerInventoryExcludesHostMetadata(t *testing.T) {
+	assets := fixtureAssets(t, "0.5.0", map[string]fixtureFile{
+		".DS_Store":                            {Content: "host metadata\n", Mode: 0o644},
+		"docs/documentation":                   {Content: "#!/bin/sh\n", Mode: 0o755},
+		"docs/.documentation-tools/cache.pyc":  {Content: "bytecode\n", Mode: 0o644},
+		"docs/.documentation-tools/source.lua": {Content: "source\n", Mode: 0o644},
+	})
+	project := t.TempDir()
+	if err := install(project, assets, false, "local"); err != nil {
+		t.Fatal(err)
+	}
+	for _, relative := range []string{".DS_Store", "docs/.documentation-tools/cache.pyc"} {
+		if _, err := os.Stat(filepath.Join(project, filepath.FromSlash(relative))); !os.IsNotExist(err) {
+			t.Fatalf("host metadata was unexpectedly installed: %s", relative)
+		}
+	}
+	installed := readFixtureManifest(t, project)
+	for _, relative := range []string{".DS_Store", "docs/.documentation-tools/cache.pyc"} {
+		if _, managed := installed.ManagedFiles[relative]; managed {
+			t.Fatalf("host metadata was unexpectedly recorded as managed: %s", relative)
+		}
+	}
+}
+
 func TestUpgradeFromLocalToRemoteRetiresBuildSources(t *testing.T) {
 	assets := fixtureAssets(t, "0.5.0", map[string]fixtureFile{
 		"docs/documentation":                               {Content: "#!/bin/sh\n", Mode: 0o755},
@@ -325,6 +350,7 @@ func TestRemoteUpgradePlanIsReadOnlyAndReportsExactChanges(t *testing.T) {
 		`[pdf].mode: "local" -> "remote"`,
 		`[pdf].image: "" -> "` + targetImage + `"`,
 		"DOCUMENTATION_REMOTE_RENDERER_IMAGE=" + targetImage,
+		"scripts/upgrade_project_tools '" + project + "' --to '0.6.0' --apply",
 		"docs/.documentation-tools/pdf/Dockerfile",
 		"No files were changed.",
 	} {
@@ -390,6 +416,135 @@ func TestRemoteUpgradePlanRefusesIncompatibleOrUnsafeState(t *testing.T) {
 			t.Fatalf("expected downgrade refusal, got %v", err)
 		}
 	})
+}
+
+func TestApplyRemoteUpgradeCommitsManagedFilesAndProjectConfig(t *testing.T) {
+	assets := fixtureAssets(t, "0.6.0", map[string]fixtureFile{
+		"docs/documentation":                               {Content: "#!/bin/sh\n", Mode: 0o755},
+		"docs/.documentation-tools/pdf/header.tex":         {Content: "header\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/Dockerfile":         {Content: "FROM scratch\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/filters/source.lua": {Content: "filter\n", Mode: 0o644},
+	})
+	project := t.TempDir()
+	writeDoctorConfig(t, project, strings.Join([]string{
+		"schema_version = 1",
+		`documentation_version = "client-owned"`,
+		"",
+		"[pdf]",
+		`mode = "local" # retain this comment`,
+		`image = ""`,
+		`theme = "esoul"`,
+		"",
+	}, "\n"))
+	if err := install(project, assets, false, "local"); err != nil {
+		t.Fatal(err)
+	}
+
+	targetImage := "registry.example/docs@sha256:" + strings.Repeat("c", 64)
+	output, err := captureStdout(t, func() error {
+		return applyRemoteProfileUpgradeWithValidator(
+			project,
+			assets,
+			"0.6.0",
+			targetImage,
+			1,
+			"",
+			validateRemoteUpgradeState,
+		)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output, "Remote-upgrade transaction committed.") {
+		t.Fatalf("apply output did not report a committed transaction:\n%s", output)
+	}
+	if !strings.Contains(output, "Only the explicitly planned project configuration settings were updated.") ||
+		strings.Contains(output, "Project-owned configuration and documentation templates were not overwritten.") {
+		t.Fatalf("apply output misrepresented project configuration changes:\n%s", output)
+	}
+
+	config, err := readProjectConfig(project)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if config.PDFMode != "remote" || config.PDFImage != targetImage {
+		t.Fatalf("unexpected upgraded configuration: %#v", config)
+	}
+	configData, err := os.ReadFile(filepath.Join(project, "docs", "documentation.toml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, preserved := range []string{
+		`documentation_version = "client-owned"`,
+		`mode = "remote" # retain this comment`,
+		`theme = "esoul"`,
+	} {
+		if !strings.Contains(string(configData), preserved) {
+			t.Fatalf("upgraded configuration lost %q:\n%s", preserved, configData)
+		}
+	}
+	installed := readFixtureManifest(t, project)
+	if installed.ToolVersion != "0.6.0" || installed.InstallProfile != "remote" {
+		t.Fatalf("unexpected upgraded manifest: %#v", installed)
+	}
+	for _, relative := range []string{
+		"docs/.documentation-tools/pdf/Dockerfile",
+		"docs/.documentation-tools/pdf/filters/source.lua",
+	} {
+		if _, err := os.Stat(filepath.Join(project, filepath.FromSlash(relative))); !os.IsNotExist(err) {
+			t.Fatalf("expected apply to retire %s", relative)
+		}
+	}
+}
+
+func TestApplyRemoteUpgradeRollsBackEverythingWhenValidationFails(t *testing.T) {
+	assets := fixtureAssets(t, "0.6.0", map[string]fixtureFile{
+		"docs/documentation":                               {Content: "#!/bin/sh\n", Mode: 0o755},
+		"docs/.documentation-tools/pdf/header.tex":         {Content: "header\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/Dockerfile":         {Content: "FROM scratch\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/filters/source.lua": {Content: "filter\n", Mode: 0o644},
+	})
+	project := t.TempDir()
+	writeDoctorConfig(t, project, "schema_version = 1\n\n[pdf]\nmode = \"local\"\nimage = \"\"\n")
+	if err := install(project, assets, false, "local"); err != nil {
+		t.Fatal(err)
+	}
+	before := fixtureTreeDigests(t, project)
+	targetImage := "registry.example/docs@sha256:" + strings.Repeat("d", 64)
+	forcedFailure := errors.New("forced post-upgrade validation failure")
+
+	_, err := captureStdout(t, func() error {
+		return applyRemoteProfileUpgradeWithValidator(
+			project,
+			assets,
+			"0.6.0",
+			targetImage,
+			1,
+			"",
+			func(remoteUpgradePlan) error {
+				return forcedFailure
+			},
+		)
+	})
+	if err == nil || !strings.Contains(err.Error(), forcedFailure.Error()) {
+		t.Fatalf("expected forced validation failure, got %v", err)
+	}
+	after := fixtureTreeDigests(t, project)
+	if !reflect.DeepEqual(after, before) {
+		t.Fatalf("failed apply did not restore the project:\nbefore=%v\nafter=%v", before, after)
+	}
+	for _, pattern := range []string{
+		filepath.Join(project, ".documentation-tools-upgrade-*"),
+		filepath.Join(project, "docs", ".documentation-config-*"),
+	} {
+		matches, err := filepath.Glob(pattern)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(matches) > 0 {
+			t.Fatalf("failed apply left transaction artifacts: %v", matches)
+		}
+	}
 }
 
 func TestLocalUpgradeRefusesUnmanagedFileCollision(t *testing.T) {
@@ -695,7 +850,11 @@ func fixtureTreeDigests(t *testing.T, root string) map[string]string {
 		if err != nil {
 			return err
 		}
-		digests[filepath.ToSlash(relative)] = digest
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+		digests[filepath.ToSlash(relative)] = fmt.Sprintf("%04o:%s", info.Mode().Perm(), digest)
 		return nil
 	})
 	if err != nil {

@@ -47,21 +47,25 @@ func main() {
 	upgrade := flag.Bool("upgrade", false, "upgrade an existing managed installation")
 	profile := flag.String("profile", "auto", "installation profile: auto, local, or remote")
 	planRemoteUpgrade := flag.Bool("plan-remote-upgrade", false, "preview a catalog-resolved remote-profile upgrade without changing files")
-	targetVersion := flag.String("target-version", "", "catalog-resolved renderer version for --plan-remote-upgrade")
-	targetImage := flag.String("target-image", "", "catalog-resolved immutable renderer image for --plan-remote-upgrade")
-	targetConfigSchema := flag.Int("target-config-schema", 0, "required project configuration schema for --plan-remote-upgrade")
-	displayProjectRoot := flag.String("display-project-root", "", "host project path shown by --plan-remote-upgrade")
+	applyRemoteUpgrade := flag.Bool("apply-remote-upgrade", false, "apply a catalog-resolved remote-profile upgrade transaction")
+	targetVersion := flag.String("target-version", "", "catalog-resolved renderer version for a remote-upgrade operation")
+	targetImage := flag.String("target-image", "", "catalog-resolved immutable renderer image for a remote-upgrade operation")
+	targetConfigSchema := flag.Int("target-config-schema", 0, "required project configuration schema for a remote-upgrade operation")
+	displayProjectRoot := flag.String("display-project-root", "", "host project path shown by a remote-upgrade operation")
 	flag.Parse()
 
 	if *checkOnly && *upgrade {
 		exitError(errors.New("--check and --upgrade cannot be combined"), 2)
 	}
-	if *planRemoteUpgrade && (*checkOnly || *upgrade || *profile != "auto") {
-		exitError(errors.New("--plan-remote-upgrade cannot be combined with --check, --upgrade, or --profile"), 2)
+	if *planRemoteUpgrade && *applyRemoteUpgrade {
+		exitError(errors.New("--plan-remote-upgrade and --apply-remote-upgrade cannot be combined"), 2)
 	}
-	if !*planRemoteUpgrade &&
+	if (*planRemoteUpgrade || *applyRemoteUpgrade) && (*checkOnly || *upgrade || *profile != "auto") {
+		exitError(errors.New("remote-upgrade operations cannot be combined with --check, --upgrade, or --profile"), 2)
+	}
+	if !*planRemoteUpgrade && !*applyRemoteUpgrade &&
 		(*targetVersion != "" || *targetImage != "" || *targetConfigSchema != 0 || *displayProjectRoot != "") {
-		exitError(errors.New("target release options require --plan-remote-upgrade"), 2)
+		exitError(errors.New("target release options require a remote-upgrade operation"), 2)
 	}
 	if strings.TrimSpace(*assetRoot) == "" || flag.NArg() != 1 {
 		exitError(errors.New("usage: install-project-tools --asset-root PATH [--check|--upgrade] [--profile auto|local|remote] PROJECT_ROOT"), 2)
@@ -77,20 +81,17 @@ func main() {
 	if err != nil {
 		exitError(fmt.Errorf("resolve asset root: %w", err), 1)
 	}
-	if *planRemoteUpgrade {
+	if *planRemoteUpgrade || *applyRemoteUpgrade {
 		if strings.TrimSpace(*targetVersion) == "" ||
 			strings.TrimSpace(*targetImage) == "" ||
 			*targetConfigSchema < 1 {
-			exitError(errors.New("--plan-remote-upgrade requires --target-version, --target-image, and --target-config-schema"), 2)
+			exitError(errors.New("remote-upgrade operations require --target-version, --target-image, and --target-config-schema"), 2)
 		}
-		if err := planRemoteProfileUpgrade(
-			projectRoot,
-			assets,
-			*targetVersion,
-			*targetImage,
-			*targetConfigSchema,
-			*displayProjectRoot,
-		); err != nil {
+		operation := planRemoteProfileUpgrade
+		if *applyRemoteUpgrade {
+			operation = applyRemoteProfileUpgrade
+		}
+		if err := operation(projectRoot, assets, *targetVersion, *targetImage, *targetConfigSchema, *displayProjectRoot); err != nil {
 			exitError(err, 1)
 		}
 		return
@@ -170,7 +171,9 @@ func sourceFiles(assetRoot, profile string) (map[string]string, error) {
 		if entry.Type()&os.ModeSymlink != 0 {
 			return fmt.Errorf("bundled asset must not be a symbolic link: %s", path)
 		}
-		if !entry.Type().IsRegular() || strings.HasSuffix(entry.Name(), ".pyc") {
+		if !entry.Type().IsRegular() ||
+			entry.Name() == ".DS_Store" ||
+			strings.HasSuffix(entry.Name(), ".pyc") {
 			return nil
 		}
 		relative, err := filepath.Rel(assetRoot, path)
@@ -369,7 +372,17 @@ func prepareExistingInstall(projectRoot string, existing manifest, files map[str
 	return prepareManagedFileChanges(projectRoot, existing, files)
 }
 
-func install(projectRoot, assetRoot string, upgrade bool, profile string) (installErr error) {
+func install(projectRoot, assetRoot string, upgrade bool, profile string) error {
+	return installWithPostAction(projectRoot, assetRoot, upgrade, profile, nil)
+}
+
+func installWithPostAction(
+	projectRoot,
+	assetRoot string,
+	upgrade bool,
+	profile string,
+	postAction func() error,
+) (installErr error) {
 	info, err := os.Stat(projectRoot)
 	if err != nil || !info.IsDir() {
 		return fmt.Errorf("project root does not exist: %s", projectRoot)
@@ -444,6 +457,7 @@ func install(projectRoot, assetRoot string, upgrade bool, profile string) (insta
 	backupRoot := ""
 	backups := map[string]string{}
 	copyStarted := false
+	manifestWritten := false
 	transactionCommitted := false
 	backupRoot, err = os.MkdirTemp(projectRoot, ".documentation-tools-upgrade-")
 	if err != nil {
@@ -454,6 +468,9 @@ func install(projectRoot, assetRoot string, upgrade bool, profile string) (insta
 			replacements := []string(nil)
 			if copyStarted {
 				replacements = relativeFiles
+			}
+			if manifestWritten {
+				replacements = append(replacements, manifestRelativePath)
 			}
 			if restoreErr := restoreManagedFiles(projectRoot, backups, replacements); restoreErr != nil {
 				installErr = errors.Join(
@@ -473,6 +490,9 @@ func install(projectRoot, assetRoot string, upgrade bool, profile string) (insta
 		previousFiles := make([]string, 0, len(existing.ManagedFiles))
 		for relative := range existing.ManagedFiles {
 			previousFiles = append(previousFiles, relative)
+		}
+		if _, alreadyManaged := existing.ManagedFiles[manifestRelativePath]; !alreadyManaged {
+			previousFiles = append(previousFiles, manifestRelativePath)
 		}
 		sort.Strings(previousFiles)
 		for _, relative := range previousFiles {
@@ -522,6 +542,12 @@ func install(projectRoot, assetRoot string, upgrade bool, profile string) (insta
 	if err := writeManifest(manifestPath, payload); err != nil {
 		return err
 	}
+	manifestWritten = true
+	if postAction != nil {
+		if err := postAction(); err != nil {
+			return fmt.Errorf("complete managed-tool upgrade transaction: %w", err)
+		}
+	}
 	transactionCommitted = true
 
 	action := "Installed"
@@ -532,7 +558,11 @@ func install(projectRoot, assetRoot string, upgrade bool, profile string) (insta
 	if len(retired) > 0 {
 		fmt.Printf("Removed %d retired managed file(s).\n", len(retired))
 	}
-	fmt.Println("Project-owned configuration and documentation templates were not overwritten.")
+	if postAction == nil {
+		fmt.Println("Project-owned configuration and documentation templates were not overwritten.")
+	} else {
+		fmt.Println("Only the explicitly planned project configuration settings were updated.")
+	}
 	fmt.Println("Ensure /docs/.documentation-work/ is ignored by Git.")
 	fmt.Println("Ignore /docs/pdf/ unless documentation.toml intentionally commits PDF outputs.")
 	return nil
