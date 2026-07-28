@@ -33,6 +33,20 @@ else
         documentation-renderer \
             --project-root /workspace \
             --config docs/esoul-minimal-documentation.toml
+    DOC_COMMIT=smoke-test \
+    DOC_GENERATED_AT="2026-01-01 00:00 UTC" \
+    HOME=/tmp \
+    XDG_CACHE_HOME=/tmp/.cache \
+        documentation-renderer \
+            --project-root /workspace \
+            --config docs/showcase-default-documentation.toml
+    DOC_COMMIT=smoke-test \
+    DOC_GENERATED_AT="2026-01-01 00:00 UTC" \
+    HOME=/tmp \
+    XDG_CACHE_HOME=/tmp/.cache \
+        documentation-renderer \
+            --project-root /workspace \
+            --config docs/showcase-esoul-documentation.toml
 fi
 
 extracted=/workspace/docs/.documentation-work/review/smoke/extracted.txt
@@ -43,6 +57,10 @@ local_font_extracted=/workspace/docs/.documentation-work/review/local-font-smoke
 local_font_pdf=/workspace/docs/pdf/local-font-smoke.pdf
 esoul_minimal_extracted=/workspace/docs/.documentation-work/review/esoul-minimal/extracted.txt
 esoul_minimal_pdf=/workspace/docs/pdf/esoul-minimal.pdf
+showcase_default_extracted=/workspace/docs/.documentation-work/review/theme-showcase-default/extracted.txt
+showcase_default_pdf=/workspace/docs/pdf/theme-showcase-default.pdf
+showcase_esoul_extracted=/workspace/docs/.documentation-work/review/theme-showcase-esoul/extracted.txt
+showcase_esoul_pdf=/workspace/docs/pdf/theme-showcase-esoul.pdf
 test -s "${extracted}"
 test -s "${pdf}"
 test -s "${esoul_extracted}"
@@ -51,6 +69,10 @@ test -s "${local_font_extracted}"
 test -s "${local_font_pdf}"
 test -s "${esoul_minimal_extracted}"
 test -s "${esoul_minimal_pdf}"
+test -s "${showcase_default_extracted}"
+test -s "${showcase_default_pdf}"
+test -s "${showcase_esoul_extracted}"
+test -s "${showcase_esoul_pdf}"
 
 normalized=$(tr "\n" " " < "${extracted}" | tr -s " ")
 case "${normalized}" in
@@ -162,6 +184,49 @@ if [ -n "${esoul_minimal_image_rows}" ]; then
     printf "%s\n" "${esoul_minimal_image_rows}" >&2
     exit 1
 fi
+
+for showcase_extracted in "${showcase_default_extracted}" "${showcase_esoul_extracted}"; do
+    showcase_normalized=$(tr "\n" " " < "${showcase_extracted}" | tr -s " ")
+    for expected_element in \
+        "Typography and readable structure" \
+        "Note" \
+        "Tip" \
+        "Important" \
+        "Warning" \
+        "Caution" \
+        "Planned" \
+        "Northstar Systems compass mark and wordmark" \
+        "Landscape layout"
+    do
+        case "${showcase_normalized}" in
+            *"${expected_element}"*) ;;
+            *) echo "ERROR: theme showcase is missing ${expected_element}." >&2; exit 1 ;;
+        esac
+    done
+done
+
+for showcase_pdf in "${showcase_default_pdf}" "${showcase_esoul_pdf}"; do
+    showcase_image_rows=$(pdfimages -list "${showcase_pdf}" | sed -n "3,\$p")
+    if [ -n "${showcase_image_rows}" ]; then
+        echo "ERROR: theme showcase contains raster image objects: ${showcase_pdf}" >&2
+        printf "%s\n" "${showcase_image_rows}" >&2
+        exit 1
+    fi
+done
+
+set -- \
+    /workspace/docs/.documentation-work/build/theme-showcase-default/staging/diagram-*.pdf \
+    /workspace/docs/.documentation-work/build/theme-showcase-esoul/staging/diagram-*.pdf
+if [ "$#" -ne 6 ]; then
+    echo "ERROR: expected exactly three rendered Mermaid PDFs per theme showcase." >&2
+    exit 1
+fi
+for showcase_diagram_pdf do
+    if [ ! -f "${showcase_diagram_pdf}" ]; then
+        echo "ERROR: missing theme-showcase diagram: ${showcase_diagram_pdf}" >&2
+        exit 1
+    fi
+done
 
 if [ "${verify_only}" -eq 0 ]; then
     touch /tmp/documentation-renderer-smoke-passed

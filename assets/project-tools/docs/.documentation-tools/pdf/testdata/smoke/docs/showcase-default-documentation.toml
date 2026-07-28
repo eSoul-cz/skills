@@ -1,0 +1,37 @@
+schema_version = 1
+documentation_version = "0.6.0-showcase"
+primary_language = "en"
+output_dir = "docs/pdf"
+work_dir = "docs/.documentation-work"
+commit_pdf_outputs = false
+
+[project]
+name = "Documentation Theme Showcase"
+logo = ""
+copyright = ""
+contact = ""
+
+[pdf]
+mode = "local"
+image = ""
+platform = "linux/amd64"
+dockerfile = "docs/.documentation-tools/pdf/Dockerfile"
+template = ""
+header_include = ""
+theme = "default"
+header_left = "Theme showcase"
+footer_left = ""
+
+[[guides]]
+id = "theme-showcase-default"
+title = "Documentation Theme Showcase"
+output = "theme-showcase-default.pdf"
+sources = [
+  "docs/showcase/typography.md",
+  "docs/showcase/semantic-components.md",
+  "docs/showcase/visual-content.md",
+  "docs/showcase/landscape.md",
+]
+landscape_sources = [
+  "docs/showcase/landscape.md",
+]

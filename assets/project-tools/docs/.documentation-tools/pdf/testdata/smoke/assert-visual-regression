@@ -1,0 +1,69 @@
+#!/bin/sh
+set -eu
+
+baseline_root=/workspace/visual-baselines
+scratch_root=$(mktemp -d /tmp/documentation-visual-regression.XXXXXX)
+
+cleanup() {
+    rm -rf "${scratch_root}"
+}
+trap cleanup EXIT HUP INT TERM
+
+assert_document() {
+    label=$1
+    pdf=$2
+    baseline_dir="${baseline_root}/${label}"
+    actual_dir="${scratch_root}/${label}"
+
+    test -s "${pdf}"
+    test -d "${baseline_dir}"
+    mkdir -p "${actual_dir}"
+    pdftoppm -png -r 96 "${pdf}" "${actual_dir}/page"
+
+    baseline_count=$(find "${baseline_dir}" -maxdepth 1 -type f -name 'page-*.png' | wc -l | tr -d ' ')
+    actual_count=$(find "${actual_dir}" -maxdepth 1 -type f -name 'page-*.png' | wc -l | tr -d ' ')
+    if [ "${baseline_count}" -eq 0 ] || [ "${actual_count}" -ne "${baseline_count}" ]; then
+        echo "ERROR: ${label} showcase page count changed: expected ${baseline_count}, got ${actual_count}." >&2
+        exit 1
+    fi
+
+    for baseline in "${baseline_dir}"/page-*.png; do
+        page=$(basename "${baseline}")
+        actual="${actual_dir}/${page}"
+        if [ ! -s "${actual}" ]; then
+            echo "ERROR: ${label} showcase is missing rendered page ${page}." >&2
+            exit 1
+        fi
+
+        baseline_dimensions=$(identify -format '%wx%h' "${baseline}")
+        actual_dimensions=$(identify -format '%wx%h' "${actual}")
+        if [ "${actual_dimensions}" != "${baseline_dimensions}" ]; then
+            echo "ERROR: ${label}/${page} dimensions changed: expected ${baseline_dimensions}, got ${actual_dimensions}." >&2
+            exit 1
+        fi
+
+        compare_status=0
+        difference=$(compare -metric AE -fuzz 3% "${baseline}" "${actual}" null: 2>&1) || compare_status=$?
+        if [ "${compare_status}" -gt 1 ]; then
+            echo "ERROR: could not compare ${label}/${page}: ${difference}" >&2
+            exit 1
+        fi
+
+        pixels=$(identify -format '%[fx:w*h]' "${baseline}")
+        if ! awk -v difference="${difference}" -v pixels="${pixels}" \
+            'BEGIN { exit !(difference <= pixels * 0.005) }'
+        then
+            echo "ERROR: ${label}/${page} differs in ${difference} pixels; limit is 0.5% of ${pixels}." >&2
+            exit 1
+        fi
+    done
+
+    echo "Verified ${label} showcase against ${baseline_count} visual baseline page(s)."
+}
+
+assert_document \
+    default \
+    /workspace/docs/pdf/theme-showcase-default.pdf
+assert_document \
+    esoul \
+    /workspace/docs/pdf/theme-showcase-esoul.pdf
