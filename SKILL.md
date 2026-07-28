@@ -40,10 +40,10 @@ Run `docs/documentation doctor` after installation and before a hosted-profile m
 Before changing an installed project, preview an exact catalog release with:
 
 ```bash
-scripts/upgrade_project_tools /absolute/project/root --to 0.6.0
+scripts/upgrade_project_tools /absolute/project/root --to <catalog-version>
 ```
 
-This Docker-first command is read-only. It resolves the requested semantic version through the bundled catalog, requires the skill bundle to match that release, rejects managed drift, downgrades, incompatible configuration schemas, and unsafe remote-image values, then reports the managed profile migration, project-owned TOML edits, retired files, and independent allowlist value. It does not apply the plan or update CI credentials.
+Replace `<catalog-version>` with a published version returned by the bundled release catalog's `latest` command. This Docker-first command is read-only. It resolves the requested semantic version through the bundled catalog, requires the skill bundle to match that release, rejects managed drift, downgrades, incompatible configuration schemas, and unsafe remote-image values, then reports the managed profile migration, project-owned TOML edits, retired files, and independent allowlist value. It does not apply the plan or update CI credentials.
 
 After reviewing the exact plan and obtaining approval, append `--apply`. The installer updates managed files and only the `[pdf].mode` and `[pdf].image` project settings in one transaction, validates the resulting manifest, checksums, profile, retired files, and configuration, and restores the previous files, manifest, and TOML if validation fails. It prints the trusted `DOCUMENTATION_REMOTE_RENDERER_IMAGE` value but never changes local secrets or CI credentials.
 

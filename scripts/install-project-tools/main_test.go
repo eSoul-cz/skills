@@ -365,6 +365,61 @@ func TestRemoteUpgradePlanIsReadOnlyAndReportsExactChanges(t *testing.T) {
 	}
 }
 
+func TestProjectConfigParsingAndRewriteRespectTOMLStringsAndInlineTables(t *testing.T) {
+	decoyImage := "registry.example/decoy@sha256:" + strings.Repeat("a", 64)
+	targetImage := "registry.example/docs@sha256:" + strings.Repeat("b", 64)
+
+	inlineConfig := []byte(strings.Join([]string{
+		"schema_version = 1",
+		`note = """`,
+		"[pdf]",
+		`mode = "remote"`,
+		`image = "` + decoyImage + `"`,
+		`"""`,
+		`pdf = { mode = "local", image = "" }`,
+		"",
+	}, "\n"))
+	config, err := decodeProjectConfig(inlineConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if config.SchemaVersion != 1 || config.PDFMode != "local" || config.PDFImage != "" {
+		t.Fatalf("multiline decoy changed parsed TOML values: %#v", config)
+	}
+	if _, err := renderRemoteProjectConfig(inlineConfig, targetImage); err == nil ||
+		!strings.Contains(err.Error(), "missing rewritable") {
+		t.Fatalf("expected inline pdf table to fail safely when it cannot be preserved, got %v", err)
+	}
+
+	tableConfig := []byte(strings.Join([]string{
+		"schema_version = 1",
+		`note = """`,
+		"[pdf]",
+		`mode = "local"`,
+		`image = ""`,
+		`"""`,
+		"",
+		"[pdf]",
+		`mode = "local"`,
+		`image = ""`,
+		"",
+	}, "\n"))
+	rendered, err := renderRemoteProjectConfig(tableConfig, targetImage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(rendered), "[pdf]\nmode = \"local\"\nimage = \"\"\n\"\"\"") {
+		t.Fatalf("rewrite changed TOML-looking content inside a multiline string:\n%s", rendered)
+	}
+	config, err = decodeProjectConfig(rendered)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if config.PDFMode != "remote" || config.PDFImage != targetImage {
+		t.Fatalf("rewrite did not update the actual pdf table: %#v", config)
+	}
+}
+
 func TestRemoteUpgradePlanRefusesIncompatibleOrUnsafeState(t *testing.T) {
 	assets := fixtureAssets(t, "0.6.0", map[string]fixtureFile{
 		"docs/documentation":                       {Content: "#!/bin/sh\n", Mode: 0o755},
@@ -505,7 +560,8 @@ func TestApplyRemoteUpgradeRollsBackEverythingWhenValidationFails(t *testing.T) 
 		"docs/.documentation-tools/pdf/filters/source.lua": {Content: "filter\n", Mode: 0o644},
 	})
 	project := t.TempDir()
-	writeDoctorConfig(t, project, "schema_version = 1\n\n[pdf]\nmode = \"local\"\nimage = \"\"\n")
+	originalConfig := "schema_version = 1\n\n[pdf]\nmode = \"local\"\nimage = \"\"\n"
+	writeDoctorConfig(t, project, originalConfig)
 	if err := install(project, assets, false, "local"); err != nil {
 		t.Fatal(err)
 	}
@@ -522,6 +578,22 @@ func TestApplyRemoteUpgradeRollsBackEverythingWhenValidationFails(t *testing.T) 
 			1,
 			"",
 			func(remoteUpgradePlan) error {
+				backupRoots, globErr := filepath.Glob(filepath.Join(project, ".documentation-tools-upgrade-*"))
+				if globErr != nil {
+					t.Fatal(globErr)
+				}
+				if len(backupRoots) != 1 {
+					t.Fatalf("expected one active transaction backup, got %v", backupRoots)
+				}
+				backupConfig, readErr := os.ReadFile(
+					filepath.Join(backupRoots[0], "docs", "documentation.toml"),
+				)
+				if readErr != nil {
+					t.Fatalf("read transaction-backed project configuration: %v", readErr)
+				}
+				if string(backupConfig) != originalConfig {
+					t.Fatalf("transaction backup changed project configuration:\n%s", backupConfig)
+				}
 				return forcedFailure
 			},
 		)
@@ -651,6 +723,7 @@ func TestManagedReleaseCatalogValidatesAndRejectsRevokedRelease(t *testing.T) {
 		"release-catalog",
 	)
 	command := exec.Command(catalogTool, "validate")
+	command.Env = append(os.Environ(), "DOCUMENTATION_RELEASE_CATALOG_DIR=")
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("expected bundled release catalog to validate: %v\n%s", err, output)
 	}
@@ -735,7 +808,6 @@ func TestUpgradeWrapperRunsDoctorAfterApply(t *testing.T) {
 		command.Env = append(
 			os.Environ(),
 			"PATH="+fakeBin+string(os.PathListSeparator)+os.Getenv("PATH"),
-			"DOCUMENTATION_RELEASE_CATALOG_DIR="+t.TempDir(),
 		)
 		output, err := command.CombinedOutput()
 		return string(output), err
@@ -795,6 +867,14 @@ func TestDocumentationDoctorReportsLocalAndRemoteReadiness(t *testing.T) {
 		if !strings.Contains(output, expected) {
 			t.Fatalf("local doctor output is missing %q:\n%s", expected, output)
 		}
+	}
+	versionPath := filepath.Join(localProject, "docs", ".documentation-tools", "VERSION")
+	if err := os.Remove(versionPath); err != nil {
+		t.Fatal(err)
+	}
+	output, err = runDoctor(localProject, fakeBin, "")
+	if err == nil || !strings.Contains(output, "managed tool VERSION file is missing") {
+		t.Fatalf("expected doctor to report a missing VERSION file, got %v\n%s", err, output)
 	}
 
 	remoteProject := t.TempDir()

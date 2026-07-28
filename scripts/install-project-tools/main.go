@@ -68,7 +68,11 @@ func main() {
 		exitError(errors.New("target release options require a remote-upgrade operation"), 2)
 	}
 	if strings.TrimSpace(*assetRoot) == "" || flag.NArg() != 1 {
-		exitError(errors.New("usage: install-project-tools --asset-root PATH [--check|--upgrade] [--profile auto|local|remote] PROJECT_ROOT"), 2)
+		exitError(errors.New(
+			"usage: install-project-tools --asset-root PATH { [--check|--upgrade] [--profile auto|local|remote] | "+
+				"[--plan-remote-upgrade|--apply-remote-upgrade] --target-version VERSION "+
+				"--target-image IMAGE --target-config-schema SCHEMA [--display-project-root PATH] } PROJECT_ROOT",
+		), 2)
 	}
 	if *profile != "auto" && *profile != "local" && *profile != "remote" {
 		exitError(errors.New("--profile must be 'auto', 'local', or 'remote'"), 2)
@@ -373,7 +377,7 @@ func prepareExistingInstall(projectRoot string, existing manifest, files map[str
 }
 
 func install(projectRoot, assetRoot string, upgrade bool, profile string) error {
-	return installWithPostAction(projectRoot, assetRoot, upgrade, profile, nil)
+	return installWithPostAction(projectRoot, assetRoot, upgrade, profile, nil, nil)
 }
 
 func installWithPostAction(
@@ -381,6 +385,7 @@ func installWithPostAction(
 	assetRoot string,
 	upgrade bool,
 	profile string,
+	projectBackupFiles []string,
 	postAction func() error,
 ) (installErr error) {
 	info, err := os.Stat(projectRoot)
@@ -467,8 +472,9 @@ func installWithPostAction(
 		if !transactionCommitted {
 			replacements := []string(nil)
 			if copyStarted {
-				replacements = relativeFiles
+				replacements = append(replacements, relativeFiles...)
 			}
+			replacements = append(replacements, projectBackupFiles...)
 			if manifestWritten {
 				replacements = append(replacements, manifestRelativePath)
 			}
@@ -503,6 +509,18 @@ func installWithPostAction(
 			if backupPath != "" {
 				backups[relative] = backupPath
 			}
+		}
+	}
+	for _, relative := range projectBackupFiles {
+		if _, alreadyBackedUp := backups[relative]; alreadyBackedUp {
+			return fmt.Errorf("project transaction backup duplicates managed file: %s", relative)
+		}
+		backupPath, err := backupProjectFile(projectRoot, backupRoot, relative)
+		if err != nil {
+			return err
+		}
+		if backupPath != "" {
+			backups[relative] = backupPath
 		}
 	}
 
@@ -589,6 +607,28 @@ func backupManagedFile(projectRoot, backupRoot, relative string) (string, error)
 	}
 	if err := os.Rename(target, backupPath); err != nil {
 		return "", fmt.Errorf("back up managed file %s: %w", relative, err)
+	}
+	return backupPath, nil
+}
+
+func backupProjectFile(projectRoot, backupRoot, relative string) (string, error) {
+	target, err := managedTarget(projectRoot, relative)
+	if err != nil {
+		return "", err
+	}
+	info, err := os.Lstat(target)
+	if errors.Is(err, os.ErrNotExist) {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("inspect project file for transaction backup %s: %w", relative, err)
+	}
+	if !info.Mode().IsRegular() {
+		return "", fmt.Errorf("refusing to back up project non-file path: %s", relative)
+	}
+	backupPath := filepath.Join(backupRoot, filepath.FromSlash(relative))
+	if err := copyManagedFile(target, backupPath); err != nil {
+		return "", fmt.Errorf("back up project file %s: %w", relative, err)
 	}
 	return backupPath, nil
 }

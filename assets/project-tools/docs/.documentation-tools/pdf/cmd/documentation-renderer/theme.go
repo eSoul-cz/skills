@@ -166,9 +166,9 @@ func resolveTheme(pdf pdfConfig) (resolvedTheme, error) {
 		theme.PaperSize = value
 	}
 	if value := strings.TrimSpace(pdf.MainFont); value != "" {
+		// Legacy pdf.main_font predates separate typed font overrides and retains
+		// final precedence for compatibility, intentionally setting both fonts.
 		theme.MainFont = value
-	}
-	if value := strings.TrimSpace(pdf.MainFont); value != "" {
 		theme.HeadingFont = value
 	}
 	if value := strings.TrimSpace(pdf.MonoFont); value != "" {

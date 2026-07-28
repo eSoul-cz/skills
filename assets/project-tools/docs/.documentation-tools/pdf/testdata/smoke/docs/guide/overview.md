@@ -31,6 +31,6 @@ flowchart LR
 [^shared]: Repeated references remain attached to the same authored note.
 
 [^complex]: A multiline footnote keeps *emphasis*, inline `code`, a
-    [link](https://example.com), and Czech text: příliš žluťoučký kůň.
+    [reference link](https://example.com), and Czech text: příliš žluťoučký kůň.
 
     A second paragraph verifies that longer notes retain their structure.

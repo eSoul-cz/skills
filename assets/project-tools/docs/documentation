@@ -260,8 +260,13 @@ doctor_error() {
 doctor() {
     doctor_errors=0
     doctor_warnings=0
-    installed_version=$(sed -n '1p' "${VERSION_FILE}")
-    if printf '%s\n' "${installed_version}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+    installed_version=
+    if [ -f "${VERSION_FILE}" ]; then
+        installed_version=$(sed -n '1p' "${VERSION_FILE}")
+    fi
+    if [ ! -f "${VERSION_FILE}" ]; then
+        doctor_error "managed tool VERSION file is missing: ${VERSION_FILE}"
+    elif printf '%s\n' "${installed_version}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
         doctor_ok "installed tool version ${installed_version}"
     else
         doctor_error "managed tool VERSION is not semantic: ${installed_version}"
@@ -595,7 +600,7 @@ if [ ! -f "${CONFIG}" ]; then
     echo "ERROR: Missing docs/documentation.toml" >&2
     exit 1
 fi
-if [ ! -f "${VERSION_FILE}" ]; then
+if [ "${command}" != "doctor" ] && [ ! -f "${VERSION_FILE}" ]; then
     echo "ERROR: Missing managed tool VERSION file." >&2
     exit 1
 fi

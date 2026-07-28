@@ -1,22 +1,19 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
+
+	"github.com/BurntSushi/toml"
 )
 
 var immutableImagePattern = regexp.MustCompile(`^[^\s@]+@sha256:[0-9a-f]{64}$`)
 var sectionPattern = regexp.MustCompile(`^\s*\[([^\[\]]+)\]\s*(?:#.*)?$`)
 var arraySectionPattern = regexp.MustCompile(`^\s*\[\[([^\[\]]+)\]\]\s*(?:#.*)?$`)
-var rootSchemaPattern = regexp.MustCompile(`^\s*schema_version\s*=\s*([1-9][0-9]*)\s*(?:#.*)?$`)
-var pdfModePattern = regexp.MustCompile(`^\s*mode\s*=\s*"([^"\\]*)"\s*(?:#.*)?$`)
-var pdfImagePattern = regexp.MustCompile(`^\s*image\s*=\s*"([^"\\]*)"\s*(?:#.*)?$`)
 var pdfModeRewritePattern = regexp.MustCompile(`^(\s*mode\s*=\s*)"[^"\\]*"(\s*(?:#.*)?)$`)
 var pdfImageRewritePattern = regexp.MustCompile(`^(\s*image\s*=\s*)"[^"\\]*"(\s*(?:#.*)?)$`)
 
@@ -24,6 +21,14 @@ type projectConfig struct {
 	SchemaVersion int
 	PDFMode       string
 	PDFImage      string
+}
+
+type projectConfigDocument struct {
+	SchemaVersion int `toml:"schema_version"`
+	PDF           struct {
+		Mode  string `toml:"mode"`
+		Image string `toml:"image"`
+	} `toml:"pdf"`
 }
 
 type remoteUpgradePlan struct {
@@ -47,89 +52,42 @@ func readProjectConfig(projectRoot string) (projectConfig, error) {
 	if err != nil {
 		return projectConfig{}, err
 	}
-	input, err := os.Open(configPath)
+	content, err := os.ReadFile(configPath)
 	if err != nil {
 		return projectConfig{}, fmt.Errorf("read project documentation configuration: %w", err)
 	}
-	defer input.Close()
-
-	var config projectConfig
-	var section string
-	var schemaFound, modeFound, imageFound bool
-	scanner := bufio.NewScanner(input)
-	for scanner.Scan() {
-		line := scanner.Text()
-		trimmed := strings.TrimSpace(line)
-		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
-			continue
-		}
-		if match := sectionPattern.FindStringSubmatch(line); match != nil {
-			section = strings.TrimSpace(match[1])
-			continue
-		}
-		if match := arraySectionPattern.FindStringSubmatch(line); match != nil {
-			section = strings.TrimSpace(match[1])
-			continue
-		}
-		if section == "" && hasAssignmentForKey(trimmed, "schema_version") {
-			match := rootSchemaPattern.FindStringSubmatch(line)
-			if match == nil || schemaFound {
-				return projectConfig{}, errors.New("documentation.toml schema_version must be one positive integer")
-			}
-			config.SchemaVersion, err = strconv.Atoi(match[1])
-			if err != nil {
-				return projectConfig{}, fmt.Errorf("parse documentation.toml schema_version: %w", err)
-			}
-			schemaFound = true
-			continue
-		}
-		if section != "pdf" {
-			continue
-		}
-		switch {
-		case hasAssignmentForKey(trimmed, "mode"):
-			match := pdfModePattern.FindStringSubmatch(line)
-			if match == nil || modeFound {
-				return projectConfig{}, errors.New(`documentation.toml [pdf].mode must be one simple quoted string`)
-			}
-			config.PDFMode = match[1]
-			modeFound = true
-		case hasAssignmentForKey(trimmed, "image"):
-			match := pdfImagePattern.FindStringSubmatch(line)
-			if match == nil || imageFound {
-				return projectConfig{}, errors.New(`documentation.toml [pdf].image must be one simple quoted string`)
-			}
-			config.PDFImage = match[1]
-			imageFound = true
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return projectConfig{}, fmt.Errorf("read project documentation configuration: %w", err)
-	}
-	if !schemaFound {
-		return projectConfig{}, errors.New("documentation.toml is missing root schema_version")
-	}
-	if !modeFound {
-		return projectConfig{}, errors.New("documentation.toml is missing [pdf].mode")
-	}
-	if !imageFound {
-		return projectConfig{}, errors.New("documentation.toml is missing [pdf].image")
-	}
-	if config.PDFMode != "local" && config.PDFMode != "remote" {
-		return projectConfig{}, fmt.Errorf(`documentation.toml [pdf].mode must be "local" or "remote", got %q`, config.PDFMode)
-	}
-	if config.PDFMode == "remote" && !immutableImagePattern.MatchString(config.PDFImage) {
-		return projectConfig{}, errors.New("documentation.toml remote [pdf].image must be pinned by an immutable sha256 digest")
-	}
-	return config, nil
+	return decodeProjectConfig(content)
 }
 
-func hasAssignmentForKey(trimmed, key string) bool {
-	if !strings.HasPrefix(trimmed, key) {
-		return false
+func decodeProjectConfig(content []byte) (projectConfig, error) {
+	var document projectConfigDocument
+	metadata, err := toml.Decode(string(content), &document)
+	if err != nil {
+		return projectConfig{}, fmt.Errorf("parse documentation.toml: %w", err)
 	}
-	remainder := strings.TrimSpace(strings.TrimPrefix(trimmed, key))
-	return strings.HasPrefix(remainder, "=")
+	if !metadata.IsDefined("schema_version") {
+		return projectConfig{}, errors.New("documentation.toml is missing root schema_version")
+	}
+	if document.SchemaVersion < 1 {
+		return projectConfig{}, errors.New("documentation.toml schema_version must be a positive integer")
+	}
+	if !metadata.IsDefined("pdf", "mode") {
+		return projectConfig{}, errors.New("documentation.toml is missing [pdf].mode")
+	}
+	if !metadata.IsDefined("pdf", "image") {
+		return projectConfig{}, errors.New("documentation.toml is missing [pdf].image")
+	}
+	if document.PDF.Mode != "local" && document.PDF.Mode != "remote" {
+		return projectConfig{}, fmt.Errorf(`documentation.toml [pdf].mode must be "local" or "remote", got %q`, document.PDF.Mode)
+	}
+	if document.PDF.Mode == "remote" && !immutableImagePattern.MatchString(document.PDF.Image) {
+		return projectConfig{}, errors.New("documentation.toml remote [pdf].image must be pinned by an immutable sha256 digest")
+	}
+	return projectConfig{
+		SchemaVersion: document.SchemaVersion,
+		PDFMode:       document.PDF.Mode,
+		PDFImage:      document.PDF.Image,
+	}, nil
 }
 
 func shellQuote(value string) string {
@@ -292,8 +250,12 @@ func planRemoteProfileUpgrade(
 }
 
 func renderRemoteProjectConfig(content []byte, targetImage string) ([]byte, error) {
+	if _, err := decodeProjectConfig(content); err != nil {
+		return nil, err
+	}
 	lines := strings.SplitAfter(string(content), "\n")
 	section := ""
+	multilineDelimiter := ""
 	modeUpdated := false
 	imageUpdated := false
 	for index, completeLine := range lines {
@@ -305,6 +267,11 @@ func renderRemoteProjectConfig(content []byte, targetImage string) ([]byte, erro
 		if strings.HasSuffix(line, "\r") {
 			line = strings.TrimSuffix(line, "\r")
 			lineEnding = "\r" + lineEnding
+		}
+		structuralLine := multilineDelimiter == ""
+		multilineDelimiter = advanceTOMLMultilineState(line, multilineDelimiter)
+		if !structuralLine {
+			continue
 		}
 		if match := sectionPattern.FindStringSubmatch(line); match != nil {
 			section = strings.TrimSpace(match[1])
@@ -336,7 +303,79 @@ func renderRemoteProjectConfig(content []byte, targetImage string) ([]byte, erro
 	if !modeUpdated || !imageUpdated {
 		return nil, errors.New("documentation.toml is missing rewritable [pdf].mode or [pdf].image")
 	}
-	return []byte(strings.Join(lines, "")), nil
+	rendered := []byte(strings.Join(lines, ""))
+	config, err := decodeProjectConfig(rendered)
+	if err != nil {
+		return nil, fmt.Errorf("validate rewritten documentation.toml: %w", err)
+	}
+	if config.PDFMode != "remote" || config.PDFImage != targetImage {
+		return nil, errors.New("documentation.toml rewrite did not update the actual [pdf].mode and [pdf].image")
+	}
+	return rendered, nil
+}
+
+func advanceTOMLMultilineState(line, delimiter string) string {
+	for index := 0; index < len(line); {
+		if delimiter != "" {
+			position := strings.Index(line[index:], delimiter)
+			if position < 0 {
+				return delimiter
+			}
+			position += index
+			if delimiter == `"""` {
+				backslashes := 0
+				for previous := position - 1; previous >= 0 && line[previous] == '\\'; previous-- {
+					backslashes++
+				}
+				if backslashes%2 == 1 {
+					index = position + len(delimiter)
+					continue
+				}
+			}
+			delimiter = ""
+			index = position + 3
+			continue
+		}
+
+		switch line[index] {
+		case '#':
+			return ""
+		case '"':
+			if strings.HasPrefix(line[index:], `"""`) {
+				delimiter = `"""`
+				index += 3
+				continue
+			}
+			index++
+			for index < len(line) {
+				if line[index] == '\\' {
+					index += 2
+					continue
+				}
+				if index < len(line) && line[index] == '"' {
+					index++
+					break
+				}
+				index++
+			}
+		case '\'':
+			if strings.HasPrefix(line[index:], `'''`) {
+				delimiter = `'''`
+				index += 3
+				continue
+			}
+			index++
+			for index < len(line) && line[index] != '\'' {
+				index++
+			}
+			if index < len(line) {
+				index++
+			}
+		default:
+			index++
+		}
+	}
+	return delimiter
 }
 
 func writeProjectConfig(path string, content []byte, mode os.FileMode) error {
@@ -477,23 +516,22 @@ func applyRemoteProfileUpgradeWithValidator(
 		return err
 	}
 
-	postAction := func() (postErr error) {
+	postAction := func() error {
 		if err := writeProjectConfig(configPath, updatedConfig, configInfo.Mode()); err != nil {
 			return err
 		}
-		defer func() {
-			if postErr == nil {
-				return
-			}
-			if restoreErr := writeProjectConfig(configPath, originalConfig, configInfo.Mode()); restoreErr != nil {
-				postErr = errors.Join(postErr, fmt.Errorf("restore documentation configuration: %w", restoreErr))
-			}
-		}()
 		return validator(plan)
 	}
 
 	fmt.Println("Applying remote-upgrade transaction...")
-	if err := installWithPostAction(projectRoot, assetRoot, true, "remote", postAction); err != nil {
+	if err := installWithPostAction(
+		projectRoot,
+		assetRoot,
+		true,
+		"remote",
+		[]string{"docs/documentation.toml"},
+		postAction,
+	); err != nil {
 		return err
 	}
 	fmt.Println("Remote-upgrade transaction committed.")
