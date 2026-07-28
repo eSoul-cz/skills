@@ -1,20 +1,22 @@
 # Hosted Renderer Image
 
-The hosted-image plan is active. The repository tooling tree remains the canonical source for the Dockerfile, renderer runtime, dependency pins, fixtures, release catalog, and release automation. Project-specific titles, assets, templates, and configuration stay outside the image.
+The hosted-image plan is active. The repository tooling tree remains the canonical source for the Dockerfile, renderer runtime, dependency pins, fixtures, release catalog, and release automation. Project-specific titles, assets, templates, and configuration values stay outside the images; the installer carries only a generic starter configuration.
 
-## Initial private-registry release
+## Public Scaleway release
 
 The root Jenkins pipeline:
 
-1. runs the Docker-first renderer smoke test and installer test image;
+1. runs the Docker-first renderer, visual-regression, and bootstrap-installer tests;
 2. builds native linux/amd64 and linux/arm64 images through the `dockerHelpers` shared library;
 3. runs Go tests, vet checks, and the complete Markdown/Mermaid/math/table/landscape PDF smoke fixture inside each architecture build;
-4. publishes the semantic tool version, `latest`, and valid Git tags to `rg.fr-par.scw.cloud/esoul-internal-tools/documentation-tools`;
-5. resolves the merged manifest digest and archives a fingerprinted catalog candidate containing the digest, architectures, publication time, source commit, configuration schema, compatibility notes, and security-artifact identifiers.
+4. publishes the renderer and bootstrap installer with the semantic tool version, `latest`, and valid Git tags to the public `rg.fr-par.scw.cloud/esoul-internal-tools` registry;
+5. resolves both merged manifest digests, archives a fingerprinted renderer catalog candidate, and archives the immutable installer reference separately.
 
 The reviewed catalog under `tooling/project-tools/docs/.documentation-tools/releases/` is the durable authority and outlives Jenkins retention. Jenkins validates the existing catalog before building and emits a candidate entry after publication. Commit that entry and update `LATEST` in a reviewed follow-up change; registry publication alone does not make a version resolvable. Legacy `0.5.0` is recorded with explicit `unknown`/`unavailable` provenance fields rather than invented metadata.
 
-The image keeps project configuration and authored documentation outside the runtime and continues to enforce the same read-only checkout, network isolation, dropped capabilities, and writable-directory boundaries as local mode.
+Jenkins temporarily adds the generated candidate to the installer-image build context so a newly published installer can bootstrap its matching renderer immediately. The reviewed follow-up commit remains the durable catalog authority. The installer image contains the static Go installer, the default configuration template, and only the remote managed-file profile; it excludes renderer source, local Docker build inputs, fonts, and visual fixtures.
+
+The renderer image keeps project configuration and authored documentation outside the runtime and continues to enforce the same read-only checkout, network isolation, dropped capabilities, and writable-directory boundaries as local mode.
 
 ## Remaining distribution hardening
 
