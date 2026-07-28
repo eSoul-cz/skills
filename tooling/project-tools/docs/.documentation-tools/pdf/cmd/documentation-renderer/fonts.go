@@ -57,16 +57,16 @@ func resolveFontDirectories(root string, configured []string) ([]string, error) 
 
 func directoryContainsFont(root, directory string) (bool, error) {
 	hasFont := false
-	err := filepath.WalkDir(directory, func(path string, entry fs.DirEntry, walkErr error) error {
+	resolvedRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return false, err
+	}
+	err = filepath.WalkDir(directory, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
 		if entry.Type()&os.ModeSymlink != 0 {
 			resolved, err := filepath.EvalSymlinks(path)
-			if err != nil {
-				return err
-			}
-			resolvedRoot, err := filepath.EvalSymlinks(root)
 			if err != nil {
 				return err
 			}

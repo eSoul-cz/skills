@@ -75,6 +75,7 @@ func TestResolveThemeRejectsInvalidTypedValues(t *testing.T) {
 		{ThemeOverrides: themeOverridesConfig{Margin: "0mm"}},
 		{ThemeOverrides: themeOverridesConfig{FontSize: "24pt"}},
 		{ThemeOverrides: themeOverridesConfig{PaperSize: "legal"}},
+		{PaperSize: "legal"},
 	}
 	for _, pdf := range tests {
 		if _, err := resolveTheme(pdf); err == nil {
@@ -142,6 +143,10 @@ func TestPrepareESoulThemeFilesUsesVectorLogos(t *testing.T) {
 	}
 	if len(commands) != 3 {
 		t.Fatalf("expected three vector logo conversions, got %#v", commands)
+	}
+	if !strings.HasSuffix(commands[0][len(commands[0])-1], "logo-simple.svg") ||
+		!strings.HasSuffix(commands[1][len(commands[1])-1], "logo-text.svg") {
+		t.Fatalf("eSoul logos were not converted in deterministic order: %#v", commands)
 	}
 	for _, command := range commands {
 		if !containsArgument(command, "--format=pdf") {

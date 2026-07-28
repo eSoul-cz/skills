@@ -18,8 +18,15 @@ release-catalog contains-image registry/image@sha256:...
 
 Catalog entries must record architectures, publication time, source commit,
 required configuration schema, upgrade notes, and identifiers for the SBOM,
-scan, provenance, and signature. Use `unknown` or `unavailable` only when
-importing a legacy release whose historical metadata cannot be recovered.
+scan, provenance, and signature. `unknown` is permitted only when importing a
+legacy release whose historical provenance cannot be recovered. `unavailable`
+records that a security artifact was not produced; this remains explicit
+release metadata until the distribution-hardening work makes those artifacts
+mandatory.
+
+Installer-enabled releases additionally record `INSTALLER_IMAGE` as an
+immutable digest. The public bootstrap refuses to execute an installer when
+that field is absent or mutable.
 
 Publishing a registry image is not sufficient to make it resolvable. Commit
 the generated release entry and updated `LATEST` in a reviewed follow-up change.

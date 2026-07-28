@@ -15,8 +15,8 @@ const (
 )
 
 var (
-	themeHexPattern    = regexp.MustCompile(`^[0-9A-Fa-f]{6}$`)
-	themeMarginPattern = regexp.MustCompile(`^([0-9]+(?:\.[0-9]+)?)(?:mm|cm|in|pt)$`)
+	themeHexPattern       = regexp.MustCompile(`^[0-9A-Fa-f]{6}$`)
+	themeDimensionPattern = regexp.MustCompile(`^([0-9]+(?:\.[0-9]+)?)(?:mm|cm|in|pt)$`)
 )
 
 type themeOverridesConfig struct {
@@ -163,6 +163,9 @@ func resolveTheme(pdf pdfConfig) (resolvedTheme, error) {
 	}
 
 	if value := strings.TrimSpace(pdf.PaperSize); value != "" {
+		if value != "a4" && value != "letter" {
+			return resolvedTheme{}, fmt.Errorf("pdf.paper_size must be 'a4' or 'letter'")
+		}
 		theme.PaperSize = value
 	}
 	if value := strings.TrimSpace(pdf.MainFont); value != "" {
@@ -213,7 +216,7 @@ func applyThemeOverrides(theme *resolvedTheme, overrides themeOverridesConfig) e
 		theme.MonoFont = value
 	}
 	if value := strings.TrimSpace(overrides.FontSize); value != "" {
-		match := themeMarginPattern.FindStringSubmatch(value)
+		match := themeDimensionPattern.FindStringSubmatch(value)
 		amount := 0.0
 		if len(match) == 2 && strings.HasSuffix(value, "pt") {
 			amount, _ = strconv.ParseFloat(match[1], 64)
@@ -224,7 +227,7 @@ func applyThemeOverrides(theme *resolvedTheme, overrides themeOverridesConfig) e
 		theme.FontSize = value
 	}
 	if value := strings.TrimSpace(overrides.Margin); value != "" {
-		match := themeMarginPattern.FindStringSubmatch(value)
+		match := themeDimensionPattern.FindStringSubmatch(value)
 		amount := 0.0
 		if len(match) == 2 {
 			amount, _ = strconv.ParseFloat(match[1], 64)
@@ -307,11 +310,11 @@ func newThemeDocument(cfg config, guide guideConfig) themeDocument {
 
 func prepareThemeFiles(root, stagingDir string, document themeDocument, theme resolvedTheme) (preparedThemeFiles, error) {
 	header := filepath.Join(stagingDir, "documentation-theme.tex")
-	if err := os.WriteFile(header, []byte(themeHeader(theme)), 0o644); err != nil {
-		return preparedThemeFiles{}, fmt.Errorf("write theme header: %w", err)
-	}
 	files := preparedThemeFiles{Header: header}
 	if !theme.Branded {
+		if err := os.WriteFile(header, []byte(themeHeader(theme)), 0o644); err != nil {
+			return preparedThemeFiles{}, fmt.Errorf("write theme header: %w", err)
+		}
 		return files, nil
 	}
 
@@ -325,12 +328,16 @@ func prepareThemeFiles(root, stagingDir string, document themeDocument, theme re
 	)
 	simplePDF := filepath.Join(stagingDir, "esoul-logo-simple.pdf")
 	textPDF := filepath.Join(stagingDir, "esoul-logo-text.pdf")
-	for source, output := range map[string]string{
-		simpleLogo: simplePDF,
-		textLogo:   textPDF,
-	} {
+	logos := []struct {
+		source string
+		output string
+	}{
+		{source: simpleLogo, output: simplePDF},
+		{source: textLogo, output: textPDF},
+	}
+	for _, logo := range logos {
 		if _, err := runCommand(
-			[]string{"rsvg-convert", "--format=pdf", "--output=" + output, source},
+			[]string{"rsvg-convert", "--format=pdf", "--output=" + logo.output, logo.source},
 			stagingDir,
 			nil,
 			nil,

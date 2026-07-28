@@ -26,6 +26,7 @@ pipeline {
 		stage('Verify tooling') {
 			steps {
 				sh "${env.RELEASE_CATALOG_TOOL} validate"
+				sh 'tooling/scripts/test_release_catalog'
 				sh 'tooling/scripts/test_renderer_smoke'
 				sh 'tooling/scripts/test_bootstrap_install'
 			}
@@ -68,26 +69,33 @@ pipeline {
 						)
 						def versionImage = "${env.REGISTRY}/${env.RENDERER_IMAGE}:${version}"
 						def installerVersionImage = "${env.REGISTRY}/${env.INSTALLER_IMAGE}:${version}"
-						[versionImage, installerVersionImage].each { image ->
-							def versionExists = sh(
-								script: "if docker buildx imagetools inspect '${image}' >/dev/null 2>&1; then echo yes; fi",
+						def hasRequiredPlatforms = { image ->
+							def platforms = sh(
+								script: "docker buildx imagetools inspect '${image}' 2>/dev/null | sed -n 's/^[[:space:]]*Platform:[[:space:]]*//p' | sort -u",
 								returnStdout: true
-							).trim()
-							if (versionExists == 'yes') {
-								error("Immutable tooling tag already exists: ${image}. Bump VERSION before publishing.")
-							}
+							).trim().split('\n').findAll { it }
+							return platforms.contains('linux/amd64') && platforms.contains('linux/arm64')
 						}
+						def rendererExists = hasRequiredPlatforms(versionImage)
+						def installerExists = hasRequiredPlatforms(installerVersionImage)
 
-						echo "Building and publishing renderer ${version} for amd64 and arm64..."
-						dockerBuildMultiArch(
-							registry: env.REGISTRY,
-							registryHost: env.REGISTRY_HOST,
-							registryPassword: env.SECRET,
-							image: env.RENDERER_IMAGE,
-							contextDir: env.RENDERER_CONTEXT,
-							tags: buildTags,
-							dockerfile: env.RENDERER_DOCKERFILE,
-						)
+						if (rendererExists) {
+							echo "Reusing already published renderer ${versionImage}."
+						} else {
+							echo "Building and publishing renderer ${version} for amd64 and arm64..."
+							dockerBuildMultiArch(
+								registry: env.REGISTRY,
+								registryHost: env.REGISTRY_HOST,
+								registryPassword: env.SECRET,
+								image: env.RENDERER_IMAGE,
+								contextDir: env.RENDERER_CONTEXT,
+								tags: buildTags,
+								dockerfile: env.RENDERER_DOCKERFILE,
+							)
+						}
+						if (!hasRequiredPlatforms(versionImage)) {
+							error("Renderer ${versionImage} does not publish both linux/amd64 and linux/arm64.")
+						}
 
 						def digest = sh(
 							script: "docker buildx imagetools inspect '${versionImage}' | sed -n 's/^Digest:[[:space:]]*//p' | sed -n '1p'",
@@ -106,7 +114,7 @@ pipeline {
 							script: 'git rev-parse HEAD',
 							returnStdout: true
 						).trim()
-						def releaseEntry = [
+						def rendererReleaseFields = [
 							'CATALOG_SCHEMA_VERSION=1',
 							"RENDERER_VERSION=${version}",
 							"RENDERER_IMAGE=${immutableImage}",
@@ -122,37 +130,40 @@ pipeline {
 							'SIGNATURE=unavailable',
 							"DOCUMENTATION_RENDERER_VERSION=${version}",
 							"DOCUMENTATION_REMOTE_RENDERER_IMAGE=${immutableImage}",
-							''
-						].join('\n')
-						writeFile(
-							file: "documentation-renderer-${version}.env",
-							text: releaseEntry
-						)
+						]
+						def rendererReleaseEntry = (rendererReleaseFields + ['']).join('\n')
 						writeFile(
 							file: "release-catalog-candidate/${version}.env",
-							text: releaseEntry
+							text: rendererReleaseEntry
 						)
 						writeFile(
 							file: 'release-catalog-candidate/LATEST',
 							text: "${version}\n"
 						)
-						sh "DOCUMENTATION_RELEASE_CATALOG_DIR=release-catalog-candidate ${env.RELEASE_CATALOG_TOOL} validate"
+						sh "DOCUMENTATION_RELEASE_CATALOG_ALLOW_RENDERER_ONLY_CANDIDATE=1 DOCUMENTATION_RELEASE_CATALOG_DIR=release-catalog-candidate ${env.RELEASE_CATALOG_TOOL} validate"
 						sh """
 							cp 'release-catalog-candidate/${version}.env' '${env.RELEASE_CATALOG_DIR}/${version}.env'
 							cp 'release-catalog-candidate/LATEST' '${env.RELEASE_CATALOG_DIR}/LATEST'
-							${env.RELEASE_CATALOG_TOOL} validate
+							DOCUMENTATION_RELEASE_CATALOG_ALLOW_RENDERER_ONLY_CANDIDATE=1 ${env.RELEASE_CATALOG_TOOL} validate
 						"""
 
-						echo "Building and publishing bootstrap installer ${version} for amd64 and arm64..."
-						dockerBuildMultiArch(
-							registry: env.REGISTRY,
-							registryHost: env.REGISTRY_HOST,
-							registryPassword: env.SECRET,
-							image: env.INSTALLER_IMAGE,
-							contextDir: '.',
-							tags: buildTags,
-							dockerfile: env.INSTALLER_DOCKERFILE,
-						)
+						if (installerExists) {
+							echo "Reusing already published installer ${installerVersionImage}."
+						} else {
+							echo "Building and publishing bootstrap installer ${version} for amd64 and arm64..."
+							dockerBuildMultiArch(
+								registry: env.REGISTRY,
+								registryHost: env.REGISTRY_HOST,
+								registryPassword: env.SECRET,
+								image: env.INSTALLER_IMAGE,
+								contextDir: '.',
+								tags: buildTags,
+								dockerfile: env.INSTALLER_DOCKERFILE,
+							)
+						}
+						if (!hasRequiredPlatforms(installerVersionImage)) {
+							error("Installer ${installerVersionImage} does not publish both linux/amd64 and linux/arm64.")
+						}
 						def installerDigest = sh(
 							script: "docker buildx imagetools inspect '${installerVersionImage}' | sed -n 's/^Digest:[[:space:]]*//p' | sed -n '1p'",
 							returnStdout: true
@@ -161,6 +172,23 @@ pipeline {
 							error("Could not resolve immutable digest for ${installerVersionImage}")
 						}
 						def immutableInstallerImage = "${env.REGISTRY}/${env.INSTALLER_IMAGE}@${installerDigest}"
+						def releaseEntry = (rendererReleaseFields + [
+							"INSTALLER_IMAGE=${immutableInstallerImage}",
+							''
+						]).join('\n')
+						writeFile(
+							file: "documentation-renderer-${version}.env",
+							text: releaseEntry
+						)
+						writeFile(
+							file: "release-catalog-candidate/${version}.env",
+							text: releaseEntry
+						)
+						sh "DOCUMENTATION_RELEASE_CATALOG_DIR=release-catalog-candidate ${env.RELEASE_CATALOG_TOOL} validate"
+						sh """
+							cp 'release-catalog-candidate/${version}.env' '${env.RELEASE_CATALOG_DIR}/${version}.env'
+							${env.RELEASE_CATALOG_TOOL} validate
+						"""
 						writeFile(
 							file: "documentation-installer-${version}.env",
 							text: [

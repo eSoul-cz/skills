@@ -34,9 +34,10 @@ const (
 )
 
 var (
-	guideIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
-	pagesPattern   = regexp.MustCompile(`(?m)^Pages:\s+([0-9]+)$`)
-	runCommand     = execute
+	guideIDPattern        = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
+	pagesPattern          = regexp.MustCompile(`(?m)^Pages:\s+([0-9]+)$`)
+	redactionColorPattern = regexp.MustCompile(`^#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?$`)
+	runCommand            = execute
 )
 
 type config struct {
@@ -870,7 +871,10 @@ func redact(root string, cfg config, planValue string) error {
 		style := valueOr(region.Style, "solid")
 		switch style {
 		case "solid":
-			color := valueOr(region.Color, "#111111")
+			color, err := validatedRedactionColor(region.Color)
+			if err != nil {
+				return fmt.Errorf("redaction region %d: %w", index+1, err)
+			}
 			rectangle := fmt.Sprintf(
 				"rectangle %d,%d %d,%d",
 				region.X,
@@ -931,6 +935,14 @@ func redact(root string, cfg config, planValue string) error {
 	fmt.Printf("Created redacted copy: %s\n", filepath.ToSlash(relative))
 	fmt.Println("The original remains in quarantine. Human verification is required before promotion.")
 	return nil
+}
+
+func validatedRedactionColor(configured string) (string, error) {
+	color := valueOr(configured, "#111111")
+	if !redactionColorPattern.MatchString(color) {
+		return "", errors.New("color must use #RRGGBB or #RRGGBBAA hexadecimal notation")
+	}
+	return color, nil
 }
 
 func inside(root, path string) bool {

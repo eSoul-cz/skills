@@ -322,7 +322,7 @@ func validatePDFConfig(root string, pdf pdfConfig, result *validationResult) {
 	}
 	dockerfile, err := securePath(root, pdf.Dockerfile)
 	if err != nil {
-		result.error(err.Error())
+		result.error("pdf.dockerfile: " + err.Error() + ".")
 		return
 	}
 	if info, err := os.Stat(dockerfile); err != nil || !info.Mode().IsRegular() {
@@ -606,6 +606,7 @@ func validateImageReference(root, source, relative, target string, result *valid
 func validateRawHTMLImages(root, source, relative, rawHTML string, result *validationResult, rasters map[string]publishedRaster) {
 	for _, tag := range htmlImagePattern.FindAllString(rawHTML, -1) {
 		altFound := false
+		srcFound := false
 		for _, match := range htmlAttributePattern.FindAllStringSubmatch(tag, -1) {
 			value := match[2]
 			if value == "" {
@@ -623,11 +624,18 @@ func validateRawHTMLImages(root, source, relative, rawHTML string, result *valid
 			} else if strings.EqualFold(match[1], "srcset") {
 				result.error(relative + ": HTML srcset images are not supported; use one approved project-local src image instead.")
 			} else {
+				if strings.TrimSpace(value) == "" {
+					continue
+				}
+				srcFound = true
 				validateImageReference(root, source, relative, value, result, rasters)
 			}
 		}
 		if !altFound {
 			result.error(relative + ": image alt text is empty.")
+		}
+		if !srcFound {
+			result.error(relative + ": HTML image is missing a non-empty src attribute.")
 		}
 	}
 }

@@ -75,7 +75,7 @@ function Div(element)
       return blocks
     end
   end
-  return nil
+  return element
 end
 
 function Table(element)

@@ -6,11 +6,12 @@ set -eu
 # explicitly selected published version without requiring a different script.
 TOOL_VERSION=${DOCUMENTATION_TOOLS_VERSION:-0.6.0}
 PUBLIC_REGISTRY=${DOCUMENTATION_PUBLIC_REGISTRY:-rg.fr-par.scw.cloud/esoul-internal-tools}
-INSTALLER_IMAGE=${DOCUMENTATION_INSTALLER_IMAGE:-${PUBLIC_REGISTRY}/documentation-tools-installer:${TOOL_VERSION}}
+RELEASE_SOURCE_REF=${TOOL_VERSION}
+RELEASE_MANIFEST_URL=https://raw.githubusercontent.com/eSoul-cz/documentation-skill/${RELEASE_SOURCE_REF}/tooling/project-tools/docs/.documentation-tools/releases/${TOOL_VERSION}.env
 RENDERER_IMAGE=${DOCUMENTATION_RENDERER_IMAGE:-${PUBLIC_REGISTRY}/documentation-tools:${TOOL_VERSION}}
 
 usage() {
-    echo "Usage: curl -fsSL https://raw.githubusercontent.com/eSoul-cz/documentation-skill/main/install.sh | sh -s -- [PROJECT_ROOT]" >&2
+    echo "Usage: install.sh [PROJECT_ROOT]" >&2
     exit 2
 }
 
@@ -44,6 +45,57 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 if ! docker info >/dev/null 2>&1; then
     echo "ERROR: Docker is installed but the daemon is unavailable." >&2
+    exit 1
+fi
+
+# Only the integration suite may redirect the manifest to a local fixture. The
+# production path cannot override either the release record or installer image.
+if [ "${DOCUMENTATION_INSTALL_TEST_MODE:-0}" = "1" ]; then
+    RELEASE_MANIFEST_URL=${DOCUMENTATION_RELEASE_MANIFEST_URL:-${RELEASE_MANIFEST_URL}}
+elif [ -n "${DOCUMENTATION_RELEASE_MANIFEST_URL:-}${DOCUMENTATION_INSTALLER_IMAGE:-}" ]; then
+    echo "ERROR: Installer trust inputs cannot be overridden outside test mode." >&2
+    exit 1
+fi
+if ! command -v curl >/dev/null 2>&1; then
+    echo "ERROR: curl is required to resolve the versioned installer manifest." >&2
+    exit 1
+fi
+if ! release_manifest=$(curl -fsSL "${RELEASE_MANIFEST_URL}"); then
+    echo "ERROR: Could not download installer release manifest: ${RELEASE_MANIFEST_URL}" >&2
+    exit 1
+fi
+# The installer receives write access to the project, so parse only the one
+# expected immutable key; never source or execute the downloaded manifest.
+if ! INSTALLER_IMAGE=$(
+    printf '%s\n' "${release_manifest}" |
+        awk -F= '
+            $1 == "INSTALLER_IMAGE" {
+                count++
+                value = substr($0, length($1) + 2)
+            }
+            END {
+                if (count != 1 || value == "") {
+                    exit 1
+                }
+                print value
+            }
+        '
+); then
+    echo "ERROR: Release manifest does not provide exactly one installer image: ${RELEASE_MANIFEST_URL}" >&2
+    exit 1
+fi
+if printf '%s\n' "${INSTALLER_IMAGE}" |
+    grep -Eq '^[^[:space:]@]+@sha256:[0-9a-f]{64}$'
+then
+    :
+elif [ "${DOCUMENTATION_INSTALL_TEST_MODE:-0}" = "1" ] &&
+    printf '%s\n' "${INSTALLER_IMAGE}" |
+        grep -Eq '^sha256:[0-9a-f]{64}$'
+then
+    # Integration tests may execute a locally built image by immutable image ID.
+    :
+else
+    echo "ERROR: Installer image must be pinned by an immutable sha256 digest." >&2
     exit 1
 fi
 
@@ -84,9 +136,9 @@ then
     exit 1
 fi
 
-# The installer container is deliberately more restricted than the renderer. It
-# receives no network, capabilities, or writable filesystem beyond the selected
-# project mount. Its image embeds only the remote-profile managed bundle.
+# The digest-pinned installer container is deliberately more restricted than
+# the renderer. It receives no network, capabilities, or writable filesystem
+# beyond the selected project mount. Its image embeds only the remote profile.
 echo "Installing remote-profile documentation tooling in ${PROJECT_ROOT}..."
 docker run \
     --rm \

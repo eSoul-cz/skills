@@ -79,6 +79,8 @@ local function normalized_local(target)
   if path == "" or pandoc.path.is_absolute(path) then
     return nil
   end
+  -- This is a lexical boundary check. The Go validator resolves symlinks with
+  -- securePath before Pandoc invokes this filter.
   local resolved = pandoc.path.normalize(pandoc.path.join({source_dir, path}))
   if resolved ~= project_root and resolved:sub(1, #project_root + 1) ~= project_root .. "/" then
     error("Local target escapes project root: " .. target)
@@ -303,18 +305,20 @@ function Blocks(blocks)
       local digest = pandoc.sha1(following.text)
       local input = pandoc.path.join({staging_dir, "diagram-" .. digest .. ".mmd"})
       local image = pandoc.path.join({staging_dir, "diagram-" .. digest .. ".pdf"})
-      local handle = assert(io.open(input, "wb"))
-      handle:write(following.text)
-      handle:write("\n")
-      handle:close()
-      pandoc.pipe("merman-cli", {
-        "--input", input,
-        "--output", image,
-        "--outputFormat", "pdf",
-        "--pdfFit",
-        "--backgroundColor", "transparent",
-        "--configFile", mermaid_config,
-      }, "")
+      if not file_exists(image) then
+        local handle = assert(io.open(input, "wb"))
+        handle:write(following.text)
+        handle:write("\n")
+        handle:close()
+        pandoc.pipe("merman-cli", {
+          "--input", input,
+          "--output", image,
+          "--outputFormat", "pdf",
+          "--pdfFit",
+          "--backgroundColor", "transparent",
+          "--configFile", mermaid_config,
+        }, "")
+      end
       local image_alt = literal_inlines(alt)
       local caption = pandoc.Caption({
         pandoc.Plain(literal_inlines(alt)),

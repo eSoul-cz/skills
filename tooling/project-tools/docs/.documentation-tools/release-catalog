@@ -129,6 +129,51 @@ validate_entry() {
         active|legacy|revoked) ;;
         *) fail "${entry} RELEASE_STATUS must be active, legacy, or revoked" ;;
     esac
+    if [ "${status}" != "legacy" ]; then
+        if [ "${published_at}" = "unknown" ]; then
+            fail "${entry} ${status} release must record PUBLISHED_AT"
+        fi
+        if [ "${source_commit}" = "unknown" ]; then
+            fail "${entry} ${status} release must record SOURCE_COMMIT"
+        fi
+    fi
+    if installer_image=$(entry_value "${entry}" INSTALLER_IMAGE); then
+        if ! printf '%s\n' "${installer_image}" |
+            grep -Eq '^[^[:space:]@]+@sha256:[0-9a-f]{64}$'
+        then
+            fail "${entry} INSTALLER_IMAGE is not pinned by an immutable sha256 digest"
+        fi
+    else
+        installer_status=$?
+        if [ "${installer_status}" -eq 2 ]; then
+            fail "${entry} contains duplicate INSTALLER_IMAGE values"
+        fi
+        if [ "${status}" = "active" ] &&
+            [ "${DOCUMENTATION_RELEASE_CATALOG_ALLOW_RENDERER_ONLY_CANDIDATE:-0}" != "1" ]
+        then
+            fail "${entry} active release is missing INSTALLER_IMAGE"
+        fi
+    fi
+}
+
+version_is_newer() {
+    candidate=$1
+    baseline=$2
+    awk -v candidate="${candidate}" -v baseline="${baseline}" '
+        BEGIN {
+            split(candidate, left, ".")
+            split(baseline, right, ".")
+            for (component = 1; component <= 3; component++) {
+                if ((left[component] + 0) > (right[component] + 0)) {
+                    exit 0
+                }
+                if ((left[component] + 0) < (right[component] + 0)) {
+                    exit 1
+                }
+            }
+            exit 1
+        }
+    '
 }
 
 latest_version() {
@@ -150,6 +195,15 @@ latest_version() {
     if [ "${latest_status}" = "revoked" ]; then
         fail "release catalog LATEST points to revoked release ${latest}"
     fi
+    for entry in "${CATALOG_DIR}"/*.env; do
+        [ -e "${entry}" ] || continue
+        candidate_status=$(required_value "${entry}" RELEASE_STATUS)
+        [ "${candidate_status}" != "revoked" ] || continue
+        candidate=$(basename "${entry}" .env)
+        if version_is_newer "${candidate}" "${latest}"; then
+            fail "release catalog LATEST ${latest} is older than non-revoked release ${candidate}"
+        fi
+    done
     printf '%s\n' "${latest}"
 }
 

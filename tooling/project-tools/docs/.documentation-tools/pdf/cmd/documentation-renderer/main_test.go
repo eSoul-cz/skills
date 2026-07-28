@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -118,6 +119,19 @@ func TestValidateRegion(t *testing.T) {
 				t.Fatalf("validateRegion() error = %v, wantErr %v", err, test.wantErr)
 			}
 		})
+	}
+}
+
+func TestValidatedRedactionColor(t *testing.T) {
+	for _, value := range []string{"", "#123456", "#12345678"} {
+		if _, err := validatedRedactionColor(value); err != nil {
+			t.Errorf("expected redaction color %q to pass: %v", value, err)
+		}
+	}
+	for _, value := range []string{"red", "#123", "url(https://example.com/color)"} {
+		if _, err := validatedRedactionColor(value); err == nil {
+			t.Errorf("expected redaction color %q to fail", value)
+		}
 	}
 }
 
@@ -573,7 +587,7 @@ func TestRawHTMLImageValidationUsesPandocNodes(t *testing.T) {
 	  "pandoc-api-version": [1,23,1],
 	  "meta": {},
 	  "blocks": [
-	    {"t":"RawBlock","c":["html","<img src=\"https://example.com/published.png\" alt=\"\">"]},
+	    {"t":"RawBlock","c":["html","<img src=\"https://example.com/published.png\" alt=\"\"><img src=\"\" alt=\"Missing source\">"]},
 	    {"t":"CodeBlock","c":[["",[],[]],"<img src=\"ignored.png\" alt=\"Ignored\">"]}
 	  ]
 	}`
@@ -587,7 +601,7 @@ func TestRawHTMLImageValidationUsesPandocNodes(t *testing.T) {
 	}
 	result := validationResult{}
 	validateRawHTMLImages(t.TempDir(), "source.md", "source.md", html, &result, map[string]publishedRaster{})
-	for _, expected := range []string{"remote images", "alt text is empty"} {
+	for _, expected := range []string{"remote images", "alt text is empty", "missing a non-empty src"} {
 		if !validationContains(result.Errors, expected) {
 			t.Errorf("expected error containing %q; errors: %#v", expected, result.Errors)
 		}
@@ -669,11 +683,11 @@ func TestRemoteRendererRequiresTrustedDigest(t *testing.T) {
 }
 
 func TestPackagingUsesGoAndMermanWithoutBrowserRuntime(t *testing.T) {
-	workingDirectory, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
+	_, sourceFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("could not locate renderer test source")
 	}
-	pdfTools := filepath.Clean(filepath.Join(workingDirectory, "..", ".."))
+	pdfTools := filepath.Clean(filepath.Join(filepath.Dir(sourceFile), "..", ".."))
 	dockerfile, err := os.ReadFile(filepath.Join(pdfTools, "Dockerfile"))
 	if err != nil {
 		t.Fatal(err)

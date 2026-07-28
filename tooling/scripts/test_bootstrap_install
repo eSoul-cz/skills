@@ -36,6 +36,11 @@ docker build \
     --file "${REPOSITORY_ROOT}/tooling/install-project-tools/Dockerfile" \
     --tag "${installer_image}" \
     "${REPOSITORY_ROOT}"
+installer_image_id=$(docker image inspect --format '{{.Id}}' "${installer_image}")
+release_manifest="${project_root}/bootstrap-release.env"
+printf 'INSTALLER_IMAGE=%s\n' "${installer_image_id}" > "${release_manifest}"
+mutable_release_manifest="${project_root}/mutable-bootstrap-release.env"
+printf 'INSTALLER_IMAGE=%s\n' "${installer_image}" > "${mutable_release_manifest}"
 
 container_id=$(docker create "${installer_image}" /project)
 image_contents=$(docker export "${container_id}" | tar -tf -)
@@ -50,7 +55,28 @@ then
     exit 1
 fi
 
-DOCUMENTATION_INSTALLER_IMAGE="${installer_image}" \
+if rejection_output=$(
+    DOCUMENTATION_INSTALL_TEST_MODE=1 \
+    DOCUMENTATION_RELEASE_MANIFEST_URL="file://${mutable_release_manifest}" \
+    DOCUMENTATION_RENDERER_PIN="${renderer_pin}" \
+    DOCUMENTATION_INSTALL_SKIP_PULL=1 \
+    DOCUMENTATION_INSTALL_SKIP_DOCTOR=1 \
+        "${REPOSITORY_ROOT}/install.sh" "${project_root}" 2>&1
+)
+then
+    echo "ERROR: Bootstrap accepted a mutable installer tag." >&2
+    exit 1
+fi
+if ! printf '%s\n' "${rejection_output}" |
+    grep -Fq 'Installer image must be pinned by an immutable sha256 digest.'
+then
+    echo "ERROR: Bootstrap rejected the mutable installer for an unexpected reason:" >&2
+    printf '%s\n' "${rejection_output}" >&2
+    exit 1
+fi
+
+DOCUMENTATION_INSTALL_TEST_MODE=1 \
+DOCUMENTATION_RELEASE_MANIFEST_URL="file://${release_manifest}" \
 DOCUMENTATION_RENDERER_PIN="${renderer_pin}" \
 DOCUMENTATION_INSTALL_SKIP_PULL=1 \
 DOCUMENTATION_INSTALL_SKIP_DOCTOR=1 \

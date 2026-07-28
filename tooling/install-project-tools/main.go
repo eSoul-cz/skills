@@ -17,7 +17,10 @@ import (
 	"strings"
 )
 
-const manifestRelativePath = "docs/.documentation-tools/managed-files.json"
+const (
+	manifestRelativePath      = "docs/.documentation-tools/managed-files.json"
+	projectConfigRelativePath = "docs/documentation.toml"
+)
 
 var semanticVersionPattern = regexp.MustCompile(`^(\d+)\.(\d+)\.(\d+)$`)
 
@@ -47,7 +50,7 @@ func main() {
 	checkOnly := flag.Bool("check", false, "check installed managed files without changing them")
 	upgrade := flag.Bool("upgrade", false, "upgrade an existing managed installation")
 	profile := flag.String("profile", "auto", "installation profile: auto, local, or remote")
-	configTemplate := flag.String("config-template", "", "create missing docs/documentation.toml from this template")
+	configTemplate := flag.String("config-template", "", "create missing "+projectConfigRelativePath+" from this template")
 	rendererImage := flag.String("renderer-image", "", "immutable renderer image written to a newly initialized remote configuration")
 	planRemoteUpgrade := flag.Bool("plan-remote-upgrade", false, "preview a catalog-resolved remote-profile upgrade without changing files")
 	applyRemoteUpgrade := flag.Bool("apply-remote-upgrade", false, "apply a catalog-resolved remote-profile upgrade transaction")
@@ -87,8 +90,8 @@ func main() {
 	}
 	if strings.TrimSpace(*assetRoot) == "" || flag.NArg() != 1 {
 		exitError(errors.New(
-			"usage: install-project-tools --asset-root PATH { [--check|--upgrade] [--profile auto|local|remote] "+
-				"[--config-template PATH] [--renderer-image IMAGE] | "+
+			"usage: install-project-tools --asset-root PATH { [--check|--upgrade] [--profile auto|local|remote] | "+
+				"[--config-template PATH] [--renderer-image IMAGE] [--profile auto|local|remote] | "+
 				"[--plan-remote-upgrade|--apply-remote-upgrade] --target-version VERSION "+
 				"--target-image IMAGE --target-config-schema SCHEMA [--display-project-root PATH] } PROJECT_ROOT",
 		), 2)
@@ -417,14 +420,14 @@ func installWithProjectConfig(
 	if configTemplate == "" {
 		return install(projectRoot, assetRoot, upgrade, profile)
 	}
-	configPath, err := managedTarget(projectRoot, "docs/documentation.toml")
+	configPath, err := managedTarget(projectRoot, projectConfigRelativePath)
 	if err != nil {
 		return err
 	}
 	info, err := os.Lstat(configPath)
 	if err == nil {
 		if !info.Mode().IsRegular() {
-			return errors.New("existing docs/documentation.toml is not a regular file")
+			return fmt.Errorf("existing %s is not a regular file", projectConfigRelativePath)
 		}
 		if rendererImage != "" {
 			config, readErr := readProjectConfig(projectRoot)
@@ -433,7 +436,7 @@ func installWithProjectConfig(
 			}
 			if config.PDFMode != "remote" || config.PDFImage != rendererImage {
 				return errors.New(
-					"existing docs/documentation.toml does not select the requested remote renderer; " +
+					"existing " + projectConfigRelativePath + " does not select the requested remote renderer; " +
 						"preserving project-owned configuration",
 				)
 			}
@@ -476,9 +479,9 @@ func installWithProjectConfig(
 		assetRoot,
 		upgrade,
 		profile,
-		[]string{"docs/documentation.toml"},
+		[]string{projectConfigRelativePath},
 		postAction,
-		"Created project-owned docs/documentation.toml in the managed-tool transaction.",
+		"Created project-owned "+projectConfigRelativePath+" in the managed-tool transaction.",
 	); err != nil {
 		return err
 	}

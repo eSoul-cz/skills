@@ -48,7 +48,7 @@ type remoteUpgradePlan struct {
 type remoteUpgradeValidator func(plan remoteUpgradePlan) error
 
 func readProjectConfig(projectRoot string) (projectConfig, error) {
-	configPath, err := managedTarget(projectRoot, "docs/documentation.toml")
+	configPath, err := managedTarget(projectRoot, projectConfigRelativePath)
 	if err != nil {
 		return projectConfig{}, err
 	}
@@ -207,8 +207,8 @@ func printRemoteUpgradePlan(plan remoteUpgradePlan) {
 		len(plan.RetiredFiles),
 	)
 	fmt.Println("Project configuration changes:")
-	fmt.Printf("- docs/documentation.toml [pdf].mode: %q -> %q\n", plan.Config.PDFMode, "remote")
-	fmt.Printf("- docs/documentation.toml [pdf].image: %q -> %q\n", plan.Config.PDFImage, plan.TargetImage)
+	fmt.Printf("- %s [pdf].mode: %q -> %q\n", projectConfigRelativePath, plan.Config.PDFMode, "remote")
+	fmt.Printf("- %s [pdf].image: %q -> %q\n", projectConfigRelativePath, plan.Config.PDFImage, plan.TargetImage)
 	fmt.Println("Trusted runtime configuration:")
 	fmt.Printf("- DOCUMENTATION_REMOTE_RENDERER_IMAGE=%s\n", plan.TargetImage)
 	fmt.Println("Apply command:")
@@ -499,7 +499,7 @@ func applyRemoteProfileUpgradeWithValidator(
 	}
 	printRemoteUpgradePlan(plan)
 
-	configPath, err := managedTarget(projectRoot, "docs/documentation.toml")
+	configPath, err := managedTarget(projectRoot, projectConfigRelativePath)
 	if err != nil {
 		return err
 	}
@@ -529,7 +529,7 @@ func applyRemoteProfileUpgradeWithValidator(
 		assetRoot,
 		true,
 		"remote",
-		[]string{"docs/documentation.toml"},
+		[]string{projectConfigRelativePath},
 		postAction,
 		"Only the explicitly planned project configuration settings were updated.",
 	); err != nil {
