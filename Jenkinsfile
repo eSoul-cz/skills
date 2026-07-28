@@ -88,8 +88,12 @@ pipeline {
 								sbom_json=\$(docker buildx imagetools inspect '${image}' --format '{{ json .SBOM }}')
 								test "\$(printf '%s' "\${sbom_json}" | tr -d '[:space:]')" != 'null'
 								printf '%s' "\${sbom_json}" | grep -F '"SPDX"' >/dev/null
-								provenance_json=\$(docker buildx imagetools inspect '${image}' --format '{{ json .Provenance.SLSA }}')
-								test "\$(printf '%s' "\${provenance_json}" | tr -d '[:space:]')" != 'null'
+								amd64_provenance=\$(docker buildx imagetools inspect '${image}' \
+									--format '{{ if (index .Provenance "linux/amd64").SLSA }}true{{ else }}false{{ end }}')
+								test "\${amd64_provenance}" = true
+								arm64_provenance=\$(docker buildx imagetools inspect '${image}' \
+									--format '{{ if (index .Provenance "linux/arm64").SLSA }}true{{ else }}false{{ end }}')
+								test "\${arm64_provenance}" = true
 							""",
 							returnStatus: true
 						) == 0
