@@ -37,6 +37,14 @@ After a hosted renderer digest has been published and configured in `docs/docume
 
 Run `docs/documentation doctor` after installation and before a hosted-profile migration. It checks the installed profile and managed-file hashes, validates the durable release catalog, confirms configuration-schema compatibility, diagnoses Docker and registry readiness, and verifies that the independently supplied `DOCUMENTATION_REMOTE_RENDERER_IMAGE` exactly matches the configured digest. The catalog resolves versions; it does not replace or weaken the trusted runtime allowlist.
 
+Before changing an installed project, preview an exact catalog release with:
+
+```bash
+scripts/upgrade_project_tools /absolute/project/root --to 0.6.0
+```
+
+This Docker-first command is read-only. It resolves the requested semantic version through the bundled catalog, requires the skill bundle to match that release, rejects managed drift, downgrades, incompatible configuration schemas, and unsafe remote-image values, then reports the managed profile migration, project-owned TOML edits, retired files, and independent allowlist value. It does not apply the plan or update CI credentials.
+
 Create project-owned files from `assets/project-templates/`; do not overwrite existing files. Ensure these ignored paths unless project configuration explicitly commits PDFs:
 
 ```gitignore

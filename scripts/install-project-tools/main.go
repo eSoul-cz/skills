@@ -46,10 +46,22 @@ func main() {
 	checkOnly := flag.Bool("check", false, "check installed managed files without changing them")
 	upgrade := flag.Bool("upgrade", false, "upgrade an existing managed installation")
 	profile := flag.String("profile", "auto", "installation profile: auto, local, or remote")
+	planRemoteUpgrade := flag.Bool("plan-remote-upgrade", false, "preview a catalog-resolved remote-profile upgrade without changing files")
+	targetVersion := flag.String("target-version", "", "catalog-resolved renderer version for --plan-remote-upgrade")
+	targetImage := flag.String("target-image", "", "catalog-resolved immutable renderer image for --plan-remote-upgrade")
+	targetConfigSchema := flag.Int("target-config-schema", 0, "required project configuration schema for --plan-remote-upgrade")
+	displayProjectRoot := flag.String("display-project-root", "", "host project path shown by --plan-remote-upgrade")
 	flag.Parse()
 
 	if *checkOnly && *upgrade {
 		exitError(errors.New("--check and --upgrade cannot be combined"), 2)
+	}
+	if *planRemoteUpgrade && (*checkOnly || *upgrade || *profile != "auto") {
+		exitError(errors.New("--plan-remote-upgrade cannot be combined with --check, --upgrade, or --profile"), 2)
+	}
+	if !*planRemoteUpgrade &&
+		(*targetVersion != "" || *targetImage != "" || *targetConfigSchema != 0 || *displayProjectRoot != "") {
+		exitError(errors.New("target release options require --plan-remote-upgrade"), 2)
 	}
 	if strings.TrimSpace(*assetRoot) == "" || flag.NArg() != 1 {
 		exitError(errors.New("usage: install-project-tools --asset-root PATH [--check|--upgrade] [--profile auto|local|remote] PROJECT_ROOT"), 2)
@@ -64,6 +76,24 @@ func main() {
 	assets, err := filepath.Abs(*assetRoot)
 	if err != nil {
 		exitError(fmt.Errorf("resolve asset root: %w", err), 1)
+	}
+	if *planRemoteUpgrade {
+		if strings.TrimSpace(*targetVersion) == "" ||
+			strings.TrimSpace(*targetImage) == "" ||
+			*targetConfigSchema < 1 {
+			exitError(errors.New("--plan-remote-upgrade requires --target-version, --target-image, and --target-config-schema"), 2)
+		}
+		if err := planRemoteProfileUpgrade(
+			projectRoot,
+			assets,
+			*targetVersion,
+			*targetImage,
+			*targetConfigSchema,
+			*displayProjectRoot,
+		); err != nil {
+			exitError(err, 1)
+		}
+		return
 	}
 	if *checkOnly {
 		code, err := check(projectRoot, assets)
@@ -274,6 +304,71 @@ func drift(projectRoot string, installed manifest) ([]string, error) {
 	return findings, nil
 }
 
+func requireNoManagedDrift(projectRoot string, existing manifest) error {
+	findings, err := drift(projectRoot, existing)
+	if err != nil {
+		return err
+	}
+	if len(findings) > 0 {
+		return fmt.Errorf(
+			"managed tooling has local drift; resolve it before installation:\n- %s",
+			strings.Join(findings, "\n- "),
+		)
+	}
+	return nil
+}
+
+func prepareManagedFileChanges(projectRoot string, existing manifest, files map[string]string) ([]string, error) {
+	var retired []string
+	for relative := range existing.ManagedFiles {
+		if _, retained := files[relative]; !retained && relative != manifestRelativePath {
+			retired = append(retired, relative)
+		}
+	}
+	sort.Strings(retired)
+
+	var conflicts []string
+	for relative := range files {
+		if _, managed := existing.ManagedFiles[relative]; managed {
+			continue
+		}
+		blockedByRetiredFile := false
+		for _, retiredPath := range retired {
+			if strings.HasPrefix(relative, retiredPath+"/") {
+				blockedByRetiredFile = true
+				break
+			}
+		}
+		if blockedByRetiredFile {
+			continue
+		}
+		target, err := managedTarget(projectRoot, relative)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := os.Lstat(target); err == nil {
+			conflicts = append(conflicts, relative)
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("inspect target %s: %w", relative, err)
+		}
+	}
+	sort.Strings(conflicts)
+	if len(conflicts) > 0 {
+		return nil, fmt.Errorf(
+			"refusing to overwrite files not owned by a managed manifest:\n- %s",
+			strings.Join(conflicts, "\n- "),
+		)
+	}
+	return retired, nil
+}
+
+func prepareExistingInstall(projectRoot string, existing manifest, files map[string]string) ([]string, error) {
+	if err := requireNoManagedDrift(projectRoot, existing); err != nil {
+		return nil, err
+	}
+	return prepareManagedFileChanges(projectRoot, existing, files)
+}
+
 func install(projectRoot, assetRoot string, upgrade bool, profile string) (installErr error) {
 	info, err := os.Stat(projectRoot)
 	if err != nil || !info.IsDir() {
@@ -300,15 +395,8 @@ func install(projectRoot, assetRoot string, upgrade bool, profile string) (insta
 
 	var retired []string
 	if existing != nil {
-		findings, err := drift(projectRoot, *existing)
-		if err != nil {
+		if err := requireNoManagedDrift(projectRoot, *existing); err != nil {
 			return err
-		}
-		if len(findings) > 0 {
-			return fmt.Errorf(
-				"managed tooling has local drift; resolve it before installation:\n- %s",
-				strings.Join(findings, "\n- "),
-			)
 		}
 		if !upgrade {
 			return fmt.Errorf(
@@ -321,43 +409,9 @@ func install(projectRoot, assetRoot string, upgrade bool, profile string) (insta
 		if installedOK && bundleOK && compareVersions(installedVersion, bundleVersion) > 0 {
 			return fmt.Errorf("refusing to downgrade managed tooling from %s to bundled version %s", existing.ToolVersion, version)
 		}
-		for relative := range existing.ManagedFiles {
-			if _, retained := files[relative]; !retained && relative != manifestRelativePath {
-				retired = append(retired, relative)
-			}
-		}
-		sort.Strings(retired)
-		var conflicts []string
-		for relative := range files {
-			if _, managed := existing.ManagedFiles[relative]; managed {
-				continue
-			}
-			blockedByRetiredFile := false
-			for _, retiredPath := range retired {
-				if strings.HasPrefix(relative, retiredPath+"/") {
-					blockedByRetiredFile = true
-					break
-				}
-			}
-			if blockedByRetiredFile {
-				continue
-			}
-			target, err := managedTarget(projectRoot, relative)
-			if err != nil {
-				return err
-			}
-			if _, err := os.Lstat(target); err == nil {
-				conflicts = append(conflicts, relative)
-			} else if !errors.Is(err, os.ErrNotExist) {
-				return fmt.Errorf("inspect target %s: %w", relative, err)
-			}
-		}
-		sort.Strings(conflicts)
-		if len(conflicts) > 0 {
-			return fmt.Errorf(
-				"refusing to overwrite files not owned by a managed manifest:\n- %s",
-				strings.Join(conflicts, "\n- "),
-			)
+		retired, err = prepareManagedFileChanges(projectRoot, *existing, files)
+		if err != nil {
+			return err
 		}
 	} else {
 		var conflicts []string

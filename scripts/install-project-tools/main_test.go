@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -288,6 +290,108 @@ func TestExplicitLocalProfileRestoresBuildSources(t *testing.T) {
 	}
 }
 
+func TestRemoteUpgradePlanIsReadOnlyAndReportsExactChanges(t *testing.T) {
+	assets := fixtureAssets(t, "0.6.0", map[string]fixtureFile{
+		"docs/documentation":                               {Content: "#!/bin/sh\n", Mode: 0o755},
+		"docs/.documentation-tools/pdf/header.tex":         {Content: "header\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/Dockerfile":         {Content: "FROM scratch\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/filters/source.lua": {Content: "filter\n", Mode: 0o644},
+	})
+	project := t.TempDir()
+	writeDoctorConfig(t, project, strings.Join([]string{
+		"schema_version = 1",
+		"",
+		"[pdf]",
+		`mode = "local"`,
+		`image = ""`,
+		"",
+	}, "\n"))
+	if err := install(project, assets, false, "local"); err != nil {
+		t.Fatal(err)
+	}
+
+	before := fixtureTreeDigests(t, project)
+
+	targetImage := "registry.example/docs@sha256:" + strings.Repeat("a", 64)
+	output, err := captureStdout(t, func() error {
+		return planRemoteProfileUpgrade(project, assets, "0.6.0", targetImage, 1, "")
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, expected := range []string{
+		"Installed managed tooling: 0.6.0 (local profile)",
+		"Target managed tooling: 0.6.0 (remote profile)",
+		`[pdf].mode: "local" -> "remote"`,
+		`[pdf].image: "" -> "` + targetImage + `"`,
+		"DOCUMENTATION_REMOTE_RENDERER_IMAGE=" + targetImage,
+		"docs/.documentation-tools/pdf/Dockerfile",
+		"No files were changed.",
+	} {
+		if !strings.Contains(output, expected) {
+			t.Fatalf("upgrade plan is missing %q:\n%s", expected, output)
+		}
+	}
+
+	after := fixtureTreeDigests(t, project)
+	if !reflect.DeepEqual(after, before) {
+		t.Fatalf("read-only plan changed project files:\nbefore=%v\nafter=%v", before, after)
+	}
+}
+
+func TestRemoteUpgradePlanRefusesIncompatibleOrUnsafeState(t *testing.T) {
+	assets := fixtureAssets(t, "0.6.0", map[string]fixtureFile{
+		"docs/documentation":                       {Content: "#!/bin/sh\n", Mode: 0o755},
+		"docs/.documentation-tools/pdf/header.tex": {Content: "header\n", Mode: 0o644},
+	})
+	targetImage := "registry.example/docs@sha256:" + strings.Repeat("b", 64)
+	newProject := func(t *testing.T, schema int) string {
+		t.Helper()
+		project := t.TempDir()
+		writeDoctorConfig(t, project, fmt.Sprintf(
+			"schema_version = %d\n\n[pdf]\nmode = \"local\"\nimage = \"\"\n",
+			schema,
+		))
+		if err := install(project, assets, false, "local"); err != nil {
+			t.Fatal(err)
+		}
+		return project
+	}
+
+	t.Run("configuration schema", func(t *testing.T) {
+		err := planRemoteProfileUpgrade(newProject(t, 2), assets, "0.6.0", targetImage, 1, "")
+		if err == nil || !strings.Contains(err.Error(), "incompatible") {
+			t.Fatalf("expected schema incompatibility, got %v", err)
+		}
+	})
+	t.Run("managed drift", func(t *testing.T) {
+		project := newProject(t, 1)
+		if err := os.WriteFile(filepath.Join(project, "docs", "documentation"), []byte("drift\n"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		err := planRemoteProfileUpgrade(project, assets, "0.6.0", targetImage, 1, "")
+		if err == nil || !strings.Contains(err.Error(), "local drift") {
+			t.Fatalf("expected managed drift refusal, got %v", err)
+		}
+	})
+	t.Run("bundle mismatch", func(t *testing.T) {
+		err := planRemoteProfileUpgrade(newProject(t, 1), assets, "0.7.0", targetImage, 1, "")
+		if err == nil || !strings.Contains(err.Error(), "does not match bundled managed tooling") {
+			t.Fatalf("expected bundle mismatch, got %v", err)
+		}
+	})
+	t.Run("downgrade", func(t *testing.T) {
+		project := newProject(t, 1)
+		installed := readFixtureManifest(t, project)
+		installed.ToolVersion = "0.7.0"
+		writeFixtureManifest(t, project, installed)
+		err := planRemoteProfileUpgrade(project, assets, "0.6.0", targetImage, 1, "")
+		if err == nil || !strings.Contains(err.Error(), "refusing to plan a downgrade") {
+			t.Fatalf("expected downgrade refusal, got %v", err)
+		}
+	})
+}
+
 func TestLocalUpgradeRefusesUnmanagedFileCollision(t *testing.T) {
 	assets := fixtureAssets(t, "0.5.0", map[string]fixtureFile{
 		"docs/documentation":                               {Content: "#!/bin/sh\n", Mode: 0o755},
@@ -550,6 +654,54 @@ func runDoctor(project, fakeBin, allowlistedImage string) (string, error) {
 	command.Env = environment
 	output, err := command.CombinedOutput()
 	return string(output), err
+}
+
+func captureStdout(t *testing.T, action func() error) (string, error) {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "stdout")
+	output, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	previous := os.Stdout
+	os.Stdout = output
+	actionErr := action()
+	os.Stdout = previous
+	if err := output.Close(); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(data), actionErr
+}
+
+func fixtureTreeDigests(t *testing.T, root string) map[string]string {
+	t.Helper()
+	digests := map[string]string{}
+	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if !entry.Type().IsRegular() {
+			return nil
+		}
+		relative, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+		digest, err := fileSHA256(path)
+		if err != nil {
+			return err
+		}
+		digests[filepath.ToSlash(relative)] = digest
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return digests
 }
 
 func fixtureAssets(t *testing.T, version string, files map[string]fixtureFile) string {
