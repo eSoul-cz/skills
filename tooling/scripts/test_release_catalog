@@ -93,6 +93,15 @@ then
 fi
 replace_value "${catalog_dir}/0.6.0.env" SBOM https://example.invalid/releases/0.6.0/renderer.spdx.json
 
+for invalid_artifact_url in 'https://?' 'https://#'; do
+    replace_value "${catalog_dir}/0.6.0.env" SBOM "${invalid_artifact_url}"
+    if DOCUMENTATION_RELEASE_CATALOG_DIR="${catalog_dir}" "${CATALOG_TOOL}" validate >/dev/null 2>&1; then
+        echo "ERROR: Release catalog accepted an artifact URL without a host: ${invalid_artifact_url}" >&2
+        exit 1
+    fi
+done
+replace_value "${catalog_dir}/0.6.0.env" SBOM https://example.invalid/releases/0.6.0/renderer.spdx.json
+
 replace_value "${catalog_dir}/0.6.0.env" INSTALLER_IMAGE registry.example/installer:0.6.0
 if DOCUMENTATION_RELEASE_CATALOG_DIR="${catalog_dir}" "${CATALOG_TOOL}" validate >/dev/null 2>&1; then
     echo "ERROR: Release catalog accepted a mutable installer image." >&2
