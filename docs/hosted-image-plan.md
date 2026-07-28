@@ -7,12 +7,13 @@ The hosted-image plan is active. The repository tooling tree remains the canonic
 The root Jenkins pipeline:
 
 1. runs the Docker-first renderer, visual-regression, and bootstrap-installer tests;
-2. requires the semantic tool version to be an existing Git tag on the build commit before starting release publication;
-3. builds native linux/amd64 and linux/arm64 images with BuildKit SPDX and maximum provenance attestations through the `dockerHelpers` shared library;
-4. runs Go tests, vet checks, and the complete Markdown/Mermaid/math/table/landscape PDF smoke fixture inside each architecture build;
-5. publishes or reuses an attested renderer and bootstrap installer independently, so a retry can complete a partially published release, using the semantic tool version, `latest`, and valid Git tags in the public `rg.fr-par.scw.cloud/esoul-internal-tools` registry;
-6. resolves both merged manifest digests, generates standalone SPDX, provenance, and Trivy reports, signs and verifies the images and reports with Cosign, and publishes the exact artifact set through a GitHub Release;
-7. archives a fingerprinted catalog candidate containing the immutable renderer and installer references and the renderer's GitHub artifact URLs.
+2. reviews the pinned Go and Rust builder versions and verifies replacement multi-architecture image digests before preparing each release;
+3. requires the semantic tool version to be an existing Git tag on the build commit before starting release publication;
+4. builds native linux/amd64 and linux/arm64 images with BuildKit SPDX and maximum provenance attestations through the `dockerHelpers` shared library;
+5. runs Go tests, vet checks, and the complete Markdown/Mermaid/math/table/landscape PDF smoke fixture inside each architecture build;
+6. publishes or reuses an attested renderer and bootstrap installer independently, so a retry can complete a partially published release, using the semantic tool version, `latest`, and valid Git tags in the public `rg.fr-par.scw.cloud/esoul-internal-tools` registry;
+7. resolves both merged manifest digests, generates standalone SPDX, provenance, and Trivy reports, signs and verifies the images and reports with Cosign, and publishes the exact artifact set through a GitHub Release;
+8. archives a fingerprinted catalog candidate containing the immutable renderer and installer references and the renderer's GitHub artifact URLs.
 
 The reviewed catalog under `tooling/project-tools/docs/.documentation-tools/releases/` is the durable authority and outlives Jenkins retention. Jenkins validates the existing catalog before building and emits a candidate entry after publication. Commit that entry and update `LATEST` in a reviewed follow-up change; registry publication alone does not make a version resolvable. Legacy `0.5.0` is recorded with explicit `unknown`/`unavailable` provenance fields rather than invented metadata.
 
