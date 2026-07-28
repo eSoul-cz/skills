@@ -12,12 +12,23 @@ else
         documentation-renderer \
             --project-root /workspace \
             --config docs/documentation.toml
+    DOC_COMMIT=smoke-test \
+    DOC_GENERATED_AT="2026-01-01 00:00 UTC" \
+    HOME=/tmp \
+    XDG_CACHE_HOME=/tmp/.cache \
+        documentation-renderer \
+            --project-root /workspace \
+            --config docs/esoul-documentation.toml
 fi
 
 extracted=/workspace/docs/.documentation-work/review/smoke/extracted.txt
 pdf=/workspace/docs/pdf/smoke.pdf
+esoul_extracted=/workspace/docs/.documentation-work/review/esoul-smoke/extracted.txt
+esoul_pdf=/workspace/docs/pdf/esoul-smoke.pdf
 test -s "${extracted}"
 test -s "${pdf}"
+test -s "${esoul_extracted}"
+test -s "${esoul_pdf}"
 
 normalized=$(tr "\n" " " < "${extracted}" | tr -s " ")
 case "${normalized}" in
@@ -36,6 +47,10 @@ case "${normalized}" in
     *"missing release notes"*"docs/missing.md#draft"*) ;;
     *) echo "ERROR: invalid-link notice is missing or mapped incorrectly." >&2; exit 1 ;;
 esac
+case "${normalized}" in
+    *"A multiline footnote keeps emphasis, inline code, a link, and Czech text: příliš žluťoučký kůň."*) ;;
+    *) echo "ERROR: complex Markdown footnote content is missing." >&2; exit 1 ;;
+esac
 
 image_rows=$(pdfimages -list "${pdf}" | sed -n "3,\$p")
 if [ -n "${image_rows}" ]; then
@@ -44,9 +59,11 @@ if [ -n "${image_rows}" ]; then
     exit 1
 fi
 
-set -- /workspace/docs/.documentation-work/build/smoke/staging/diagram-*.pdf
-if [ "$#" -ne 2 ] || [ ! -f "$1" ] || [ ! -f "$2" ]; then
-    echo "ERROR: expected exactly two rendered Mermaid PDFs." >&2
+set -- \
+    /workspace/docs/.documentation-work/build/smoke/staging/diagram-*.pdf \
+    /workspace/docs/.documentation-work/build/esoul-smoke/staging/diagram-*.pdf
+if [ "$#" -ne 4 ] || [ ! -f "$1" ] || [ ! -f "$2" ] || [ ! -f "$3" ] || [ ! -f "$4" ]; then
+    echo "ERROR: expected exactly two rendered Mermaid PDFs per theme fixture." >&2
     exit 1
 fi
 for diagram_pdf do
@@ -56,6 +73,34 @@ for diagram_pdf do
         exit 1
     fi
 done
+
+esoul_normalized=$(tr "\n" " " < "${esoul_extracted}" | tr -s " ")
+case "${esoul_normalized}" in
+    *"Client & Operations Guide"*) ;;
+    *) echo "ERROR: eSoul title page is missing." >&2; exit 1 ;;
+esac
+case "${esoul_normalized}" in
+    *"esoul.cz"*"info@esoul.cz"*) ;;
+    *) echo "ERROR: eSoul publisher contact is missing." >&2; exit 1 ;;
+esac
+case "${esoul_normalized}" in
+    *"IČ: 17582571"*"DIČ: CZ17582571"*) ;;
+    *) echo "ERROR: eSoul publisher identity is missing." >&2; exit 1 ;;
+esac
+if ! pdffonts "${esoul_pdf}" | grep -q "Poppins"; then
+    echo "ERROR: eSoul PDF does not embed Poppins." >&2
+    exit 1
+fi
+if ! pdffonts "${esoul_pdf}" | grep -q "Syne"; then
+    echo "ERROR: eSoul PDF does not embed Syne." >&2
+    exit 1
+fi
+esoul_image_rows=$(pdfimages -list "${esoul_pdf}" | sed -n "3,\$p")
+if [ -n "${esoul_image_rows}" ]; then
+    echo "ERROR: eSoul PDF contains raster image objects." >&2
+    printf "%s\n" "${esoul_image_rows}" >&2
+    exit 1
+fi
 
 if [ "${verify_only}" -eq 0 ]; then
     touch /tmp/documentation-renderer-smoke-passed

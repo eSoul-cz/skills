@@ -126,6 +126,9 @@ func validateProject(root string, cfg config) validationResult {
 	}
 	validateGitState(root, cfg, &result)
 	validatePDFConfig(root, cfg.PDF, &result)
+	if _, err := resolveTheme(cfg.PDF); err != nil {
+		result.error(err.Error() + ".")
+	}
 
 	if len(cfg.Guides) == 0 {
 		result.error("At least one [[guides]] table is required.")

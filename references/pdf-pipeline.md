@@ -39,7 +39,14 @@ PDF-local anchors follow Pandoc identifiers: Unicode letters and diacritics are 
 
 ## Configuration
 
-Use the bundled `documentation.toml` template. Define ordered `sources` arrays in each `[[guides]]` block. Project-owned settings include branding, paths, language, paper, fonts, custom template/header, landscape source pages, documentation version, output tracking, privacy allowlists, and local/remote Docker mode.
+Use the bundled `documentation.toml` template. Define ordered `sources` arrays in each `[[guides]]` block. Project-owned settings include branding, paths, language, theme, custom template/header, landscape source pages, documentation version, output tracking, privacy allowlists, and local/remote Docker mode.
+
+`pdf.theme` selects a built-in preset:
+
+- `default` preserves the existing neutral Noto Sans layout.
+- `esoul` uses the eSoul client-document design: Poppins body text, Syne headings, grayscale semantic colors and callouts, the compact eSoul title page, publisher header/footer chrome, and vector logos.
+
+The optional `[pdf.theme_overrides]` table accepts six-digit hexadecimal semantic colors, `a4` or `letter` paper, main/heading/monospace fonts, a font size from `6pt` through `20pt`, and a positive `mm`, `cm`, `in`, or `pt` margin. In the eSoul preset, `margin` controls the side margins while the branded header/footer retain their verified vertical geometry. Existing flat `paper_size`, `main_font`, `mono_font`, and `accent_color` keys remain supported and take precedence over the selected preset and typed overrides so upgrades do not silently alter established documents. A configured custom template or header remains project-owned and is applied after the generated theme preamble.
 
 Each guide may set `cross_document_links` and `invalid_links` to `"error"` (the default) or `"notice"`. Cross-document policy applies to Markdown files that exist in the project but are not included in that guide's `sources`; invalid-link policy applies to missing local targets and broken Markdown anchors. Notice mode reports the issue and keeps the link label in the PDF. `link_notice_style` selects `plain`, `parentheses`, or `footnote` output, while `link_notice_paths` selects the authored `original` target or a normalized `project-relative` path. Malformed targets and project escapes remain errors regardless of these settings.
 
@@ -49,13 +56,13 @@ Renderer containers run without network access, with a read-only root filesystem
 
 ## Markdown contract
 
-Use GitHub-readable Markdown with footnotes, GitHub alert callouts, Mermaid fences, and TeX math delimiters. `$...$` and `$$...$$` render on GitHub and through Pandoc. Standard `NOTE`, `TIP`, `IMPORTANT`, `WARNING`, and `CAUTION` alerts become labeled, page-breakable PDF boxes. Approved planned content uses a blockquote whose first inline is bold `Planned`; the source remains readable in ordinary Markdown and becomes a labeled `Planned` PDF box. Escape literal currency dollar signs where ambiguous. Treat full LaTeX examples as fenced code. Merman is an independent compatibility implementation rather than Mermaid itself; before adopting a new diagram family or advanced syntax, add it to the renderer fixtures and verify its PDF output with the pinned version.
+Use GitHub-readable Markdown with footnotes, GitHub alert callouts, Mermaid fences, and TeX math delimiters. Standard Pandoc footnote syntax supports inline content, repeated references, multiple paragraphs, links, emphasis, code, and Unicode text; keep each definition in the same guide as its reference. `$...$` and `$$...$$` render on GitHub and through Pandoc. Standard `NOTE`, `TIP`, `IMPORTANT`, `WARNING`, and `CAUTION` alerts become labeled, page-breakable PDF boxes using the selected theme's semantic colors. Approved planned content uses a blockquote whose first inline is bold `Planned`; the source remains readable in ordinary Markdown and becomes a labeled `Planned` PDF box. Escape literal currency dollar signs where ambiguous. Treat full LaTeX examples as fenced code. Merman is an independent compatibility implementation rather than Mermaid itself; before adopting a new diagram family or advanced syntax, add it to the renderer fixtures and verify its PDF output with the pinned version.
 
 Authored pages cannot emit raw TeX or raw attributes. Rendering happens from an isolated staging directory containing only permitted generated ASTs, metadata, normalized images, diagrams, and internal maps. Tokenized Lua filters create the renderer-owned page-break, landscape, and callout blocks. Math accepts a small TeX command allowlist and rejects other control sequences, including TeX `^^` escapes. Callouts always retain visible text labels and must not rely on color alone; the current `tcolorbox` dependency is only partially compatible with tagged PDF, so do not infer PDF/UA conformance from these boxes.
 
 ## Branding and templates
 
-The configurable default supports product and guide titles, subtitle/revision metadata, logo, accent color, paper size, headers/footers, copyright/contact text, and fonts available in the image. A project may select a fully custom Pandoc/LaTeX template. Custom templates are project-owned, excluded from managed upgrades, and subject to the same build and visual gates.
+The configurable default supports product and guide titles, subtitle/revision metadata, logo, semantic colors, paper size, margins, headers/footers, copyright/contact text, and fonts available in the image. The eSoul preset carries publisher identity separately from the optional project logo and embeds its licensed Poppins and Syne fonts plus vector publisher marks from the renderer image. A project may select a fully custom Pandoc/LaTeX template. Custom templates are project-owned, excluded from managed upgrades, and subject to the same build and visual gates.
 
 ## Revisions and versions
 
@@ -75,4 +82,4 @@ The Docker-built static Go installer records a semantic tool version, installati
 
 The default local profile installs the complete auditable build context. The explicit `--remote` profile installs only `docs/documentation`, the managed version and manifest, and the default PDF header. Before migrating with `--upgrade --remote`, configure `pdf.mode = "remote"` and set `pdf.image` to the published immutable digest; supply that same value as `DOCUMENTATION_REMOTE_RENDERER_IMAGE` when invoking the wrapper. Use `--upgrade --local` to restore the complete build context explicitly; an upgrade without either profile flag preserves an existing remote installation.
 
-Before releasing a bundled tool version, run `scripts/test_renderer_smoke`. It builds the Docker image and verifies two Mermaid figures end to end: visible sequential captions in extracted PDF text, exactly two generated diagram PDFs, and no raster image objects in either the diagrams or the combined guide.
+Before releasing a bundled tool version, run `scripts/test_renderer_smoke`. It builds the Docker image and verifies the default and eSoul presets, complex footnotes and link notices, semantic callouts and tables, embedded Poppins/Syne fonts, visible sequential Mermaid captions, exactly two generated diagram PDFs per guide, and vector-only diagrams and combined PDFs.

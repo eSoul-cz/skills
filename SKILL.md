@@ -44,7 +44,7 @@ Create project-owned files from `assets/project-templates/`; do not overwrite ex
 
 ## Author portable Markdown
 
-Use one H1 per source file, relative links, descriptive image alt text, ordinary Markdown tables, fenced code, footnotes, GitHub alert callouts, Mermaid fences, `$...$` inline math, and `$$...$$` display math. Math commands are restricted to the allowlist documented in [pdf-pipeline.md](references/pdf-pipeline.md); any other command or remaining backslash causes a hard build failure. Use a blockquote beginning with bold `Planned` for approved planned-content callouts. Keep raw LaTeX and renderer directives out of authored pages. Configure layout exceptions and templates in `docs/documentation.toml`.
+Use one H1 per source file, relative links, descriptive image alt text, ordinary Markdown tables, fenced code, footnotes, GitHub alert callouts, Mermaid fences, `$...$` inline math, and `$$...$$` display math. Math commands are restricted to the allowlist documented in [pdf-pipeline.md](references/pdf-pipeline.md); any other command or remaining backslash causes a hard build failure. Use a blockquote beginning with bold `Planned` for approved planned-content callouts. Keep raw LaTeX and renderer directives out of authored pages. Configure layout exceptions and templates in `docs/documentation.toml`. Select `pdf.theme = "esoul"` for eSoul-branded client deliverables and retain `default` for neutral or project-owned presentation unless the approved specification says otherwise.
 
 Default to separate user and developer/operator guides, but let the approved specification adapt their chapters. Keep planning, decisions, review records, and screenshot manifests outside PDF source lists.
 
