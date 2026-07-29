@@ -6,6 +6,7 @@ WORKDIR /src
 COPY tooling/install-project-tools/go.mod tooling/install-project-tools/go.sum ./
 COPY tooling/install-project-tools/*.go ./
 COPY tooling/scripts/upgrade_project_tools /fixture/tooling/scripts/upgrade_project_tools
+COPY tooling/scripts/tooling_version /fixture/tooling/scripts/tooling_version
 COPY tooling/project-tools /fixture/tooling/project-tools
 COPY tooling/project-templates /fixture/tooling/project-templates
 RUN printf '%s\n' "${DOCUMENTATION_TOOLS_VERSION}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' \
