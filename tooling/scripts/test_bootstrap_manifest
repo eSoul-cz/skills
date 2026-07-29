@@ -1,0 +1,75 @@
+#!/bin/sh
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
+REPOSITORY_ROOT=$(CDPATH= cd "${SCRIPT_DIR}/../.." && pwd)
+fixture=$(mktemp -d "${TMPDIR:-/tmp}/documentation-bootstrap-manifest.XXXXXX")
+fake_bin="${fixture}/bin"
+project_root="${fixture}/project"
+manifest="${fixture}/release.env"
+captured_url="${fixture}/url"
+digest=$(printf '%064d' 0 | tr '0' 'a')
+
+cleanup() {
+    rm -rf "${fixture}"
+}
+trap cleanup EXIT HUP INT TERM
+
+mkdir -p "${fake_bin}" "${project_root}"
+
+cat > "${fake_bin}/docker" <<'EOF'
+#!/bin/sh
+case "${1:-}" in
+    info|pull|run)
+        exit 0
+        ;;
+esac
+exit 1
+EOF
+cat > "${fake_bin}/curl" <<'EOF'
+#!/bin/sh
+for argument do
+    requested_url=${argument}
+done
+printf '%s\n' "${requested_url}" > "${DOCUMENTATION_TEST_CAPTURED_URL}"
+cat "${DOCUMENTATION_TEST_RELEASE_MANIFEST}"
+EOF
+chmod +x "${fake_bin}/docker" "${fake_bin}/curl"
+
+write_manifest() {
+    release_tag=$1
+    {
+        printf 'SCHEMA_VERSION=1\n'
+        printf 'RELEASE_TAG=%s\n' "${release_tag}"
+        printf 'IMAGE_INSTALLER=registry.example/installer@sha256:%s\n' "${digest}"
+        printf 'IMAGE_RENDERER=registry.example/renderer@sha256:%s\n' "${digest}"
+    } > "${manifest}"
+}
+
+run_bootstrap() {
+    DOCUMENTATION_INSTALL_TEST_MODE=1 \
+    DOCUMENTATION_INSTALL_SKIP_PULL=1 \
+    DOCUMENTATION_INSTALL_SKIP_DOCTOR=1 \
+    DOCUMENTATION_TEST_RELEASE_MANIFEST="${manifest}" \
+    DOCUMENTATION_TEST_CAPTURED_URL="${captured_url}" \
+    PATH="${fake_bin}:${PATH}" \
+        "${REPOSITORY_ROOT}/install.sh" "${project_root}" >/dev/null
+}
+
+write_manifest 1.2.3
+DOCUMENTATION_TOOLS_VERSION= run_bootstrap
+test "$(sed -n '1p' "${captured_url}")" = \
+    "https://github.com/eSoul-cz/documentation-skill/releases/latest/download/release.env"
+
+DOCUMENTATION_TOOLS_VERSION=1.2.3 run_bootstrap
+test "$(sed -n '1p' "${captured_url}")" = \
+    "https://github.com/eSoul-cz/documentation-skill/releases/download/1.2.3/release.env"
+
+write_manifest 2.0.0
+if DOCUMENTATION_TOOLS_VERSION=1.2.3 run_bootstrap 2>"${fixture}/mismatch-error"; then
+    echo "ERROR: Bootstrap accepted a manifest for a different release tag." >&2
+    exit 1
+fi
+grep -Fq 'does not match requested version 1.2.3' "${fixture}/mismatch-error"
+
+echo "Bootstrap release-manifest tests passed."

@@ -57,7 +57,7 @@ curl -fsSL https://raw.githubusercontent.com/eSoul-cz/documentation-skill/878614
   sh -s -- /absolute/project/root
 ```
 
-The command downloads the script from an immutable source commit. The script requires Docker, reads the digest-pinned installer reference from that release's catalog record, and pulls public images from `rg.fr-par.scw.cloud/esoul-internal-tools`. It installs the remote profile, creates `docs/documentation.toml` only when missing, pins the renderer by its immutable digest, stores that digest in local Git configuration, and runs `docs/documentation doctor`. It does not clone this repository or install Go, Lua, Pandoc, or LaTeX on the host.
+The command downloads the script from an immutable source commit. The script requires Docker, resolves the latest published GitHub Release, reads both digest-pinned images from its `release.env` manifest, and pulls the public images from `rg.fr-par.scw.cloud/esoul-internal-tools`. It installs the remote profile, creates `docs/documentation.toml` only when missing, pins the renderer by its immutable digest, stores that digest in local Git configuration, and runs `docs/documentation doctor`. It does not clone this repository or install Go, Lua, Pandoc, or LaTeX on the host.
 
 The installed agent skill can perform the same setup when asked to configure documentation tooling. Existing managed installations are not overwritten; use the reviewed upgrade workflow for them.
 
@@ -65,7 +65,7 @@ To select a published tooling version:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/eSoul-cz/documentation-skill/878614bc46cbe75038b3223fb064a54befb8e1c3/install.sh |
-  DOCUMENTATION_TOOLS_VERSION=0.6.0 sh
+  DOCUMENTATION_TOOLS_VERSION=0.6.1 sh
 ```
 
 For CI or a non-Git working directory, provide the configured renderer digest through `DOCUMENTATION_REMOTE_RENDERER_IMAGE`. Local Git configuration is deliberately untracked and is not transferred to CI.
@@ -121,9 +121,9 @@ npx skills add . --list
 
 ## Releases
 
-The root `Jenkinsfile` validates the tooling and publishes multi-architecture renderer and installer images to the public `rg.fr-par.scw.cloud/esoul-internal-tools` registry. Publication runs only when the semantic version in `tooling/project-tools/docs/.documentation-tools/VERSION` is an existing Git tag on the build commit. Both images include BuildKit SBOM and provenance attestations.
+The root `Jenkinsfile` validates the tooling and publishes multi-architecture renderer and installer images to the public `rg.fr-par.scw.cloud/esoul-internal-tools` registry. Publication runs only for a semantic Git tag, which is the authoritative release version. Jenkins injects that tag into the installer bundle; the committed `0.0.0` `VERSION` value is only an untagged-development placeholder. Both images include BuildKit SBOM and provenance attestations.
 
-After resolving the immutable image digests, Jenkins uses the `dockerHelpers` shared library to generate and sign standalone SPDX, provenance, and Trivy reports. It publishes the verified artifact set through a GitHub Release and records the renderer artifact URLs in the generated release-catalog candidate. Jenkins requires the pinned Cosign, Syft, GitHub CLI, and Trivy versions documented by `publishContainerReleaseArtifacts`, plus these credentials:
+After resolving the immutable image digests, Jenkins uses the `dockerHelpers` shared library to generate and sign standalone SPDX, provenance, and Trivy reports. It publishes the verified artifact set and canonical `release.env` bootstrap manifest through a GitHub Release, then records the renderer artifact URLs in the generated release-catalog candidate. Jenkins requires the pinned Cosign, Syft, GitHub CLI, and Trivy versions documented by `publishContainerReleaseArtifacts`, plus these credentials:
 
 - `github-documentation-skill-release-token` — repository-scoped GitHub Secret Text with `Contents: read and write`;
 - `cosign-documentation-skill-private-key` — encrypted Cosign private-key Secret File;

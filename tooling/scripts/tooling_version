@@ -1,0 +1,46 @@
+#!/bin/sh
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
+REPOSITORY_ROOT=${DOCUMENTATION_TOOLING_REPOSITORY_ROOT:-$(CDPATH= cd "${SCRIPT_DIR}/../.." && pwd)}
+
+if [ "$#" -ne 0 ]; then
+    echo "Usage: tooling/scripts/tooling_version" >&2
+    exit 2
+fi
+
+require_semantic_version() {
+    value=$1
+    if ! printf '%s\n' "${value}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+        echo "ERROR: Documentation tooling version is not semantic: ${value}" >&2
+        exit 1
+    fi
+}
+
+# Jenkins supplies the tag that selected a release build. The same override
+# keeps local and test builds deterministic without introducing a committed
+# release-version file.
+if [ -n "${DOCUMENTATION_TOOLS_VERSION:-}" ]; then
+    require_semantic_version "${DOCUMENTATION_TOOLS_VERSION}"
+    printf '%s\n' "${DOCUMENTATION_TOOLS_VERSION}"
+    exit 0
+fi
+
+# An exact semantic tag is authoritative in a tagged local checkout. Untagged
+# development work uses a deliberately non-release placeholder that still
+# satisfies the installer's semantic-version invariants.
+semantic_tags=$(
+    git -C "${REPOSITORY_ROOT}" tag --points-at HEAD 2>/dev/null |
+        grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' || true
+)
+tag_count=$(printf '%s\n' "${semantic_tags}" | awk 'NF { count++ } END { print count + 0 }')
+if [ "${tag_count}" -gt 1 ]; then
+    echo "ERROR: Multiple semantic release tags point at HEAD:" >&2
+    printf '%s\n' "${semantic_tags}" >&2
+    exit 1
+fi
+if [ "${tag_count}" -eq 1 ]; then
+    printf '%s\n' "${semantic_tags}"
+else
+    printf '0.0.0\n'
+fi

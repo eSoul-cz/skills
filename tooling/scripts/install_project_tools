@@ -5,7 +5,7 @@ SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
 REPOSITORY_ROOT=$(CDPATH= cd "${SCRIPT_DIR}/../.." && pwd)
 TOOLING_ROOT="${REPOSITORY_ROOT}/tooling"
 INSTALLER_DIR="${TOOLING_ROOT}/install-project-tools"
-VERSION_FILE="${TOOLING_ROOT}/project-tools/docs/.documentation-tools/VERSION"
+VERSION_TOOL="${TOOLING_ROOT}/scripts/tooling_version"
 
 usage() {
     echo "Usage: tooling/scripts/install_project_tools PROJECT_ROOT [--check|--upgrade] [--remote|--local]" >&2
@@ -49,10 +49,6 @@ if [ "${PROJECT_ROOT}" = "/" ]; then
     echo "ERROR: Refusing to install project tools into the filesystem root." >&2
     exit 1
 fi
-if [ ! -f "${VERSION_FILE}" ]; then
-    echo "ERROR: Missing bundled documentation tool VERSION file." >&2
-    exit 1
-fi
 if ! command -v docker >/dev/null 2>&1; then
     echo "ERROR: Docker is required to install documentation project tools." >&2
     exit 1
@@ -62,14 +58,23 @@ if ! docker info >/dev/null 2>&1; then
     exit 1
 fi
 
-version=$(sed -n '1{s/[^A-Za-z0-9_.-]/-/g;p;}' "${VERSION_FILE}")
+version=$("${VERSION_TOOL}")
 installer_image="esoul-documentation-installer:${version}"
+version_root=$(mktemp -d "${TMPDIR:-/tmp}/documentation-tooling-version.XXXXXX")
+version_file="${version_root}/VERSION"
+printf '%s\n' "${version}" > "${version_file}"
+cleanup() {
+    rm -rf "${version_root}"
+}
+trap cleanup EXIT HUP INT TERM
+
 project_mount_mode=rw
 if [ "${action}" = "--check" ]; then
     project_mount_mode=ro
 fi
 
 docker build \
+    --build-arg "DOCUMENTATION_TOOLS_VERSION=${version}" \
     --file "${INSTALLER_DIR}/Dockerfile" \
     --tag "${installer_image}" \
     "${REPOSITORY_ROOT}"
@@ -83,6 +88,7 @@ set -- docker run \
     --network none \
     --user "$(id -u):$(id -g)" \
     --volume "${TOOLING_ROOT}:/tooling:ro" \
+    --volume "${version_file}:/tooling/project-tools/docs/.documentation-tools/VERSION:ro" \
     --volume "${PROJECT_ROOT}:/project:${project_mount_mode}" \
     "${installer_image}" \
     --asset-root /tooling/project-tools \
@@ -91,4 +97,4 @@ if [ -n "${action}" ]; then
     set -- "$@" "${action}"
 fi
 set -- "$@" /project
-exec "$@"
+"$@"

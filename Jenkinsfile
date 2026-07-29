@@ -17,7 +17,6 @@ pipeline {
 		RENDERER_CONTEXT = 'tooling/project-tools/docs/.documentation-tools/pdf'
 		RENDERER_DOCKERFILE = 'tooling/project-tools/docs/.documentation-tools/pdf/Dockerfile'
 		INSTALLER_DOCKERFILE = 'tooling/install-project-tools/Dockerfile'
-		VERSION_FILE = 'tooling/project-tools/docs/.documentation-tools/VERSION'
 		RELEASE_CATALOG_TOOL = 'tooling/project-tools/docs/.documentation-tools/release-catalog'
 		RELEASE_CATALOG_DIR = 'tooling/project-tools/docs/.documentation-tools/releases'
 		GITHUB_REPOSITORY = 'eSoul-cz/documentation-skill'
@@ -28,8 +27,25 @@ pipeline {
 	}
 
 	stages {
+		stage('Resolve tooling version') {
+			steps {
+				script {
+					def releaseTag = env.TAG_NAME?.trim()
+					if (releaseTag && !(releaseTag ==~ /\d+\.\d+\.\d+/)) {
+						error("Release tag is not semantic: ${releaseTag}")
+					}
+					env.DOCUMENTATION_TOOLS_VERSION = releaseTag ?: '0.0.0'
+					echo(releaseTag
+						? "Using authoritative release tag ${releaseTag}."
+						: 'Using development tooling version 0.0.0.')
+				}
+			}
+		}
+
 		stage('Verify tooling') {
 			steps {
+				sh 'tooling/scripts/test_tooling_version'
+				sh 'tooling/scripts/test_bootstrap_manifest'
 				sh "${env.RELEASE_CATALOG_TOOL} validate"
 				sh 'tooling/scripts/test_release_catalog'
 				sh 'tooling/scripts/test_renderer_smoke'
@@ -39,38 +55,13 @@ pipeline {
 
 		stage('Build and publish tooling images') {
 			when {
-				anyOf {
-					branch 'main'
-					branch 'master'
-					buildingTag()
-				}
+				buildingTag()
 			}
 
 			steps {
 				script {
-					def version = sh(
-						script: "sed -n '1p' '${env.VERSION_FILE}'",
-						returnStdout: true
-					).trim()
-					if (!(version ==~ /\d+\.\d+\.\d+/)) {
-						error("Renderer VERSION is not semantic: ${version}")
-					}
-
+					def version = env.DOCUMENTATION_TOOLS_VERSION
 					def buildTags = [version, 'latest']
-					def gitTags = sh(
-						script: 'git tag --points-at HEAD',
-						returnStdout: true
-					).trim().split('\n').findAll { it }
-					if (!gitTags.contains(version)) {
-						echo "Skipping release publication because tag ${version} does not point at HEAD."
-						return
-					}
-					gitTags.each { tag ->
-						if (tag ==~ /[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}/ && !buildTags.contains(tag)) {
-							buildTags.add(tag)
-						}
-					}
-
 					def releaseImageConfig = [
 						registry: env.REGISTRY,
 						registryHost: env.REGISTRY_HOST,
@@ -135,6 +126,9 @@ pipeline {
 							image: env.INSTALLER_IMAGE,
 							contextDir: '.',
 							dockerfile: env.INSTALLER_DOCKERFILE,
+							dockerfileArgs: [
+								DOCUMENTATION_TOOLS_VERSION: version,
+							],
 						]
 					)
 					def immutableInstallerImage = installerImage.immutableReference
@@ -213,8 +207,9 @@ pipeline {
 	post {
 		always {
 			sh '''
-				version=$(sed -n '1p' "${VERSION_FILE}")
-				docker image rm "esoul-documentation-tools:${version}-smoke" >/dev/null 2>&1 || true
+				docker image rm \
+					"esoul-documentation-tools:${DOCUMENTATION_TOOLS_VERSION:-0.0.0}-smoke" \
+					>/dev/null 2>&1 || true
 			'''
 		}
 		success {

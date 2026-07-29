@@ -5,7 +5,7 @@ SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
 TOOLING_ROOT=$(CDPATH= cd "${SCRIPT_DIR}/.." && pwd)
 TOOLS_ROOT="${TOOLING_ROOT}/project-tools/docs/.documentation-tools/pdf"
 FIXTURE_ROOT="${TOOLS_ROOT}/testdata/smoke"
-VERSION_FILE="${TOOLING_ROOT}/project-tools/docs/.documentation-tools/VERSION"
+VERSION_TOOL="${TOOLING_ROOT}/scripts/tooling_version"
 
 if ! command -v docker >/dev/null 2>&1; then
     echo "ERROR: Docker is required for the renderer smoke test." >&2
@@ -27,7 +27,7 @@ mkdir -p \
     "${smoke_root}/docs/pdf" \
     "${smoke_root}/docs/.documentation-work"
 
-version=$(sed -n '1{s/[^A-Za-z0-9_.-]/-/g;p;}' "${VERSION_FILE}")
+version=$("${VERSION_TOOL}")
 renderer_image="esoul-documentation-tools:${version}-smoke"
 platform=${DOCUMENTATION_TEST_PLATFORM:-linux/amd64}
 

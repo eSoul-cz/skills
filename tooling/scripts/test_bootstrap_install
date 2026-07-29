@@ -3,19 +3,14 @@ set -eu
 
 SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
 REPOSITORY_ROOT=$(CDPATH= cd "${SCRIPT_DIR}/../.." && pwd)
-VERSION_FILE="${REPOSITORY_ROOT}/tooling/project-tools/docs/.documentation-tools/VERSION"
+VERSION_TOOL="${REPOSITORY_ROOT}/tooling/scripts/tooling_version"
 
 if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
     echo "ERROR: Docker with an available daemon is required." >&2
     exit 1
 fi
 
-version=$(sed -n '1p' "${VERSION_FILE}")
-bootstrap_version=$(sed -n 's/^TOOL_VERSION=${DOCUMENTATION_TOOLS_VERSION:-\([^}]*\)}$/\1/p' "${REPOSITORY_ROOT}/install.sh")
-if [ "${bootstrap_version}" != "${version}" ]; then
-    echo "ERROR: install.sh defaults to ${bootstrap_version}, but tooling VERSION is ${version}." >&2
-    exit 1
-fi
+version=$("${VERSION_TOOL}")
 installer_image="documentation-tools-installer:${version}-bootstrap-test"
 renderer_digest=$(printf '%064d' 0 | tr '0' 'a')
 renderer_pin="registry.example/documentation-tools@sha256:${renderer_digest}"
@@ -33,14 +28,23 @@ trap cleanup EXIT HUP INT TERM
 
 git -C "${project_root}" init --quiet
 docker build \
+    --build-arg "DOCUMENTATION_TOOLS_VERSION=${version}" \
     --file "${REPOSITORY_ROOT}/tooling/install-project-tools/Dockerfile" \
     --tag "${installer_image}" \
     "${REPOSITORY_ROOT}"
 installer_image_id=$(docker image inspect --format '{{.Id}}' "${installer_image}")
 release_manifest="${project_root}/bootstrap-release.env"
-printf 'INSTALLER_IMAGE=%s\n' "${installer_image_id}" > "${release_manifest}"
+{
+    printf 'RELEASE_TAG=%s\n' "${version}"
+    printf 'IMAGE_INSTALLER=%s\n' "${installer_image_id}"
+    printf 'IMAGE_RENDERER=%s\n' "${renderer_pin}"
+} > "${release_manifest}"
 mutable_release_manifest="${project_root}/mutable-bootstrap-release.env"
-printf 'INSTALLER_IMAGE=%s\n' "${installer_image}" > "${mutable_release_manifest}"
+{
+    printf 'RELEASE_TAG=%s\n' "${version}"
+    printf 'IMAGE_INSTALLER=%s\n' "${installer_image}"
+    printf 'IMAGE_RENDERER=%s\n' "${renderer_pin}"
+} > "${mutable_release_manifest}"
 
 container_id=$(docker create "${installer_image}" /project)
 image_contents=$(docker export "${container_id}" | tar -tf -)
@@ -58,7 +62,6 @@ fi
 if rejection_output=$(
     DOCUMENTATION_INSTALL_TEST_MODE=1 \
     DOCUMENTATION_RELEASE_MANIFEST_URL="file://${mutable_release_manifest}" \
-    DOCUMENTATION_RENDERER_PIN="${renderer_pin}" \
     DOCUMENTATION_INSTALL_SKIP_PULL=1 \
     DOCUMENTATION_INSTALL_SKIP_DOCTOR=1 \
         "${REPOSITORY_ROOT}/install.sh" "${project_root}" 2>&1
@@ -75,9 +78,29 @@ then
     exit 1
 fi
 
+if mismatch_output=$(
+    DOCUMENTATION_INSTALL_TEST_MODE=1 \
+    DOCUMENTATION_TOOLS_VERSION=9.9.9 \
+    DOCUMENTATION_RELEASE_MANIFEST_URL="file://${release_manifest}" \
+    DOCUMENTATION_INSTALL_SKIP_PULL=1 \
+    DOCUMENTATION_INSTALL_SKIP_DOCTOR=1 \
+        "${REPOSITORY_ROOT}/install.sh" "${project_root}" 2>&1
+)
+then
+    echo "ERROR: Bootstrap accepted a release manifest for a different tag." >&2
+    exit 1
+fi
+if ! printf '%s\n' "${mismatch_output}" |
+    grep -Fq "does not match requested version 9.9.9"
+then
+    echo "ERROR: Bootstrap rejected the mismatched release for an unexpected reason:" >&2
+    printf '%s\n' "${mismatch_output}" >&2
+    exit 1
+fi
+
 DOCUMENTATION_INSTALL_TEST_MODE=1 \
+DOCUMENTATION_TOOLS_VERSION="${version}" \
 DOCUMENTATION_RELEASE_MANIFEST_URL="file://${release_manifest}" \
-DOCUMENTATION_RENDERER_PIN="${renderer_pin}" \
 DOCUMENTATION_INSTALL_SKIP_PULL=1 \
 DOCUMENTATION_INSTALL_SKIP_DOCTOR=1 \
     "${REPOSITORY_ROOT}/install.sh" "${project_root}"
@@ -85,6 +108,7 @@ DOCUMENTATION_INSTALL_SKIP_DOCTOR=1 \
 test -x "${project_root}/docs/documentation"
 test -f "${project_root}/docs/documentation.toml"
 test ! -e "${project_root}/docs/.documentation-tools/pdf/Dockerfile"
+test "$(sed -n '1p' "${project_root}/docs/.documentation-tools/VERSION")" = "${version}"
 grep -Fq 'mode = "remote"' "${project_root}/docs/documentation.toml"
 grep -Fq "image = \"${renderer_pin}\"" "${project_root}/docs/documentation.toml"
 test "$(

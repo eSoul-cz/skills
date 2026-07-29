@@ -1,0 +1,51 @@
+#!/bin/sh
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
+REPOSITORY_ROOT=$(CDPATH= cd "${SCRIPT_DIR}/../.." && pwd)
+VERSION_TOOL="${REPOSITORY_ROOT}/tooling/scripts/tooling_version"
+fixture=$(mktemp -d "${TMPDIR:-/tmp}/documentation-tooling-version.XXXXXX")
+
+cleanup() {
+    rm -rf "${fixture}"
+}
+trap cleanup EXIT HUP INT TERM
+
+git -C "${fixture}" init --quiet
+git -C "${fixture}" \
+    -c user.name='Documentation Tooling Test' \
+    -c user.email='documentation-tooling@example.invalid' \
+    commit --quiet --allow-empty -m initial
+
+test "$(
+    DOCUMENTATION_TOOLS_VERSION= \
+    DOCUMENTATION_TOOLING_REPOSITORY_ROOT="${fixture}" "${VERSION_TOOL}"
+)" = "0.0.0"
+
+git -C "${fixture}" tag 1.2.3
+test "$(
+    DOCUMENTATION_TOOLS_VERSION= \
+    DOCUMENTATION_TOOLING_REPOSITORY_ROOT="${fixture}" "${VERSION_TOOL}"
+)" = "1.2.3"
+
+test "$(
+    DOCUMENTATION_TOOLING_REPOSITORY_ROOT="${fixture}" \
+    DOCUMENTATION_TOOLS_VERSION=2.3.4 \
+        "${VERSION_TOOL}"
+)" = "2.3.4"
+
+if DOCUMENTATION_TOOLS_VERSION=not-semantic "${VERSION_TOOL}" >/dev/null 2>&1; then
+    echo "ERROR: Version resolver accepted a non-semantic override." >&2
+    exit 1
+fi
+
+git -C "${fixture}" tag 2.0.0
+if DOCUMENTATION_TOOLS_VERSION= \
+    DOCUMENTATION_TOOLING_REPOSITORY_ROOT="${fixture}" \
+    "${VERSION_TOOL}" >/dev/null 2>&1
+then
+    echo "ERROR: Version resolver accepted ambiguous semantic tags." >&2
+    exit 1
+fi
+
+echo "Tooling version tests passed."

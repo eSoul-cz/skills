@@ -1,14 +1,22 @@
 #!/bin/sh
 set -eu
 
-# These defaults describe one immutable semantic tooling release in the public
-# Scaleway registry. Environment overrides support testing, mirrors, and an
-# explicitly selected published version without requiring a different script.
-TOOL_VERSION=${DOCUMENTATION_TOOLS_VERSION:-0.6.0}
-PUBLIC_REGISTRY=${DOCUMENTATION_PUBLIC_REGISTRY:-rg.fr-par.scw.cloud/esoul-internal-tools}
-RELEASE_SOURCE_REF=${TOOL_VERSION}
-RELEASE_MANIFEST_URL=https://raw.githubusercontent.com/eSoul-cz/documentation-skill/${RELEASE_SOURCE_REF}/tooling/project-tools/docs/.documentation-tools/releases/${TOOL_VERSION}.env
-RENDERER_IMAGE=${DOCUMENTATION_RENDERER_IMAGE:-${PUBLIC_REGISTRY}/documentation-tools:${TOOL_VERSION}}
+# The Git tag recorded by a published GitHub Release is the authoritative
+# tooling version. With no explicit selection, GitHub resolves the latest
+# release; an explicit semantic version selects that immutable tagged release.
+REQUESTED_VERSION=${DOCUMENTATION_TOOLS_VERSION:-}
+RELEASE_BASE_URL=https://github.com/eSoul-cz/documentation-skill/releases
+if [ -n "${REQUESTED_VERSION}" ]; then
+    if ! printf '%s\n' "${REQUESTED_VERSION}" |
+        grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'
+    then
+        echo "ERROR: Requested documentation tooling version is not semantic: ${REQUESTED_VERSION}" >&2
+        exit 1
+    fi
+    RELEASE_MANIFEST_URL=${RELEASE_BASE_URL}/download/${REQUESTED_VERSION}/release.env
+else
+    RELEASE_MANIFEST_URL=${RELEASE_BASE_URL}/latest/download/release.env
+fi
 
 usage() {
     echo "Usage: install.sh [PROJECT_ROOT]" >&2
@@ -49,27 +57,29 @@ if ! docker info >/dev/null 2>&1; then
 fi
 
 # Only the integration suite may redirect the manifest to a local fixture. The
-# production path cannot override either the release record or installer image.
+# production path cannot override the release record or either trusted image.
 if [ "${DOCUMENTATION_INSTALL_TEST_MODE:-0}" = "1" ]; then
     RELEASE_MANIFEST_URL=${DOCUMENTATION_RELEASE_MANIFEST_URL:-${RELEASE_MANIFEST_URL}}
-elif [ -n "${DOCUMENTATION_RELEASE_MANIFEST_URL:-}${DOCUMENTATION_INSTALLER_IMAGE:-}" ]; then
+elif [ -n "${DOCUMENTATION_RELEASE_MANIFEST_URL:-}${DOCUMENTATION_INSTALLER_IMAGE:-}${DOCUMENTATION_RENDERER_IMAGE:-}${DOCUMENTATION_RENDERER_PIN:-}" ]; then
     echo "ERROR: Installer trust inputs cannot be overridden outside test mode." >&2
     exit 1
 fi
 if ! command -v curl >/dev/null 2>&1; then
-    echo "ERROR: curl is required to resolve the versioned installer manifest." >&2
+    echo "ERROR: curl is required to resolve the published release manifest." >&2
     exit 1
 fi
 if ! release_manifest=$(curl -fsSL "${RELEASE_MANIFEST_URL}"); then
-    echo "ERROR: Could not download installer release manifest: ${RELEASE_MANIFEST_URL}" >&2
+    echo "ERROR: Could not download documentation tooling release manifest: ${RELEASE_MANIFEST_URL}" >&2
     exit 1
 fi
-# The installer receives write access to the project, so parse only the one
-# expected immutable key; never source or execute the downloaded manifest.
-if ! INSTALLER_IMAGE=$(
+
+# The installer receives write access to the project, so extract only expected
+# scalar fields; never source or execute the downloaded manifest.
+manifest_value() {
+    wanted=$1
     printf '%s\n' "${release_manifest}" |
-        awk -F= '
-            $1 == "INSTALLER_IMAGE" {
+        awk -F= -v wanted="${wanted}" '
+            $1 == wanted {
                 count++
                 value = substr($0, length($1) + 2)
             }
@@ -80,8 +90,20 @@ if ! INSTALLER_IMAGE=$(
                 print value
             }
         '
-); then
-    echo "ERROR: Release manifest does not provide exactly one installer image: ${RELEASE_MANIFEST_URL}" >&2
+}
+if ! RELEASE_TAG=$(manifest_value RELEASE_TAG) ||
+    ! INSTALLER_IMAGE=$(manifest_value IMAGE_INSTALLER) ||
+    ! RENDERER_IMAGE=$(manifest_value IMAGE_RENDERER)
+then
+    echo "ERROR: Release manifest is missing a unique tag or immutable image: ${RELEASE_MANIFEST_URL}" >&2
+    exit 1
+fi
+if ! printf '%s\n' "${RELEASE_TAG}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+    echo "ERROR: Release manifest tag is not semantic: ${RELEASE_TAG}" >&2
+    exit 1
+fi
+if [ -n "${REQUESTED_VERSION}" ] && [ "${RELEASE_TAG}" != "${REQUESTED_VERSION}" ]; then
+    echo "ERROR: Release manifest tag ${RELEASE_TAG} does not match requested version ${REQUESTED_VERSION}." >&2
     exit 1
 fi
 if printf '%s\n' "${INSTALLER_IMAGE}" |
@@ -98,43 +120,24 @@ else
     echo "ERROR: Installer image must be pinned by an immutable sha256 digest." >&2
     exit 1
 fi
+if ! printf '%s\n' "${RENDERER_IMAGE}" |
+    grep -Eq '^[^[:space:]@]+@sha256:[0-9a-f]{64}$'
+then
+    echo "ERROR: Renderer image must be pinned by an immutable sha256 digest." >&2
+    exit 1
+fi
 
 # Pull both public images up front so registry failures occur before the project
 # is mounted read-write. Test-only overrides can provide prebuilt local images.
 if [ "${DOCUMENTATION_INSTALL_SKIP_PULL:-0}" != "1" ]; then
     echo "Pulling documentation installer ${INSTALLER_IMAGE}..."
     docker pull "${INSTALLER_IMAGE}"
-    if [ -z "${DOCUMENTATION_RENDERER_PIN:-}" ]; then
-        echo "Resolving documentation renderer ${RENDERER_IMAGE}..."
-        docker pull "${RENDERER_IMAGE}"
-    fi
+    echo "Pulling documentation renderer ${RENDERER_IMAGE}..."
+    docker pull "${RENDERER_IMAGE}"
 fi
 
-# Project configuration and the runtime allowlist use a digest, never a mutable
-# tag. Docker records the registry digest after pulling the semantic release tag.
-renderer_pin=${DOCUMENTATION_RENDERER_PIN:-}
-if [ -z "${renderer_pin}" ]; then
-    renderer_repository=${RENDERER_IMAGE%:*}
-    repo_digests=$(
-        docker image inspect \
-            --format '{{range .RepoDigests}}{{println .}}{{end}}' \
-            "${RENDERER_IMAGE}"
-    )
-    for candidate in ${repo_digests}; do
-        case "${candidate}" in
-            "${renderer_repository}"@sha256:*)
-                renderer_pin=${candidate}
-                break
-                ;;
-        esac
-    done
-fi
-if ! printf '%s\n' "${renderer_pin}" |
-    grep -Eq '^[^[:space:]@]+@sha256:[0-9a-f]{64}$'
-then
-    echo "ERROR: Could not resolve an immutable renderer digest for ${RENDERER_IMAGE}." >&2
-    exit 1
-fi
+# The release manifest already pins the renderer by immutable digest.
+renderer_pin=${RENDERER_IMAGE}
 
 # The digest-pinned installer container is deliberately more restricted than
 # the renderer. It receives no network, capabilities, or writable filesystem
