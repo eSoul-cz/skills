@@ -47,13 +47,13 @@ Only the nested skill directory is installed. The repository README, Jenkins pip
 Tool installation is an explicit, separate operation from installing the agent skill. From the application repository, run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/eSoul-cz/documentation-skill/fe26f728fd22abfa56692eb8f1399d0d166cfed9/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/eSoul-cz/documentation-skill/1cd2054e8ced15bdee52b3ec6bf412fb88ed972d/install.sh | sh
 ```
 
 An explicit project path is also supported:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/eSoul-cz/documentation-skill/fe26f728fd22abfa56692eb8f1399d0d166cfed9/install.sh |
+curl -fsSL https://raw.githubusercontent.com/eSoul-cz/documentation-skill/1cd2054e8ced15bdee52b3ec6bf412fb88ed972d/install.sh |
   sh -s -- /absolute/project/root
 ```
 
@@ -64,7 +64,7 @@ The installed agent skill can perform the same setup when asked to configure doc
 To select a published tooling version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/eSoul-cz/documentation-skill/fe26f728fd22abfa56692eb8f1399d0d166cfed9/install.sh |
+curl -fsSL https://raw.githubusercontent.com/eSoul-cz/documentation-skill/1cd2054e8ced15bdee52b3ec6bf412fb88ed972d/install.sh |
   DOCUMENTATION_TOOLS_VERSION=0.6.1 sh
 ```
 
