@@ -1,0 +1,210 @@
+#!/bin/sh
+set -eu
+
+REPOSITORY_ROOT=$(CDPATH= cd "$(dirname "$0")/../.." && pwd)
+fixture=$(mktemp -d "${TMPDIR:-/tmp}/documentation-wrapper-test.XXXXXX")
+trap 'rm -rf "${fixture}"' EXIT HUP INT TERM
+
+project="${fixture}/project"
+fake_bin="${fixture}/bin"
+docker_log="${fixture}/docker.log"
+mkdir -p "${project}/docs" "${fake_bin}"
+cp "${REPOSITORY_ROOT}/tooling/project-tools/docs/documentation" "${project}/docs/documentation"
+cp -R \
+    "${REPOSITORY_ROOT}/tooling/project-tools/docs/.documentation-tools" \
+    "${project}/docs/.documentation-tools"
+
+checksum() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$1" | awk '{print $1}'
+    else
+        shasum -a 256 "$1" | awk '{print $1}'
+    fi
+}
+
+write_manifest() {
+    profile=$1
+    digest=$(checksum "${project}/docs/documentation")
+    cat >"${project}/docs/.documentation-tools/managed-files.json" <<EOF
+{
+  "tool_version": "0.0.0",
+  "install_profile" 	 :	 "${profile}",
+  "managed_files": {
+    "docs/documentation": "${digest}"
+  }
+}
+EOF
+}
+
+write_local_config() {
+    cat >"${project}/docs/documentation.toml" <<'EOF'
+schema_version = 1
+output_dir = "docs/pdf"
+
+[pdf]
+mode = "local"
+platform = "linux/amd64"
+dockerfile = "docs/.documentation-tools/pdf/Dockerfile"
+
+[[guides]]
+id = "guide"
+mode = "remote"
+paper_size = "A5"
+work_dir = "../array-table"
+EOF
+}
+
+cat >"${fake_bin}/docker" <<'EOF'
+#!/bin/sh
+case "${1:-}" in
+    info)
+        exit 0
+        ;;
+    manifest)
+        if [ "${DOCUMENTATION_TEST_MANIFEST_FAILURE:-0}" = "1" ]; then
+            exit 1
+        fi
+        exit 0
+        ;;
+esac
+{
+    printf '%s' "${1:-}"
+    shift || true
+    for argument do
+        printf '\t%s' "${argument}"
+    done
+    printf '\n'
+} >>"${DOCUMENTATION_TEST_DOCKER_LOG}"
+exit 0
+EOF
+chmod +x "${fake_bin}/docker"
+
+write_manifest local
+write_local_config
+: >"${docker_log}"
+PATH="${fake_bin}:${PATH}" \
+DOCUMENTATION_TEST_DOCKER_LOG="${docker_log}" \
+SOURCE_DATE_EPOCH=946684800 \
+    "${project}/docs/documentation" validate
+
+grep -Eq '^build	--platform	linux/amd64	--build-arg' "${docker_log}"
+grep -Eq '^run	.*	DOC_GENERATED_AT=2000-01-01 00:00 UTC	' "${docker_log}"
+if grep -Eq '^pull	' "${docker_log}"; then
+    echo "ERROR: A [[guides]] mode key inherited the preceding [pdf] section." >&2
+    exit 1
+fi
+PATH="${fake_bin}:${PATH}" \
+DOCUMENTATION_TEST_DOCKER_LOG="${docker_log}" \
+    "${project}/docs/documentation" doctor >"${fixture}/array-table-doctor.out"
+grep -Fq 'OK: no deprecated configuration settings detected' \
+    "${fixture}/array-table-doctor.out"
+
+mkdir -p "${project}/plans"
+printf '{}\n' >"${project}/plans/plan.json"
+ln -s "${project}/plans" "${project}/linked-plans"
+if PATH="${fake_bin}:${PATH}" \
+    DOCUMENTATION_TEST_DOCKER_LOG="${docker_log}" \
+    "${project}/docs/documentation" redact linked-plans/plan.json \
+    >"${fixture}/redact.out" 2>&1
+then
+    echo "ERROR: Redaction accepted a plan path containing a symbolic link." >&2
+    exit 1
+fi
+grep -Fq 'redaction plan must not traverse a symbolic link' "${fixture}/redact.out"
+
+write_manifest remote
+if PATH="${fake_bin}:${PATH}" \
+    DOCUMENTATION_TEST_DOCKER_LOG="${docker_log}" \
+    "${project}/docs/documentation" build \
+    >"${fixture}/profile.out" 2>&1
+then
+    echo "ERROR: Remote installation profile accepted local renderer mode." >&2
+    exit 1
+fi
+grep -Fq "remote installation profile is incompatible with pdf.mode 'local'" "${fixture}/profile.out"
+
+digest=$(printf '%064d' 0 | tr '0' 'A')
+cat >"${project}/docs/documentation.toml" <<EOF
+schema_version = 1
+output_dir = "docs/pdf"
+work_dir = "docs/.documentation-work"
+
+[pdf]
+mode = "remote"
+image = "registry.example/renderer@sha256:${digest}"
+EOF
+if PATH="${fake_bin}:${PATH}" \
+    DOCUMENTATION_TEST_DOCKER_LOG="${docker_log}" \
+    DOCUMENTATION_REMOTE_RENDERER_IMAGE="registry.example/renderer@sha256:${digest}" \
+    "${project}/docs/documentation" validate \
+    >"${fixture}/digest.out" 2>&1
+then
+    echo "ERROR: prepare_image accepted a non-lowercase SHA-256 digest." >&2
+    exit 1
+fi
+grep -Fq 'must be pinned by an immutable sha256 digest' "${fixture}/digest.out"
+
+digest=$(printf '%064d' 0 | tr '0' 'a')
+cat >"${project}/docs/documentation.toml" <<EOF
+schema_version = 1
+output_dir = "docs/pdf"
+work_dir = "docs/.documentation-work"
+
+[pdf]
+mode = "remote"
+image = "registry.example/renderer@sha256:${digest}"
+EOF
+PATH="${fake_bin}:${PATH}" \
+DOCUMENTATION_TEST_DOCKER_LOG="${docker_log}" \
+DOCUMENTATION_TEST_MANIFEST_FAILURE=1 \
+DOCUMENTATION_REMOTE_RENDERER_IMAGE="registry.example/renderer@sha256:${digest}" \
+    "${project}/docs/documentation" doctor >"${fixture}/doctor-warning.out"
+grep -Fq 'WARNING: registry manifest is unavailable' "${fixture}/doctor-warning.out"
+grep -Fq 'Doctor completed with 0 error(s)' "${fixture}/doctor-warning.out"
+
+cat >"${project}/docs/documentation.toml" <<'EOF'
+schema_version = 1
+output_dir = 42
+work_dir = "../escape"
+
+[pdf]
+mode = "local"
+dockerfile = "docs/.documentation-tools/pdf/Dockerfile"
+EOF
+write_manifest local
+if PATH="${fake_bin}:${PATH}" \
+    DOCUMENTATION_TEST_DOCKER_LOG="${docker_log}" \
+    "${project}/docs/documentation" doctor \
+    >"${fixture}/doctor-errors.out" 2>&1
+then
+    echo "ERROR: Doctor accepted malformed settings and an invalid path." >&2
+    exit 1
+fi
+grep -Fq 'output_dir must be a simple quoted TOML string' "${fixture}/doctor-errors.out"
+grep -Fq 'work_dir is not a normalized project-relative path' "${fixture}/doctor-errors.out"
+grep -Fq 'Doctor completed with ' "${fixture}/doctor-errors.out"
+
+cat >"${fake_bin}/sha256sum" <<'EOF'
+#!/bin/sh
+exit 7
+EOF
+cat >"${fake_bin}/shasum" <<'EOF'
+#!/bin/sh
+exit 7
+EOF
+chmod +x "${fake_bin}/sha256sum" "${fake_bin}/shasum"
+write_local_config
+if PATH="${fake_bin}:${PATH}" \
+    DOCUMENTATION_TEST_DOCKER_LOG="${docker_log}" \
+    "${project}/docs/documentation" doctor \
+    >"${fixture}/checksum.out" 2>&1
+then
+    echo "ERROR: Doctor ignored a SHA-256 command failure." >&2
+    exit 1
+fi
+grep -Fq 'could not calculate checksum' "${fixture}/checksum.out"
+
+grep -Fq '{−}{{\ensuremath{-}}}1' \
+    "${project}/docs/.documentation-tools/pdf/header.tex"
+
+echo "Documentation wrapper regression tests passed."

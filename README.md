@@ -116,6 +116,7 @@ Run the complete Docker-first renderer and visual-regression fixture:
 ```bash
 tooling/scripts/test_renderer_smoke
 tooling/scripts/test_bootstrap_install
+tooling/scripts/test_documentation_wrapper
 ```
 
 Validate skill discovery:

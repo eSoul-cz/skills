@@ -52,6 +52,7 @@ pipeline {
 			steps {
 				sh 'tooling/scripts/test_tooling_version'
 				sh 'tooling/scripts/test_bootstrap_manifest'
+				sh 'tooling/scripts/test_documentation_wrapper'
 				sh 'tooling/scripts/test_renderer_smoke'
 				sh 'tooling/scripts/test_bootstrap_install'
 			}

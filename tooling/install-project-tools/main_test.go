@@ -991,7 +991,7 @@ func TestDocumentationDoctorReportsLocalAndRemoteReadiness(t *testing.T) {
 	for _, expected := range []string{
 		"OK: installation profile remote",
 		"OK: configuration schema 1 is valid",
-		"OK: configured renderer is governed by its digest pin and independent trust allowlist",
+		"OK: configured renderer image is digest-pinned",
 		"OK: trusted renderer allowlist matches configured pdf.image",
 		"OK: registry manifest is reachable",
 	} {

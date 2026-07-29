@@ -784,11 +784,15 @@ func collectLinkNotices(root string, sourcePaths []string, documents map[string]
 }
 
 func markdownAnchors(path string, documentCache map[string]pandocDocument) map[string]bool {
-	anchors := map[string]bool{}
 	document, err := cachedPandocDocument(path, documentCache)
 	if err != nil {
-		return anchors
+		return map[string]bool{}
 	}
+	return pandocAnchors(document)
+}
+
+func pandocAnchors(document pandocDocument) map[string]bool {
+	anchors := map[string]bool{}
 	for _, raw := range document.Blocks {
 		var block struct {
 			Type    string            `json:"t"`

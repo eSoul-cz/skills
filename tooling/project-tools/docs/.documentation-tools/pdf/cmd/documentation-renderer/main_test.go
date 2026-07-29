@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -31,6 +32,47 @@ func TestSecurePathRejectsEscapingSymlink(t *testing.T) {
 	}
 	if _, err := securePath(root, "linked/output"); err == nil {
 		t.Fatal("expected path through escaping symlink to fail")
+	}
+}
+
+func TestOpenFileNoSymlinksRejectsInternalSymlink(t *testing.T) {
+	root := t.TempDir()
+	realDirectory := filepath.Join(root, "real")
+	if err := os.Mkdir(realDirectory, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(root, "linked")
+	if err := os.Symlink(realDirectory, link); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := openFileNoSymlinks(root, filepath.Join(link, "plan.json")); err == nil {
+		t.Fatal("expected an internal symlink component to fail")
+	}
+}
+
+func TestOpenFileNoSymlinksReadsFromOpenedDescriptor(t *testing.T) {
+	root := t.TempDir()
+	planPath := filepath.Join(root, "plan.json")
+	if err := os.WriteFile(planPath, []byte("original"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	planFile, err := openFileNoSymlinks(root, planPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer planFile.Close()
+	if err := os.Rename(planPath, filepath.Join(root, "original.json")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(planPath, []byte("replacement"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	data, err := io.ReadAll(planFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "original" {
+		t.Fatalf("descriptor followed a replaced path: %q", data)
 	}
 }
 
@@ -80,6 +122,64 @@ func TestFirstH1Identifier(t *testing.T) {
 	}
 	if identifier != "café-heading" {
 		t.Fatalf("unexpected identifier: %s", identifier)
+	}
+}
+
+func TestPandocAnchorsUseASTIdentifierForHeadingBeginningWithNumber(t *testing.T) {
+	raw := `{
+	  "pandoc-api-version": [1,23,1],
+	  "meta": {},
+	  "blocks": [
+	    {"t":"Header","c":[2,["chapter-overview",[],[]],[{"t":"Str","c":"12."},{"t":"Space"},{"t":"Str","c":"Chapter"},{"t":"Space"},{"t":"Str","c":"Overview"}]]}
+	  ]
+	}`
+	var document pandocDocument
+	if err := json.Unmarshal([]byte(raw), &document); err != nil {
+		t.Fatal(err)
+	}
+	anchors := pandocAnchors(document)
+	if !anchors["chapter-overview"] {
+		t.Fatalf("Pandoc AST identifier was not indexed: %#v", anchors)
+	}
+	if anchors["12-chapter-overview"] {
+		t.Fatalf("anchor index reconstructed a raw Markdown slug: %#v", anchors)
+	}
+
+	root := t.TempDir()
+	source := filepath.Join(root, "source.md")
+	target := filepath.Join(root, "target.md")
+	for _, path := range []string{source, target} {
+		if err := os.WriteFile(path, []byte("# fixture\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	inspection := inspectLinkReference(
+		root,
+		source,
+		"target.md#chapter-overview",
+		map[string]bool{source: true, target: true},
+		map[string]map[string]bool{},
+		map[string]pandocDocument{target: document},
+	)
+	if inspection.Issue != "" {
+		t.Fatalf("Pandoc identifier was reported as broken: %#v", inspection)
+	}
+}
+
+func TestGeneratedAtHonorsSourceDateEpoch(t *testing.T) {
+	t.Setenv("DOC_GENERATED_AT", "")
+	t.Setenv("SOURCE_DATE_EPOCH", "946684800")
+	generated, err := generatedAt()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if generated != "2000-01-01 00:00 UTC" {
+		t.Fatalf("unexpected reproducible timestamp: %s", generated)
+	}
+
+	t.Setenv("SOURCE_DATE_EPOCH", "invalid")
+	if _, err := generatedAt(); err == nil {
+		t.Fatal("expected invalid SOURCE_DATE_EPOCH to fail")
 	}
 }
 
