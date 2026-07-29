@@ -390,20 +390,15 @@ EOF
             if [ "${install_profile}" = "remote" ]; then
                 doctor_error "configuration selects local mode but the remote installation profile has no build sources"
             fi
-            case "${pdf_dockerfile}" in
-                ""|"."|".."|/*|.git|.git/*|*/.git|*/.git/*|../*|*/../*|*/..|*//*|*/./*|./*|*/|*\\*)
-                    doctor_error "pdf.dockerfile is not a normalized project-relative path: ${pdf_dockerfile}"
-                    ;;
-                *)
-                    if [ -f "${PROJECT_ROOT}/${pdf_dockerfile}" ] &&
-                        [ ! -L "${PROJECT_ROOT}/${pdf_dockerfile}" ]
-                    then
-                        doctor_ok "local renderer Dockerfile is available"
-                    else
-                        doctor_error "local renderer Dockerfile is missing or symbolic: ${pdf_dockerfile}"
-                    fi
-                    ;;
-            esac
+            if ! project_relative_path_is_valid "${pdf_dockerfile}"; then
+                doctor_error "pdf.dockerfile is not a normalized project-relative path: ${pdf_dockerfile}"
+            elif [ -f "${PROJECT_ROOT}/${pdf_dockerfile}" ] &&
+                [ ! -L "${PROJECT_ROOT}/${pdf_dockerfile}" ]
+            then
+                doctor_ok "local renderer Dockerfile is available"
+            else
+                doctor_error "local renderer Dockerfile is missing or symbolic: ${pdf_dockerfile}"
+            fi
             ;;
         remote)
             if ! printf '%s\n' "${pdf_image}" | grep -Eq '^[^[:space:]@]+@sha256:[0-9a-f]{64}$'; then
