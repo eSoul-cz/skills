@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -257,6 +258,57 @@ func securePath(root, value string) (string, error) {
 		return "", fmt.Errorf("path escapes project root through a symbolic link: %s", value)
 	}
 	return path, nil
+}
+
+func openFileNoSymlinks(root, path string) (*os.File, error) {
+	relative, err := filepath.Rel(root, path)
+	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return nil, fmt.Errorf("path escapes project root: %s", path)
+	}
+	components := strings.Split(relative, string(filepath.Separator))
+	if len(components) == 0 || relative == "." {
+		return nil, fmt.Errorf("path must name a file beneath the project root: %s", path)
+	}
+
+	currentFD, err := unix.Open(
+		root,
+		unix.O_RDONLY|unix.O_DIRECTORY|unix.O_CLOEXEC|unix.O_NOFOLLOW,
+		0,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("open project root: %w", err)
+	}
+	for index, component := range components {
+		flags := unix.O_RDONLY | unix.O_CLOEXEC | unix.O_NOFOLLOW
+		if index < len(components)-1 {
+			flags |= unix.O_DIRECTORY
+		}
+		nextFD, openErr := unix.Openat(currentFD, component, flags, 0)
+		if openErr != nil {
+			_ = unix.Close(currentFD)
+			return nil, fmt.Errorf("open path without symbolic links: %w", openErr)
+		}
+		if closeErr := unix.Close(currentFD); closeErr != nil {
+			_ = unix.Close(nextFD)
+			return nil, fmt.Errorf("close project path descriptor: %w", closeErr)
+		}
+		currentFD = nextFD
+	}
+	file := os.NewFile(uintptr(currentFD), path)
+	if file == nil {
+		_ = unix.Close(currentFD)
+		return nil, fmt.Errorf("open project file: %s", path)
+	}
+	info, err := file.Stat()
+	if err != nil {
+		_ = file.Close()
+		return nil, fmt.Errorf("inspect project file: %w", err)
+	}
+	if !info.Mode().IsRegular() {
+		_ = file.Close()
+		return nil, fmt.Errorf("path must name a regular file: %s", path)
+	}
+	return file, nil
 }
 
 func guideDirectory(workRoot, category, guideID string) (string, error) {
@@ -646,9 +698,9 @@ func writeMetadata(root, stagingDir, path string, cfg config, guide guideConfig)
 	if err != nil {
 		return err
 	}
-	generated := strings.TrimSpace(os.Getenv("DOC_GENERATED_AT"))
-	if generated == "" {
-		generated = time.Now().UTC().Format("2006-01-02 15:04 UTC")
+	generated, err := generatedAt()
+	if err != nil {
+		return err
 	}
 	commit := valueOr(os.Getenv("DOC_COMMIT"), "unknown")
 	metadata := []string{"Commit " + commit}
@@ -715,6 +767,20 @@ func writeMetadata(root, stagingDir, path string, cfg config, guide guideConfig)
 		return fmt.Errorf("write Pandoc metadata: %w", err)
 	}
 	return nil
+}
+
+func generatedAt() (string, error) {
+	if generated := strings.TrimSpace(os.Getenv("DOC_GENERATED_AT")); generated != "" {
+		return generated, nil
+	}
+	if epoch := strings.TrimSpace(os.Getenv("SOURCE_DATE_EPOCH")); epoch != "" {
+		seconds, err := strconv.ParseInt(epoch, 10, 64)
+		if err != nil || seconds < 0 {
+			return "", errors.New("SOURCE_DATE_EPOCH must be a non-negative integer")
+		}
+		return time.Unix(seconds, 0).UTC().Format("2006-01-02 15:04 UTC"), nil
+	}
+	return time.Now().UTC().Format("2006-01-02 15:04 UTC"), nil
 }
 
 func yamlString(value string) string {
@@ -797,7 +863,12 @@ func redact(root string, cfg config, planValue string) error {
 	if err != nil {
 		return err
 	}
-	data, err := os.ReadFile(planPath)
+	planFile, err := openFileNoSymlinks(root, planPath)
+	if err != nil {
+		return fmt.Errorf("redaction plan: %w", err)
+	}
+	defer planFile.Close()
+	data, err := io.ReadAll(planFile)
 	if err != nil {
 		return fmt.Errorf("cannot load redaction plan: %w", err)
 	}
