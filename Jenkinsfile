@@ -5,6 +5,7 @@ pipeline {
 
 	options {
 		disableConcurrentBuilds()
+		skipDefaultCheckout(true)
 		timestamps()
 		timeout(time: 120, unit: 'MINUTES')
 	}
@@ -17,8 +18,6 @@ pipeline {
 		RENDERER_CONTEXT = 'tooling/project-tools/docs/.documentation-tools/pdf'
 		RENDERER_DOCKERFILE = 'tooling/project-tools/docs/.documentation-tools/pdf/Dockerfile'
 		INSTALLER_DOCKERFILE = 'tooling/install-project-tools/Dockerfile'
-		RELEASE_CATALOG_TOOL = 'tooling/project-tools/docs/.documentation-tools/release-catalog'
-		RELEASE_CATALOG_DIR = 'tooling/project-tools/docs/.documentation-tools/releases'
 		GITHUB_REPOSITORY = 'eSoul-cz/documentation-skill'
 		GITHUB_RELEASE_CREDENTIALS_ID = 'github-documentation-skill-release-token'
 		SCALEWAY_REGISTRY_CREDENTIALS_ID = 'scaleway_secret_key'
@@ -27,6 +26,13 @@ pipeline {
 	}
 
 	stages {
+		stage('Checkout') {
+			steps {
+				deleteDir()
+				checkout scm
+			}
+		}
+
 		stage('Resolve tooling version') {
 			steps {
 				script {
@@ -46,8 +52,6 @@ pipeline {
 			steps {
 				sh 'tooling/scripts/test_tooling_version'
 				sh 'tooling/scripts/test_bootstrap_manifest'
-				sh "${env.RELEASE_CATALOG_TOOL} validate"
-				sh 'tooling/scripts/test_release_catalog'
 				sh 'tooling/scripts/test_renderer_smoke'
 				sh 'tooling/scripts/test_bootstrap_install'
 			}
@@ -78,48 +82,19 @@ pipeline {
 						]
 					)
 					def immutableImage = rendererImage.immutableReference
-					def publishedAt = sh(
-						script: "date -u '+%Y-%m-%dT%H:%M:%SZ'",
-						returnStdout: true
-					).trim()
 					def sourceCommit = sh(
 						script: 'git rev-parse HEAD',
 						returnStdout: true
 					).trim()
-					def baseRendererReleaseFields = [
-						'CATALOG_SCHEMA_VERSION=1',
-						"RENDERER_VERSION=${version}",
-						"RENDERER_IMAGE=${immutableImage}",
-						'ARCHITECTURES=linux/amd64,linux/arm64',
-						"PUBLISHED_AT=${publishedAt}",
-						"SOURCE_COMMIT=${sourceCommit}",
-						'CONFIG_SCHEMA_VERSION=1',
-						'RELEASE_STATUS=active',
-						'UPGRADE_NOTES=Adds named themes, eSoul client branding, project-local fonts, styled footnotes and callouts, configurable link notices, doctor diagnostics, and transactional hosted upgrades; configuration schema remains 1.',
-						"DOCUMENTATION_RENDERER_VERSION=${version}",
-						"DOCUMENTATION_REMOTE_RENDERER_IMAGE=${immutableImage}",
-					]
-					def rendererReleaseFields = baseRendererReleaseFields + [
-						'SBOM=unavailable',
-						'SCAN=unavailable',
-						'PROVENANCE=unavailable',
-						'SIGNATURE=unavailable',
-					]
-					def rendererReleaseEntry = (rendererReleaseFields + ['']).join('\n')
-					writeFile(
-						file: "release-catalog-candidate/${version}.env",
-						text: rendererReleaseEntry
+					def bootstrapVersionMarker = 'DOCUMENTATION_BOOTSTRAP_RELEASE_TAG=0.0.0'
+					def bootstrapScript = readFile(file: 'install.sh')
+					if (!bootstrapScript.contains(bootstrapVersionMarker)) {
+						error('install.sh is missing its release-tag injection marker.')
+					}
+					bootstrapScript = bootstrapScript.replace(
+						bootstrapVersionMarker,
+						"DOCUMENTATION_BOOTSTRAP_RELEASE_TAG=${version}"
 					)
-					writeFile(
-						file: 'release-catalog-candidate/LATEST',
-						text: "${version}\n"
-					)
-					sh "DOCUMENTATION_RELEASE_CATALOG_ALLOW_RENDERER_ONLY_CANDIDATE=1 DOCUMENTATION_RELEASE_CATALOG_ALLOW_UNAVAILABLE_SUPPLY_CHAIN_CANDIDATE=1 DOCUMENTATION_RELEASE_CATALOG_DIR=release-catalog-candidate ${env.RELEASE_CATALOG_TOOL} validate"
-					sh """
-						cp 'release-catalog-candidate/${version}.env' '${env.RELEASE_CATALOG_DIR}/${version}.env'
-						cp 'release-catalog-candidate/LATEST' '${env.RELEASE_CATALOG_DIR}/LATEST'
-						DOCUMENTATION_RELEASE_CATALOG_ALLOW_RENDERER_ONLY_CANDIDATE=1 DOCUMENTATION_RELEASE_CATALOG_ALLOW_UNAVAILABLE_SUPPLY_CHAIN_CANDIDATE=1 ${env.RELEASE_CATALOG_TOOL} validate
-					"""
 
 					def installerImage = dockerEnsureMultiArchImage(
 						releaseImageConfig + [
@@ -137,6 +112,13 @@ pipeline {
 						githubRepository: env.GITHUB_REPOSITORY,
 						releaseTag: version,
 						sourceCommit: sourceCommit,
+						releaseMetadata: [
+							CONFIG_SCHEMA_VERSION: '1',
+							UPGRADE_NOTES: 'Adds named themes, eSoul client branding, project-local fonts, styled footnotes and callouts, configurable link notices, doctor diagnostics, and transactional hosted upgrades; configuration schema remains 1.',
+						],
+						releaseFiles: [
+							'install.sh': bootstrapScript,
+						],
 						images: [
 							renderer: [
 								reference: immutableImage,
@@ -158,47 +140,14 @@ pipeline {
 						publishRelease: true,
 						requireExistingTag: true,
 					)
-					def rendererArtifacts = artifacts.images.renderer
-					def finalRendererReleaseFields = baseRendererReleaseFields + [
-						"SBOM=${rendererArtifacts.sbom}",
-						"SCAN=${rendererArtifacts.scan}",
-						"PROVENANCE=${rendererArtifacts.provenance}",
-						"SIGNATURE=${rendererArtifacts.signature}",
-					]
-					def releaseEntry = (finalRendererReleaseFields + [
-						"INSTALLER_IMAGE=${immutableInstallerImage}",
-						''
-					]).join('\n')
-					writeFile(
-						file: "documentation-renderer-${version}.env",
-						text: releaseEntry
-					)
-					writeFile(
-						file: "release-catalog-candidate/${version}.env",
-						text: releaseEntry
-					)
-					sh "DOCUMENTATION_RELEASE_CATALOG_DIR=release-catalog-candidate ${env.RELEASE_CATALOG_TOOL} validate"
-					sh """
-						cp 'release-catalog-candidate/${version}.env' '${env.RELEASE_CATALOG_DIR}/${version}.env'
-						${env.RELEASE_CATALOG_TOOL} validate
-					"""
-					writeFile(
-						file: "documentation-installer-${version}.env",
-						text: [
-							"DOCUMENTATION_INSTALLER_VERSION=${version}",
-							"DOCUMENTATION_INSTALLER_IMAGE=${immutableInstallerImage}",
-							''
-						].join('\n')
-					)
 					archiveArtifacts(
-						artifacts: "documentation-renderer-${version}.env,documentation-installer-${version}.env,release-catalog-candidate/*,build/release-artifacts/*",
+						artifacts: 'build/release-artifacts/*',
 						allowEmptyArchive: false,
 						fingerprint: true
 					)
 					echo "Published immutable renderer: ${immutableImage}"
 					echo "Published immutable installer: ${immutableInstallerImage}"
 					echo "Published signed release artifacts: ${artifacts.releaseUrl}"
-					echo "Archive release-catalog-candidate/ in a reviewed follow-up commit to make this release durably resolvable."
 				}
 			}
 		}

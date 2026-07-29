@@ -36,12 +36,14 @@ installer_image_id=$(docker image inspect --format '{{.Id}}' "${installer_image}
 release_manifest="${project_root}/bootstrap-release.env"
 {
     printf 'RELEASE_TAG=%s\n' "${version}"
+    printf 'CONFIG_SCHEMA_VERSION=1\n'
     printf 'IMAGE_INSTALLER=%s\n' "${installer_image_id}"
     printf 'IMAGE_RENDERER=%s\n' "${renderer_pin}"
 } > "${release_manifest}"
 mutable_release_manifest="${project_root}/mutable-bootstrap-release.env"
 {
     printf 'RELEASE_TAG=%s\n' "${version}"
+    printf 'CONFIG_SCHEMA_VERSION=1\n'
     printf 'IMAGE_INSTALLER=%s\n' "${installer_image}"
     printf 'IMAGE_RENDERER=%s\n' "${renderer_pin}"
 } > "${mutable_release_manifest}"
@@ -108,6 +110,8 @@ DOCUMENTATION_INSTALL_SKIP_DOCTOR=1 \
 test -x "${project_root}/docs/documentation"
 test -f "${project_root}/docs/documentation.toml"
 test ! -e "${project_root}/docs/.documentation-tools/pdf/Dockerfile"
+test ! -e "${project_root}/docs/.documentation-tools/release-catalog"
+test ! -e "${project_root}/docs/.documentation-tools/releases"
 test "$(sed -n '1p' "${project_root}/docs/.documentation-tools/VERSION")" = "${version}"
 grep -Fq 'mode = "remote"' "${project_root}/docs/documentation.toml"
 grep -Fq "image = \"${renderer_pin}\"" "${project_root}/docs/documentation.toml"

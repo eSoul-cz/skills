@@ -184,10 +184,6 @@ func TestRemoteProfileInstallsOnlyRuntimeFiles(t *testing.T) {
 	for _, relative := range []string{
 		"docs/documentation",
 		"docs/.documentation-tools/VERSION",
-		"docs/.documentation-tools/release-catalog",
-		"docs/.documentation-tools/releases/LATEST",
-		"docs/.documentation-tools/releases/0.5.0.env",
-		"docs/.documentation-tools/releases/README.md",
 		"docs/.documentation-tools/pdf/header.tex",
 	} {
 		if _, err := os.Stat(filepath.Join(project, filepath.FromSlash(relative))); err != nil {
@@ -195,6 +191,10 @@ func TestRemoteProfileInstallsOnlyRuntimeFiles(t *testing.T) {
 		}
 	}
 	for _, relative := range []string{
+		"docs/.documentation-tools/release-catalog",
+		"docs/.documentation-tools/releases/LATEST",
+		"docs/.documentation-tools/releases/0.5.0.env",
+		"docs/.documentation-tools/releases/README.md",
 		"docs/.documentation-tools/pdf/Dockerfile",
 		"docs/.documentation-tools/pdf/filters/source.lua",
 		"docs/.documentation-tools/pdf/cmd/renderer/main.go",
@@ -204,17 +204,66 @@ func TestRemoteProfileInstallsOnlyRuntimeFiles(t *testing.T) {
 		}
 	}
 	installed := readFixtureManifest(t, project)
-	if installed.InstallProfile != "remote" || len(installed.ManagedFiles) != 7 {
+	if installed.InstallProfile != "remote" || len(installed.ManagedFiles) != 3 {
 		t.Fatalf("unexpected remote manifest: %#v", installed)
+	}
+}
+
+func TestRemoteUpgradeRetiresReleaseDiscoveryCatalog(t *testing.T) {
+	oldAssets := fixtureAssets(t, "0.5.0", map[string]fixtureFile{
+		"docs/documentation":                               {Content: "#!/bin/sh\n", Mode: 0o755},
+		"docs/.documentation-tools/VERSION":                {Content: "0.5.0\n", Mode: 0o644},
+		"docs/.documentation-tools/release-catalog":        {Content: "#!/bin/sh\n", Mode: 0o755},
+		"docs/.documentation-tools/releases/LATEST":        {Content: "0.5.0\n", Mode: 0o644},
+		"docs/.documentation-tools/releases/0.5.0.env":     {Content: "RENDERER_VERSION=0.5.0\n", Mode: 0o644},
+		"docs/.documentation-tools/releases/README.md":     {Content: "catalog\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/header.tex":         {Content: "old header\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/Dockerfile":         {Content: "FROM scratch\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/filters/source.lua": {Content: "filter\n", Mode: 0o644},
+	})
+	newAssets := fixtureAssets(t, "0.6.0", map[string]fixtureFile{
+		"docs/documentation":                        {Content: "#!/bin/sh\n", Mode: 0o755},
+		"docs/.documentation-tools/VERSION":         {Content: "0.6.0\n", Mode: 0o644},
+		"docs/.documentation-tools/release-catalog": {Content: "#!/bin/sh\n", Mode: 0o755},
+		"docs/.documentation-tools/releases/LATEST": {Content: "0.6.0\n", Mode: 0o644},
+		"docs/.documentation-tools/releases/0.6.0.env": {
+			Content: "RENDERER_VERSION=0.6.0\n",
+			Mode:    0o644,
+		},
+		"docs/.documentation-tools/pdf/header.tex": {Content: "new header\n", Mode: 0o644},
+	})
+	project := t.TempDir()
+	if err := install(project, oldAssets, false, "local"); err != nil {
+		t.Fatal(err)
+	}
+	if err := install(project, newAssets, true, "remote"); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, relative := range []string{
+		"docs/.documentation-tools/release-catalog",
+		"docs/.documentation-tools/releases/LATEST",
+		"docs/.documentation-tools/releases/0.5.0.env",
+		"docs/.documentation-tools/releases/README.md",
+	} {
+		if _, err := os.Stat(filepath.Join(project, filepath.FromSlash(relative))); !os.IsNotExist(err) {
+			t.Fatalf("remote upgrade retained release-discovery file %s", relative)
+		}
+	}
+	installed := readFixtureManifest(t, project)
+	for relative := range installed.ManagedFiles {
+		if relative == "docs/.documentation-tools/release-catalog" ||
+			strings.HasPrefix(relative, "docs/.documentation-tools/releases/") {
+			t.Fatalf("remote manifest retained release-discovery file %s", relative)
+		}
 	}
 }
 
 func TestNewRemoteInstallInitializesProjectConfiguration(t *testing.T) {
 	assets := fixtureAssets(t, "0.6.0", map[string]fixtureFile{
-		"docs/documentation":                        {Content: "#!/bin/sh\n", Mode: 0o755},
-		"docs/.documentation-tools/VERSION":         {Content: "0.6.0\n", Mode: 0o644},
-		"docs/.documentation-tools/release-catalog": {Content: "#!/bin/sh\n", Mode: 0o755},
-		"docs/.documentation-tools/pdf/header.tex":  {Content: "header\n", Mode: 0o644},
+		"docs/documentation":                       {Content: "#!/bin/sh\n", Mode: 0o755},
+		"docs/.documentation-tools/VERSION":        {Content: "0.6.0\n", Mode: 0o644},
+		"docs/.documentation-tools/pdf/header.tex": {Content: "header\n", Mode: 0o644},
 	})
 	template := documentationConfigTemplate(t)
 	rendererImage := "registry.example/docs@sha256:" + strings.Repeat("a", 64)
@@ -424,7 +473,7 @@ func TestRemoteUpgradePlanIsReadOnlyAndReportsExactChanges(t *testing.T) {
 		`[pdf].mode: "local" -> "remote"`,
 		`[pdf].image: "" -> "` + targetImage + `"`,
 		"DOCUMENTATION_REMOTE_RENDERER_IMAGE=" + targetImage,
-		"tooling/scripts/upgrade_project_tools '" + project + "' --to '0.6.0' --apply",
+		"Re-run the GitHub-backed upgrade command for '" + project + "' and release '0.6.0' with --apply.",
 		"docs/.documentation-tools/pdf/Dockerfile",
 		"No files were changed.",
 	} {
@@ -786,72 +835,34 @@ func TestUpgradeRollbackRestoresManagedFileBeforeDirectoryMigration(t *testing.T
 	}
 }
 
-func TestManagedReleaseCatalogValidatesAndRejectsRevokedRelease(t *testing.T) {
-	repositoryRootPath := repositoryRoot(t)
-	catalogTool := filepath.Join(
-		repositoryRootPath,
-		"tooling",
-		"project-tools",
-		"docs",
-		".documentation-tools",
-		"release-catalog",
-	)
-	command := exec.Command(catalogTool, "validate")
-	command.Env = append(os.Environ(), "DOCUMENTATION_RELEASE_CATALOG_DIR=")
-	if output, err := command.CombinedOutput(); err != nil {
-		t.Fatalf("expected bundled release catalog to validate: %v\n%s", err, output)
-	}
-
-	catalogDir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(catalogDir, "LATEST"), []byte("1.2.3\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	entry := strings.Join([]string{
-		"CATALOG_SCHEMA_VERSION=1",
-		"RENDERER_VERSION=1.2.3",
-		"RENDERER_IMAGE=registry.example/docs@sha256:" + strings.Repeat("a", 64),
-		"ARCHITECTURES=linux/amd64,linux/arm64",
-		"PUBLISHED_AT=2026-07-28T10:00:00Z",
-		"SOURCE_COMMIT=" + strings.Repeat("b", 40),
-		"CONFIG_SCHEMA_VERSION=1",
-		"RELEASE_STATUS=revoked",
-		"UPGRADE_NOTES=Revoked test release.",
-		"SBOM=fixture",
-		"SCAN=fixture",
-		"PROVENANCE=fixture",
-		"SIGNATURE=fixture",
-		"",
-	}, "\n")
-	if err := os.WriteFile(filepath.Join(catalogDir, "1.2.3.env"), []byte(entry), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	command = exec.Command(catalogTool, "resolve", "1.2.3")
-	command.Env = append(os.Environ(), "DOCUMENTATION_RELEASE_CATALOG_DIR="+catalogDir)
-	output, err := command.CombinedOutput()
-	if err == nil || !strings.Contains(string(output), "revoked") {
-		t.Fatalf("expected revoked release resolution to fail, got %v\n%s", err, output)
-	}
-
-	invalidEntry := strings.Replace(entry, strings.Repeat("a", 64), "mutable", 1)
-	invalidEntry = strings.Replace(invalidEntry, "RELEASE_STATUS=revoked", "RELEASE_STATUS=active", 1)
-	if err := os.WriteFile(filepath.Join(catalogDir, "1.2.3.env"), []byte(invalidEntry), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	command = exec.Command(catalogTool, "validate")
-	command.Env = append(os.Environ(), "DOCUMENTATION_RELEASE_CATALOG_DIR="+catalogDir)
-	output, err = command.CombinedOutput()
-	if err == nil || !strings.Contains(string(output), "immutable sha256 digest") {
-		t.Fatalf("expected mutable catalog image to fail, got %v\n%s", err, output)
-	}
-}
-
 func TestUpgradeWrapperRunsDoctorAfterApply(t *testing.T) {
 	repositoryRootPath := repositoryRoot(t)
 	targetImage := legacyPublishedImage
 	fakeBin := t.TempDir()
+	releaseManifest := filepath.Join(fakeBin, "release.env")
+	if err := os.WriteFile(
+		releaseManifest,
+		[]byte(strings.Join([]string{
+			"RELEASE_TAG=0.5.0",
+			"CONFIG_SCHEMA_VERSION=1",
+			"IMAGE_INSTALLER=registry.example/installer@sha256:" + strings.Repeat("a", 64),
+			"IMAGE_RENDERER=" + targetImage,
+			"",
+		}, "\n")),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(
 		filepath.Join(fakeBin, "docker"),
-		[]byte("#!/bin/sh\ncase \"${1:-}\" in\n  info|build|run) exit 0 ;;\nesac\nexit 1\n"),
+		[]byte("#!/bin/sh\ncase \"${1:-}\" in\n  info|run) exit 0 ;;\nesac\nexit 1\n"),
+		0o755,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(
+		filepath.Join(fakeBin, "curl"),
+		[]byte("#!/bin/sh\ncat \"${DOCUMENTATION_TEST_RELEASE_MANIFEST}\"\n"),
 		0o755,
 	); err != nil {
 		t.Fatal(err)
@@ -862,6 +873,19 @@ func TestUpgradeWrapperRunsDoctorAfterApply(t *testing.T) {
 		project := t.TempDir()
 		doctor := filepath.Join(project, "docs", "documentation")
 		if err := os.MkdirAll(filepath.Dir(doctor), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.MkdirAll(
+			filepath.Join(project, "docs", ".documentation-tools"),
+			0o755,
+		); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(
+			filepath.Join(project, "docs", ".documentation-tools", "managed-files.json"),
+			[]byte("{}\n"),
+			0o644,
+		); err != nil {
 			t.Fatal(err)
 		}
 		doctorScript := fmt.Sprintf(
@@ -882,6 +906,9 @@ func TestUpgradeWrapperRunsDoctorAfterApply(t *testing.T) {
 		command.Env = append(
 			os.Environ(),
 			"PATH="+fakeBin+string(os.PathListSeparator)+os.Getenv("PATH"),
+			"DOCUMENTATION_INSTALL_TEST_MODE=1",
+			"DOCUMENTATION_INSTALL_SKIP_PULL=1",
+			"DOCUMENTATION_TEST_RELEASE_MANIFEST="+releaseManifest,
 		)
 		output, err := command.CombinedOutput()
 		return string(output), err
@@ -892,7 +919,7 @@ func TestUpgradeWrapperRunsDoctorAfterApply(t *testing.T) {
 		t.Fatalf("expected post-upgrade doctor success: %v\n%s", err, output)
 	}
 	if !strings.Contains(output, "fixture-doctor") ||
-		!strings.Contains(output, "Post-upgrade doctor diagnostics passed.") {
+		!strings.Contains(output, "Post-installation doctor diagnostics passed.") {
 		t.Fatalf("successful upgrade output is missing doctor diagnostics:\n%s", output)
 	}
 
@@ -900,8 +927,7 @@ func TestUpgradeWrapperRunsDoctorAfterApply(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected post-upgrade doctor failure:\n%s", output)
 	}
-	if !strings.Contains(output, "transaction committed") ||
-		!strings.Contains(output, "internally consistent upgrade was retained") {
+	if !strings.Contains(output, "internally consistent upgrade was retained") {
 		t.Fatalf("failed doctor output did not explain retained state:\n%s", output)
 	}
 }
@@ -964,7 +990,8 @@ func TestDocumentationDoctorReportsLocalAndRemoteReadiness(t *testing.T) {
 	}
 	for _, expected := range []string{
 		"OK: installation profile remote",
-		"OK: configured renderer matches catalog release 0.5.0",
+		"OK: configuration schema 1 is valid",
+		"OK: configured renderer is governed by its digest pin and independent trust allowlist",
 		"OK: trusted renderer allowlist matches configured pdf.image",
 		"OK: registry manifest is reachable",
 	} {

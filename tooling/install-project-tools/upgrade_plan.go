@@ -211,9 +211,9 @@ func printRemoteUpgradePlan(plan remoteUpgradePlan) {
 	fmt.Printf("- %s [pdf].image: %q -> %q\n", projectConfigRelativePath, plan.Config.PDFImage, plan.TargetImage)
 	fmt.Println("Trusted runtime configuration:")
 	fmt.Printf("- DOCUMENTATION_REMOTE_RENDERER_IMAGE=%s\n", plan.TargetImage)
-	fmt.Println("Apply command:")
+	fmt.Println("Apply:")
 	fmt.Printf(
-		"- tooling/scripts/upgrade_project_tools %s --to %s --apply\n",
+		"- Re-run the GitHub-backed upgrade command for %s and release %s with --apply.\n",
 		shellQuote(plan.DisplayProjectRoot),
 		shellQuote(plan.TargetVersion),
 	)

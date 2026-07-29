@@ -3,8 +3,16 @@ set -eu
 
 # The Git tag recorded by a published GitHub Release is the authoritative
 # tooling version. With no explicit selection, GitHub resolves the latest
-# release; an explicit semantic version selects that immutable tagged release.
+# release. Jenkins replaces the development placeholder in the published
+# install.sh asset so the selected bootstrap and release.env cannot race across
+# two releases; an explicit semantic version still selects an exact tag.
+DOCUMENTATION_BOOTSTRAP_RELEASE_TAG=0.0.0
 REQUESTED_VERSION=${DOCUMENTATION_TOOLS_VERSION:-}
+if [ -z "${REQUESTED_VERSION}" ] &&
+    [ "${DOCUMENTATION_BOOTSTRAP_RELEASE_TAG}" != "0.0.0" ]
+then
+    REQUESTED_VERSION=${DOCUMENTATION_BOOTSTRAP_RELEASE_TAG}
+fi
 RELEASE_BASE_URL=https://github.com/eSoul-cz/documentation-skill/releases
 if [ -n "${REQUESTED_VERSION}" ]; then
     if ! printf '%s\n' "${REQUESTED_VERSION}" |
@@ -19,24 +27,40 @@ else
 fi
 
 usage() {
-    echo "Usage: install.sh [PROJECT_ROOT]" >&2
+    echo "Usage: install.sh [PROJECT_ROOT] [--upgrade [--apply]]" >&2
     exit 2
 }
-
-if [ "$#" -gt 1 ]; then
-    usage
-fi
 
 # The current directory is the ergonomic default for curl | sh. Resolve it to a
 # physical absolute path before constructing the Docker mount, reject option-like
 # input, and never allow the filesystem root to become the writable target.
-project_argument=${1:-.}
-case "${project_argument}" in
-    -*|*'
+project_argument=
+upgrade=0
+apply=0
+for argument do
+    case "${argument}" in
+        --upgrade)
+            [ "${upgrade}" -eq 0 ] || usage
+            upgrade=1
+            ;;
+        --apply)
+            [ "${apply}" -eq 0 ] || usage
+            apply=1
+            ;;
+        -*|*'
 '*)
-        usage
-        ;;
-esac
+            usage
+            ;;
+        *)
+            [ -z "${project_argument}" ] || usage
+            project_argument=${argument}
+            ;;
+    esac
+done
+project_argument=${project_argument:-.}
+if [ "${apply}" -eq 1 ] && [ "${upgrade}" -ne 1 ]; then
+    usage
+fi
 if [ ! -d "${project_argument}" ]; then
     echo "ERROR: Project root does not exist: ${project_argument}" >&2
     exit 1
@@ -44,6 +68,15 @@ fi
 PROJECT_ROOT=$(CDPATH= cd "${project_argument}" && pwd -P)
 if [ "${PROJECT_ROOT}" = "/" ]; then
     echo "ERROR: Refusing to install documentation tooling into the filesystem root." >&2
+    exit 1
+fi
+MANAGED_MANIFEST="${PROJECT_ROOT}/docs/.documentation-tools/managed-files.json"
+if [ "${upgrade}" -eq 1 ] && [ ! -f "${MANAGED_MANIFEST}" ]; then
+    echo "ERROR: Documentation tooling is not installed; omit --upgrade for a new installation." >&2
+    exit 1
+fi
+if [ "${upgrade}" -eq 0 ] && [ -f "${MANAGED_MANIFEST}" ]; then
+    echo "ERROR: Documentation tooling is already installed; use --upgrade to preview an update." >&2
     exit 1
 fi
 
@@ -98,8 +131,27 @@ then
     echo "ERROR: Release manifest is missing a unique tag or immutable image: ${RELEASE_MANIFEST_URL}" >&2
     exit 1
 fi
+if CONFIG_SCHEMA_VERSION=$(manifest_value CONFIG_SCHEMA_VERSION); then
+    :
+else
+    case "${RELEASE_TAG}" in
+        0.6.0|0.6.1)
+            # These releases predate CONFIG_SCHEMA_VERSION in release.env and
+            # both use the original project configuration schema.
+            CONFIG_SCHEMA_VERSION=1
+            ;;
+        *)
+            echo "ERROR: Release manifest is missing CONFIG_SCHEMA_VERSION: ${RELEASE_MANIFEST_URL}" >&2
+            exit 1
+            ;;
+    esac
+fi
 if ! printf '%s\n' "${RELEASE_TAG}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
     echo "ERROR: Release manifest tag is not semantic: ${RELEASE_TAG}" >&2
+    exit 1
+fi
+if ! printf '%s\n' "${CONFIG_SCHEMA_VERSION}" | grep -Eq '^[1-9][0-9]*$'; then
+    echo "ERROR: Release manifest configuration schema is not a positive integer." >&2
     exit 1
 fi
 if [ -n "${REQUESTED_VERSION}" ] && [ "${RELEASE_TAG}" != "${REQUESTED_VERSION}" ]; then
@@ -127,23 +179,35 @@ then
     exit 1
 fi
 
-# Pull both public images up front so registry failures occur before the project
-# is mounted read-write. Test-only overrides can provide prebuilt local images.
+# Pull the public installer before mounting the project. A plan does not execute
+# the renderer, so it avoids downloading that larger image until application.
+# Test-only overrides can provide prebuilt local images.
 if [ "${DOCUMENTATION_INSTALL_SKIP_PULL:-0}" != "1" ]; then
     echo "Pulling documentation installer ${INSTALLER_IMAGE}..."
     docker pull "${INSTALLER_IMAGE}"
-    echo "Pulling documentation renderer ${RENDERER_IMAGE}..."
-    docker pull "${RENDERER_IMAGE}"
+    if [ "${upgrade}" -eq 0 ] || [ "${apply}" -eq 1 ]; then
+        echo "Pulling documentation renderer ${RENDERER_IMAGE}..."
+        docker pull "${RENDERER_IMAGE}"
+    fi
 fi
 
 # The release manifest already pins the renderer by immutable digest.
 renderer_pin=${RENDERER_IMAGE}
 
 # The digest-pinned installer container is deliberately more restricted than
-# the renderer. It receives no network, capabilities, or writable filesystem
-# beyond the selected project mount. Its image embeds only the remote profile.
-echo "Installing remote-profile documentation tooling in ${PROJECT_ROOT}..."
-docker run \
+# the renderer. It receives no network or capabilities. Upgrade previews mount
+# the project read-only; fresh installs and approved upgrades are transactional
+# writes performed by the target release's installer.
+project_mount_mode=rw
+if [ "${upgrade}" -eq 1 ] && [ "${apply}" -eq 0 ]; then
+    project_mount_mode=ro
+    echo "Planning remote-profile documentation tooling upgrade in ${PROJECT_ROOT}..."
+elif [ "${upgrade}" -eq 1 ]; then
+    echo "Applying remote-profile documentation tooling upgrade in ${PROJECT_ROOT}..."
+else
+    echo "Installing remote-profile documentation tooling in ${PROJECT_ROOT}..."
+fi
+set -- docker run \
     --rm \
     --read-only \
     --cap-drop ALL \
@@ -151,12 +215,33 @@ docker run \
     --pids-limit 64 \
     --network none \
     --user "$(id -u):$(id -g)" \
-    --volume "${PROJECT_ROOT}:/project:rw" \
-    "${INSTALLER_IMAGE}" \
-    --profile remote \
-    --config-template /opt/documentation-tools/documentation.toml \
-    --renderer-image "${renderer_pin}" \
-    /project
+    --volume "${PROJECT_ROOT}:/project:${project_mount_mode}" \
+    "${INSTALLER_IMAGE}"
+if [ "${upgrade}" -eq 1 ]; then
+    operation=--plan-remote-upgrade
+    if [ "${apply}" -eq 1 ]; then
+        operation=--apply-remote-upgrade
+    fi
+    set -- "$@" \
+        "${operation}" \
+        --target-version "${RELEASE_TAG}" \
+        --target-image "${renderer_pin}" \
+        --target-config-schema "${CONFIG_SCHEMA_VERSION}" \
+        --display-project-root "${PROJECT_ROOT}" \
+        /project
+else
+    set -- "$@" \
+        --profile remote \
+        --config-template /opt/documentation-tools/documentation.toml \
+        --renderer-image "${renderer_pin}" \
+        /project
+fi
+"$@"
+
+if [ "${upgrade}" -eq 1 ] && [ "${apply}" -eq 0 ]; then
+    echo "Upgrade preview is complete. Re-run the same command with --apply after review."
+    exit 0
+fi
 
 # A local Git setting provides an untracked trust source independent from the
 # project-owned documentation.toml. CI and non-Git directories must supply the
@@ -176,17 +261,31 @@ else
     echo "  export DOCUMENTATION_REMOTE_RENDERER_IMAGE='${renderer_pin}'"
 fi
 
-# Doctor validates the installed manifest, catalog, configuration, Docker
-# readiness, public registry access, and the independently stored renderer pin.
+# Doctor validates the installed manifest, configuration, Docker readiness,
+# public registry access, and the independently stored renderer pin.
 if [ "${DOCUMENTATION_INSTALL_SKIP_DOCTOR:-0}" != "1" ]; then
     echo "Running documentation tooling diagnostics..."
+    doctor_status=0
     if [ "${trust_from_git}" -eq 1 ]; then
-        "${PROJECT_ROOT}/docs/documentation" doctor
+        "${PROJECT_ROOT}/docs/documentation" doctor || doctor_status=$?
     else
         DOCUMENTATION_REMOTE_RENDERER_IMAGE="${renderer_pin}" \
-            "${PROJECT_ROOT}/docs/documentation" doctor
+            "${PROJECT_ROOT}/docs/documentation" doctor || doctor_status=$?
     fi
+    if [ "${doctor_status}" -ne 0 ]; then
+        if [ "${upgrade}" -eq 1 ]; then
+            echo "ERROR: The internally consistent upgrade was retained, but doctor diagnostics failed." >&2
+        else
+            echo "ERROR: Tooling was installed, but doctor diagnostics failed." >&2
+        fi
+        exit "${doctor_status}"
+    fi
+    echo "Post-installation doctor diagnostics passed."
 fi
 
-echo "Documentation tooling setup is complete."
+if [ "${upgrade}" -eq 1 ]; then
+    echo "Documentation tooling upgrade is complete."
+else
+    echo "Documentation tooling setup is complete."
+fi
 echo "Next: review docs/documentation.toml, then run docs/documentation validate."

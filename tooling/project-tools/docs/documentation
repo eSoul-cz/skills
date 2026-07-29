@@ -7,7 +7,6 @@ CONFIG="${PROJECT_ROOT}/docs/documentation.toml"
 TOOLS_DIR="${PROJECT_ROOT}/docs/.documentation-tools"
 VERSION_FILE="${TOOLS_DIR}/VERSION"
 MANIFEST_FILE="${TOOLS_DIR}/managed-files.json"
-CATALOG_TOOL="${TOOLS_DIR}/release-catalog"
 
 usage() {
     echo "Usage: docs/documentation {doctor|validate|build|render|redact PLAN|version}" >&2
@@ -238,23 +237,6 @@ resolve_trusted_renderer_image() {
     fi
 }
 
-catalog_field() {
-    release=$1
-    wanted=$2
-    printf '%s\n' "${release}" | awk -v wanted="${wanted}" '
-        index($0, wanted "=") == 1 {
-            print substr($0, length(wanted) + 2)
-            found = 1
-            exit
-        }
-        END {
-            if (!found) {
-                exit 1
-            }
-        }
-    '
-}
-
 doctor_ok() {
     echo "OK: $*"
 }
@@ -334,35 +316,11 @@ EOF
         fi
     fi
 
-    latest_release=
-    latest_metadata=
     config_schema=
-    if [ ! -x "${CATALOG_TOOL}" ]; then
-        doctor_error "managed release catalog command is missing or not executable"
-    elif ! "${CATALOG_TOOL}" validate >/dev/null 2>&1; then
-        doctor_error "managed release catalog is invalid"
+    if config_schema=$(toml_root_integer schema_version); then
+        doctor_ok "configuration schema ${config_schema} is valid"
     else
-        latest_release=$("${CATALOG_TOOL}" latest)
-        latest_metadata=$("${CATALOG_TOOL}" show "${latest_release}")
-        latest_image=$(catalog_field "${latest_metadata}" RENDERER_IMAGE)
-        doctor_ok "release catalog latest is ${latest_release} (${latest_image})"
-
-        if "${CATALOG_TOOL}" show "${installed_version}" >/dev/null 2>&1; then
-            doctor_ok "installed version ${installed_version} is recorded in the release catalog"
-        else
-            doctor_warning "installed version ${installed_version} is not a published catalog release"
-        fi
-
-        if config_schema=$(toml_root_integer schema_version); then
-            required_schema=$(catalog_field "${latest_metadata}" CONFIG_SCHEMA_VERSION)
-            if [ "${config_schema}" = "${required_schema}" ]; then
-                doctor_ok "configuration schema ${config_schema} is compatible with release ${latest_release}"
-            else
-                doctor_warning "configuration schema ${config_schema} cannot upgrade directly to release ${latest_release}, which requires ${required_schema}"
-            fi
-        else
-            doctor_error "configuration schema_version is missing or invalid"
-        fi
+        doctor_error "configuration schema_version is missing or invalid"
     fi
 
     docker_ready=0
@@ -400,22 +358,7 @@ EOF
                 doctor_error "remote pdf.image is not pinned by an immutable sha256 digest"
             else
                 doctor_ok "configured renderer image is digest-pinned"
-                if [ -x "${CATALOG_TOOL}" ] &&
-                    catalog_version=$("${CATALOG_TOOL}" contains-image "${pdf_image}" 2>/dev/null)
-                then
-                    doctor_ok "configured renderer matches catalog release ${catalog_version}"
-                    if [ -n "${config_schema}" ] && [ "${catalog_version}" != "${latest_release}" ]; then
-                        configured_metadata=$("${CATALOG_TOOL}" show "${catalog_version}")
-                        configured_schema=$(catalog_field "${configured_metadata}" CONFIG_SCHEMA_VERSION)
-                        if [ "${config_schema}" = "${configured_schema}" ]; then
-                            doctor_ok "configuration schema ${config_schema} is compatible with configured release ${catalog_version}"
-                        else
-                            doctor_error "configuration schema ${config_schema} is incompatible with configured release ${catalog_version}, which requires ${configured_schema}"
-                        fi
-                    fi
-                else
-                    doctor_error "configured renderer image is not an active catalog release"
-                fi
+                doctor_ok "configured renderer is governed by its digest pin and independent trust allowlist"
             fi
             if [ -z "${trusted_renderer_image}" ]; then
                 doctor_error "trusted renderer allowlist is missing from DOCUMENTATION_REMOTE_RENDERER_IMAGE or local Git configuration"

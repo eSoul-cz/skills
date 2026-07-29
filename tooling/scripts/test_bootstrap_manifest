@@ -8,6 +8,8 @@ fake_bin="${fixture}/bin"
 project_root="${fixture}/project"
 manifest="${fixture}/release.env"
 captured_url="${fixture}/url"
+captured_docker_run="${fixture}/docker-run"
+tagged_bootstrap="${fixture}/install-tagged.sh"
 digest=$(printf '%064d' 0 | tr '0' 'a')
 
 cleanup() {
@@ -20,7 +22,11 @@ mkdir -p "${fake_bin}" "${project_root}"
 cat > "${fake_bin}/docker" <<'EOF'
 #!/bin/sh
 case "${1:-}" in
-    info|pull|run)
+    info|pull)
+        exit 0
+        ;;
+    run)
+        printf '%s\n' "$@" > "${DOCUMENTATION_TEST_CAPTURED_DOCKER_RUN}"
         exit 0
         ;;
 esac
@@ -35,12 +41,20 @@ printf '%s\n' "${requested_url}" > "${DOCUMENTATION_TEST_CAPTURED_URL}"
 cat "${DOCUMENTATION_TEST_RELEASE_MANIFEST}"
 EOF
 chmod +x "${fake_bin}/docker" "${fake_bin}/curl"
+sed \
+    's/^DOCUMENTATION_BOOTSTRAP_RELEASE_TAG=0[.]0[.]0$/DOCUMENTATION_BOOTSTRAP_RELEASE_TAG=1.2.3/' \
+    "${REPOSITORY_ROOT}/install.sh" > "${tagged_bootstrap}"
+chmod +x "${tagged_bootstrap}"
 
 write_manifest() {
     release_tag=$1
+    config_schema=${2:-1}
     {
         printf 'SCHEMA_VERSION=1\n'
         printf 'RELEASE_TAG=%s\n' "${release_tag}"
+        if [ "${config_schema}" != "omit" ]; then
+            printf 'CONFIG_SCHEMA_VERSION=%s\n' "${config_schema}"
+        fi
         printf 'IMAGE_INSTALLER=registry.example/installer@sha256:%s\n' "${digest}"
         printf 'IMAGE_RENDERER=registry.example/renderer@sha256:%s\n' "${digest}"
     } > "${manifest}"
@@ -52,8 +66,43 @@ run_bootstrap() {
     DOCUMENTATION_INSTALL_SKIP_DOCTOR=1 \
     DOCUMENTATION_TEST_RELEASE_MANIFEST="${manifest}" \
     DOCUMENTATION_TEST_CAPTURED_URL="${captured_url}" \
+    DOCUMENTATION_TEST_CAPTURED_DOCKER_RUN="${captured_docker_run}" \
     PATH="${fake_bin}:${PATH}" \
         "${REPOSITORY_ROOT}/install.sh" "${project_root}" >/dev/null
+}
+
+run_upgrade() {
+    DOCUMENTATION_INSTALL_TEST_MODE=1 \
+    DOCUMENTATION_INSTALL_SKIP_PULL=1 \
+    DOCUMENTATION_INSTALL_SKIP_DOCTOR=1 \
+    DOCUMENTATION_TEST_RELEASE_MANIFEST="${manifest}" \
+    DOCUMENTATION_TEST_CAPTURED_URL="${captured_url}" \
+    DOCUMENTATION_TEST_CAPTURED_DOCKER_RUN="${captured_docker_run}" \
+    PATH="${fake_bin}:${PATH}" \
+        "${REPOSITORY_ROOT}/install.sh" "${project_root}" --upgrade "$@" >/dev/null
+}
+
+run_upgrade_wrapper() {
+    DOCUMENTATION_INSTALL_TEST_MODE=1 \
+    DOCUMENTATION_INSTALL_SKIP_PULL=1 \
+    DOCUMENTATION_INSTALL_SKIP_DOCTOR=1 \
+    DOCUMENTATION_TEST_RELEASE_MANIFEST="${manifest}" \
+    DOCUMENTATION_TEST_CAPTURED_URL="${captured_url}" \
+    DOCUMENTATION_TEST_CAPTURED_DOCKER_RUN="${captured_docker_run}" \
+    PATH="${fake_bin}:${PATH}" \
+        "${REPOSITORY_ROOT}/tooling/scripts/upgrade_project_tools" \
+        "${project_root}" "$@" >/dev/null
+}
+
+run_tagged_bootstrap() {
+    DOCUMENTATION_INSTALL_TEST_MODE=1 \
+    DOCUMENTATION_INSTALL_SKIP_PULL=1 \
+    DOCUMENTATION_INSTALL_SKIP_DOCTOR=1 \
+    DOCUMENTATION_TEST_RELEASE_MANIFEST="${manifest}" \
+    DOCUMENTATION_TEST_CAPTURED_URL="${captured_url}" \
+    DOCUMENTATION_TEST_CAPTURED_DOCKER_RUN="${captured_docker_run}" \
+    PATH="${fake_bin}:${PATH}" \
+        "${tagged_bootstrap}" "${project_root}" >/dev/null
 }
 
 write_manifest 1.2.3
@@ -65,11 +114,49 @@ DOCUMENTATION_TOOLS_VERSION=1.2.3 run_bootstrap
 test "$(sed -n '1p' "${captured_url}")" = \
     "https://github.com/eSoul-cz/documentation-skill/releases/download/1.2.3/release.env"
 
+DOCUMENTATION_TOOLS_VERSION= run_tagged_bootstrap
+test "$(sed -n '1p' "${captured_url}")" = \
+    "https://github.com/eSoul-cz/documentation-skill/releases/download/1.2.3/release.env"
+
 write_manifest 2.0.0
 if DOCUMENTATION_TOOLS_VERSION=1.2.3 run_bootstrap 2>"${fixture}/mismatch-error"; then
     echo "ERROR: Bootstrap accepted a manifest for a different release tag." >&2
     exit 1
 fi
 grep -Fq 'does not match requested version 1.2.3' "${fixture}/mismatch-error"
+
+mkdir -p "${project_root}/docs/.documentation-tools"
+printf '{}\n' > "${project_root}/docs/.documentation-tools/managed-files.json"
+write_manifest 1.2.3 2
+run_upgrade_wrapper
+test "$(sed -n '1p' "${captured_url}")" = \
+    "https://github.com/eSoul-cz/documentation-skill/releases/latest/download/release.env"
+run_upgrade_wrapper --to 1.2.3
+test "$(sed -n '1p' "${captured_url}")" = \
+    "https://github.com/eSoul-cz/documentation-skill/releases/download/1.2.3/release.env"
+
+DOCUMENTATION_TOOLS_VERSION=1.2.3 run_upgrade
+grep -Fxq -- '--plan-remote-upgrade' "${captured_docker_run}"
+grep -Fxq -- '--target-version' "${captured_docker_run}"
+grep -Fxq -- '1.2.3' "${captured_docker_run}"
+grep -Fxq -- '--target-config-schema' "${captured_docker_run}"
+grep -Fxq -- '2' "${captured_docker_run}"
+grep -Eq '/project:ro$' "${captured_docker_run}"
+
+DOCUMENTATION_TOOLS_VERSION=1.2.3 run_upgrade --apply
+grep -Fxq -- '--apply-remote-upgrade' "${captured_docker_run}"
+grep -Eq '/project:rw$' "${captured_docker_run}"
+
+write_manifest 1.2.3 omit
+if DOCUMENTATION_TOOLS_VERSION=1.2.3 run_upgrade 2>"${fixture}/schema-error"; then
+    echo "ERROR: Bootstrap accepted a current release without CONFIG_SCHEMA_VERSION." >&2
+    exit 1
+fi
+grep -Fq 'missing CONFIG_SCHEMA_VERSION' "${fixture}/schema-error"
+
+write_manifest 0.6.1 omit
+DOCUMENTATION_TOOLS_VERSION=0.6.1 run_upgrade
+grep -Fxq -- '--target-config-schema' "${captured_docker_run}"
+grep -Fxq -- '1' "${captured_docker_run}"
 
 echo "Bootstrap release-manifest tests passed."

@@ -5,6 +5,7 @@ ARG DOCUMENTATION_TOOLS_VERSION=0.0.0
 WORKDIR /src
 COPY tooling/install-project-tools/go.mod tooling/install-project-tools/go.sum ./
 COPY tooling/install-project-tools/*.go ./
+COPY install.sh /fixture/install.sh
 COPY tooling/scripts/upgrade_project_tools /fixture/tooling/scripts/upgrade_project_tools
 COPY tooling/scripts/tooling_version /fixture/tooling/scripts/tooling_version
 COPY tooling/project-tools /fixture/tooling/project-tools

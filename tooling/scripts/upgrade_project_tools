@@ -1,130 +1,50 @@
 #!/bin/sh
 set -eu
 
+# This trusted development wrapper delegates to the same GitHub-backed
+# bootstrap used by end users. Git tags and their release.env assets are the
+# only release index; no repository-local catalog is consulted.
 SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
 REPOSITORY_ROOT=$(CDPATH= cd "${SCRIPT_DIR}/../.." && pwd)
-TOOLING_ROOT="${REPOSITORY_ROOT}/tooling"
-INSTALLER_DIR="${TOOLING_ROOT}/install-project-tools"
-VERSION_TOOL="${TOOLING_ROOT}/scripts/tooling_version"
-CATALOG_TOOL="${TOOLING_ROOT}/project-tools/docs/.documentation-tools/release-catalog"
-CATALOG_DIR="${TOOLING_ROOT}/project-tools/docs/.documentation-tools/releases"
+BOOTSTRAP="${REPOSITORY_ROOT}/install.sh"
 
 usage() {
-    echo "Usage: tooling/scripts/upgrade_project_tools PROJECT_ROOT --to VERSION [--apply]" >&2
+    echo "Usage: tooling/scripts/upgrade_project_tools PROJECT_ROOT [--to VERSION] [--apply]" >&2
     exit 2
 }
 
-catalog_field() {
-    release=$1
-    wanted=$2
-    printf '%s\n' "${release}" | awk -v wanted="${wanted}" '
-        index($0, wanted "=") == 1 {
-            print substr($0, length(wanted) + 2)
-            found = 1
-            exit
-        }
-        END {
-            if (!found) {
-                exit 1
-            }
-        }
-    '
-}
-
-if { [ "$#" -ne 3 ] && [ "$#" -ne 4 ]; } || [ "$2" != "--to" ]; then
-    usage
-fi
-
+[ "$#" -ge 1 ] && [ "$#" -le 4 ] || usage
 project_argument=$1
-target_version=$3
-operation=--plan-remote-upgrade
-project_mount_mode=ro
-if [ "$#" -eq 4 ]; then
-    if [ "$4" != "--apply" ]; then
-        usage
-    fi
-    operation=--apply-remote-upgrade
-    project_mount_mode=rw
-fi
-if [ ! -d "${project_argument}" ]; then
-    echo "ERROR: Project root does not exist: ${project_argument}" >&2
-    exit 1
-fi
-PROJECT_ROOT=$(CDPATH= cd "${project_argument}" && pwd -P)
-if [ "${PROJECT_ROOT}" = "/" ]; then
-    echo "ERROR: Refusing to inspect tooling in the filesystem root." >&2
-    exit 1
-fi
-if [ ! -x "${CATALOG_TOOL}" ] || [ ! -x "${VERSION_TOOL}" ]; then
-    echo "ERROR: The bundled documentation release catalog is incomplete." >&2
-    exit 1
-fi
+shift
+target_version=
+apply=0
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --to)
+            [ -z "${target_version}" ] && [ "$#" -ge 2 ] || usage
+            target_version=$2
+            shift 2
+            ;;
+        --apply)
+            [ "${apply}" -eq 0 ] || usage
+            apply=1
+            shift
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
 
-target_image=$(DOCUMENTATION_RELEASE_CATALOG_DIR="${CATALOG_DIR}" "${CATALOG_TOOL}" resolve "${target_version}")
-release=$(DOCUMENTATION_RELEASE_CATALOG_DIR="${CATALOG_DIR}" "${CATALOG_TOOL}" show "${target_version}")
-resolved_version=$(catalog_field "${release}" RENDERER_VERSION)
-target_config_schema=$(catalog_field "${release}" CONFIG_SCHEMA_VERSION)
-if [ "${resolved_version}" != "${target_version}" ]; then
-    echo "ERROR: Resolved catalog version does not match the requested version." >&2
+if [ -n "${target_version}" ] &&
+    ! printf '%s\n' "${target_version}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'
+then
+    echo "ERROR: Target documentation tooling version is not semantic: ${target_version}" >&2
     exit 1
 fi
 
-if ! command -v docker >/dev/null 2>&1; then
-    echo "ERROR: Docker is required to plan or apply a documentation tooling upgrade." >&2
-    exit 1
+set -- "${BOOTSTRAP}" "${project_argument}" --upgrade
+if [ "${apply}" -eq 1 ]; then
+    set -- "$@" --apply
 fi
-if ! docker info >/dev/null 2>&1; then
-    echo "ERROR: Docker is installed but the daemon is unavailable." >&2
-    exit 1
-fi
-
-version=$("${VERSION_TOOL}")
-installer_image="esoul-documentation-installer:${version}"
-version_root=$(mktemp -d "${TMPDIR:-/tmp}/documentation-tooling-version.XXXXXX")
-version_file="${version_root}/VERSION"
-printf '%s\n' "${version}" > "${version_file}"
-cleanup() {
-    rm -rf "${version_root}"
-}
-trap cleanup EXIT HUP INT TERM
-
-docker build \
-    --build-arg "DOCUMENTATION_TOOLS_VERSION=${version}" \
-    --file "${INSTALLER_DIR}/Dockerfile" \
-    --tag "${installer_image}" \
-    "${REPOSITORY_ROOT}"
-
-set -- docker run \
-    --rm \
-    --read-only \
-    --cap-drop ALL \
-    --security-opt no-new-privileges \
-    --pids-limit 64 \
-    --network none \
-    --user "$(id -u):$(id -g)" \
-    --volume "${TOOLING_ROOT}:/tooling:ro" \
-    --volume "${version_file}:/tooling/project-tools/docs/.documentation-tools/VERSION:ro" \
-    --volume "${PROJECT_ROOT}:/project:${project_mount_mode}" \
-    "${installer_image}" \
-    --asset-root /tooling/project-tools \
-    "${operation}" \
-    --target-version "${resolved_version}" \
-    --target-image "${target_image}" \
-    --target-config-schema "${target_config_schema}" \
-    --display-project-root "${PROJECT_ROOT}" \
-    /project
-"$@"
-
-if [ "${operation}" = "--apply-remote-upgrade" ]; then
-    echo "Running post-upgrade doctor diagnostics..."
-    if DOCUMENTATION_REMOTE_RENDERER_IMAGE="${target_image}" \
-        "${PROJECT_ROOT}/docs/documentation" doctor
-    then
-        echo "Post-upgrade doctor diagnostics passed."
-    else
-        doctor_status=$?
-        echo "ERROR: The remote-upgrade transaction committed, but post-upgrade doctor diagnostics failed." >&2
-        echo "ERROR: The internally consistent upgrade was retained; resolve the reported Docker, registry, or environment issue and rerun docs/documentation doctor." >&2
-        exit "${doctor_status}"
-    fi
-fi
+DOCUMENTATION_TOOLS_VERSION="${target_version}" exec "$@"
