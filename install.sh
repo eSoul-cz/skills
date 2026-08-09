@@ -7,6 +7,7 @@ set -eu
 # install.sh asset so the selected bootstrap and release.env cannot race across
 # two releases; an explicit semantic version still selects an exact tag.
 DOCUMENTATION_BOOTSTRAP_RELEASE_TAG=0.0.0
+DOCUMENTATION_BOOTSTRAP_CONFIG_SCHEMA_VERSION=1
 REQUESTED_VERSION=${DOCUMENTATION_TOOLS_VERSION:-}
 if [ -z "${REQUESTED_VERSION}" ] &&
     [ "${DOCUMENTATION_BOOTSTRAP_RELEASE_TAG}" != "0.0.0" ]
@@ -131,9 +132,7 @@ then
     echo "ERROR: Release manifest is missing a unique tag or immutable image: ${RELEASE_MANIFEST_URL}" >&2
     exit 1
 fi
-if CONFIG_SCHEMA_VERSION=$(manifest_value CONFIG_SCHEMA_VERSION); then
-    :
-else
+if ! CONFIG_SCHEMA_VERSION=$(manifest_value CONFIG_SCHEMA_VERSION); then
     case "${RELEASE_TAG}" in
         0.6.0|0.6.1)
             # These releases predate CONFIG_SCHEMA_VERSION in release.env and
@@ -141,8 +140,13 @@ else
             CONFIG_SCHEMA_VERSION=1
             ;;
         *)
-            echo "ERROR: Release manifest is missing CONFIG_SCHEMA_VERSION: ${RELEASE_MANIFEST_URL}" >&2
-            exit 1
+            # The release-specific bootstrap carries the configuration schema
+            # as an independently reviewed fallback. This keeps installs
+            # recoverable if an older release-helper revision omits optional
+            # metadata from release.env, while still binding the value to the
+            # versioned install.sh asset.
+            CONFIG_SCHEMA_VERSION=${DOCUMENTATION_BOOTSTRAP_CONFIG_SCHEMA_VERSION}
+            echo "WARNING: Release manifest is missing CONFIG_SCHEMA_VERSION; using schema ${CONFIG_SCHEMA_VERSION} from the release bootstrap." >&2
             ;;
     esac
 fi
@@ -179,15 +183,32 @@ then
     exit 1
 fi
 
+# Docker's containerd image store can report a failed digest overwrite after it
+# has successfully materialized the exact requested immutable image. Accept a
+# failed pull only when that exact digest is inspectable locally; all other pull
+# failures remain fatal.
+pull_immutable_image() {
+    image=$1
+    if docker pull "${image}"; then
+        return 0
+    fi
+    if docker image inspect "${image}" >/dev/null 2>&1; then
+        echo "WARNING: Docker reported a pull failure, but the exact immutable image is available locally: ${image}" >&2
+        return 0
+    fi
+    echo "ERROR: Could not pull immutable documentation image: ${image}" >&2
+    return 1
+}
+
 # Pull the public installer before mounting the project. A plan does not execute
 # the renderer, so it avoids downloading that larger image until application.
 # Test-only overrides can provide prebuilt local images.
 if [ "${DOCUMENTATION_INSTALL_SKIP_PULL:-0}" != "1" ]; then
     echo "Pulling documentation installer ${INSTALLER_IMAGE}..."
-    docker pull "${INSTALLER_IMAGE}"
+    pull_immutable_image "${INSTALLER_IMAGE}"
     if [ "${upgrade}" -eq 0 ] || [ "${apply}" -eq 1 ]; then
         echo "Pulling documentation renderer ${RENDERER_IMAGE}..."
-        docker pull "${RENDERER_IMAGE}"
+        pull_immutable_image "${RENDERER_IMAGE}"
     fi
 fi
 

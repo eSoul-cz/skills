@@ -66,6 +66,7 @@ pipeline {
 			steps {
 				script {
 					def version = env.DOCUMENTATION_TOOLS_VERSION
+					def configSchemaVersion = '1'
 					def buildTags = [version, 'latest']
 					def releaseImageConfig = [
 						registry: env.REGISTRY,
@@ -109,12 +110,12 @@ pipeline {
 					)
 					def immutableInstallerImage = installerImage.immutableReference
 
-					def artifacts = publishContainerReleaseArtifacts(
+					def publicationConfig = [
 						githubRepository: env.GITHUB_REPOSITORY,
 						releaseTag: version,
 						sourceCommit: sourceCommit,
 						releaseMetadata: [
-							CONFIG_SCHEMA_VERSION: '1',
+							CONFIG_SCHEMA_VERSION: configSchemaVersion,
 							UPGRADE_NOTES: 'Adds named themes, eSoul client branding, project-local fonts, styled footnotes and callouts, configurable link notices, doctor diagnostics, and transactional hosted upgrades; configuration schema remains 1.',
 						],
 						releaseFiles: [
@@ -138,8 +139,24 @@ pipeline {
 						],
 						scan: [enabled: true],
 						outputDirectory: 'build/release-artifacts',
-						publishRelease: true,
+						publishRelease: false,
 						requireExistingTag: true,
+					]
+					def draftArtifacts = publishContainerReleaseArtifacts(publicationConfig)
+					if (!draftArtifacts.assets.containsKey('install.sh')) {
+						error('Release draft is missing the install.sh bootstrap asset.')
+					}
+					def stagedBootstrap = readFile(file: 'build/release-artifacts/install.sh')
+					if (stagedBootstrap != bootstrapScript) {
+						error('Staged install.sh does not match the release-specific bootstrap.')
+					}
+					def stagedManifest = readFile(file: 'build/release-artifacts/release.env')
+					def requiredManifestLine = "CONFIG_SCHEMA_VERSION=${configSchemaVersion}"
+					if (!stagedManifest.readLines().contains(requiredManifestLine)) {
+						error("Release draft is missing ${requiredManifestLine}.")
+					}
+					def artifacts = publishContainerReleaseArtifacts(
+						publicationConfig + [publishRelease: true]
 					)
 					archiveArtifacts(
 						artifacts: 'build/release-artifacts/*',

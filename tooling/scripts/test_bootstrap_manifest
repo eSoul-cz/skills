@@ -12,6 +12,17 @@ captured_docker_run="${fixture}/docker-run"
 tagged_bootstrap="${fixture}/install-tagged.sh"
 digest=$(printf '%064d' 0 | tr '0' 'a')
 
+bootstrap_schema=$(sed -n 's/^DOCUMENTATION_BOOTSTRAP_CONFIG_SCHEMA_VERSION=//p' "${REPOSITORY_ROOT}/install.sh")
+template_schema=$(sed -n 's/^schema_version = //p' "${REPOSITORY_ROOT}/tooling/project-templates/docs/documentation.toml")
+jenkins_schema=$(sed -n "s/^[[:space:]]*def configSchemaVersion = '\([0-9][0-9]*\)'$/\1/p" "${REPOSITORY_ROOT}/Jenkinsfile")
+if [ -z "${bootstrap_schema}" ] ||
+    [ "${bootstrap_schema}" != "${template_schema}" ] ||
+    [ "${bootstrap_schema}" != "${jenkins_schema}" ]
+then
+    echo "ERROR: Bootstrap, project template, and Jenkins release configuration schemas differ." >&2
+    exit 1
+fi
+
 cleanup() {
     rm -rf "${fixture}"
 }
@@ -22,7 +33,18 @@ mkdir -p "${fake_bin}" "${project_root}"
 cat > "${fake_bin}/docker" <<'EOF'
 #!/bin/sh
 case "${1:-}" in
-    info|pull)
+    info)
+        exit 0
+        ;;
+    pull)
+        if [ "${DOCUMENTATION_TEST_PULL_FAILURE:-0}" = "1" ]; then
+            exit 1
+        fi
+        exit 0
+        ;;
+    image)
+        [ "${2:-}" = "inspect" ] || exit 1
+        [ "${DOCUMENTATION_TEST_IMAGE_AVAILABLE:-0}" = "1" ] || exit 1
         exit 0
         ;;
     run)
@@ -148,15 +170,40 @@ grep -Fxq -- '--apply-remote-upgrade' "${captured_docker_run}"
 grep -Eq '/project:rw$' "${captured_docker_run}"
 
 write_manifest 1.2.3 omit
-if DOCUMENTATION_TOOLS_VERSION=1.2.3 run_upgrade 2>"${fixture}/schema-error"; then
-    echo "ERROR: Bootstrap accepted a current release without CONFIG_SCHEMA_VERSION." >&2
-    exit 1
-fi
-grep -Fq 'missing CONFIG_SCHEMA_VERSION' "${fixture}/schema-error"
+DOCUMENTATION_TOOLS_VERSION=1.2.3 run_upgrade 2>"${fixture}/schema-warning"
+grep -Fq 'using schema 1 from the release bootstrap' "${fixture}/schema-warning"
+grep -Fxq -- '--target-config-schema' "${captured_docker_run}"
+grep -Fxq -- '1' "${captured_docker_run}"
 
 write_manifest 0.6.1 omit
 DOCUMENTATION_TOOLS_VERSION=0.6.1 run_upgrade
 grep -Fxq -- '--target-config-schema' "${captured_docker_run}"
 grep -Fxq -- '1' "${captured_docker_run}"
+
+rm -f "${project_root}/docs/.documentation-tools/managed-files.json"
+write_manifest 1.2.3
+if DOCUMENTATION_TOOLS_VERSION=1.2.3 \
+DOCUMENTATION_INSTALL_TEST_MODE=1 \
+DOCUMENTATION_INSTALL_SKIP_DOCTOR=1 \
+DOCUMENTATION_TEST_PULL_FAILURE=1 \
+DOCUMENTATION_TEST_IMAGE_AVAILABLE=1 \
+DOCUMENTATION_TEST_RELEASE_MANIFEST="${manifest}" \
+DOCUMENTATION_TEST_CAPTURED_URL="${captured_url}" \
+DOCUMENTATION_TEST_CAPTURED_DOCKER_RUN="${captured_docker_run}" \
+PATH="${fake_bin}:${PATH}" \
+    "${REPOSITORY_ROOT}/install.sh" "${project_root}" \
+    2>"${fixture}/pull-warning"
+then
+    :
+else
+    echo "ERROR: Bootstrap did not recover from a failed pull with the exact image available." >&2
+    sed 's/^/  /' "${fixture}/pull-warning" >&2
+    exit 1
+fi
+if ! grep -Fq 'exact immutable image is available locally' "${fixture}/pull-warning"; then
+    echo "ERROR: Bootstrap recovery did not report the expected immutable-image warning." >&2
+    sed 's/^/  /' "${fixture}/pull-warning" >&2
+    exit 1
+fi
 
 echo "Bootstrap release-manifest tests passed."

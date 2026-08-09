@@ -66,6 +66,24 @@ case "${1:-}" in
         fi
         exit 0
         ;;
+    image)
+        [ "${2:-}" = "inspect" ] || exit 1
+        [ "${DOCUMENTATION_TEST_IMAGE_AVAILABLE:-0}" = "1" ]
+        ;;
+    pull)
+        {
+            printf '%s' "${1:-}"
+            shift || true
+            for argument do
+                printf '\t%s' "${argument}"
+            done
+            printf '\n'
+        } >>"${DOCUMENTATION_TEST_DOCKER_LOG}"
+        if [ "${DOCUMENTATION_TEST_PULL_FAILURE:-0}" = "1" ]; then
+            exit 1
+        fi
+        exit 0
+        ;;
 esac
 {
     printf '%s' "${1:-}"
@@ -161,6 +179,18 @@ DOCUMENTATION_REMOTE_RENDERER_IMAGE="registry.example/renderer@sha256:${digest}"
     "${project}/docs/documentation" doctor >"${fixture}/doctor-warning.out"
 grep -Fq 'WARNING: registry manifest is unavailable' "${fixture}/doctor-warning.out"
 grep -Fq 'Doctor completed with 0 error(s)' "${fixture}/doctor-warning.out"
+
+PATH="${fake_bin}:${PATH}" \
+DOCUMENTATION_TEST_DOCKER_LOG="${docker_log}" \
+DOCUMENTATION_TEST_PULL_FAILURE=1 \
+DOCUMENTATION_TEST_IMAGE_AVAILABLE=1 \
+DOCUMENTATION_REMOTE_RENDERER_IMAGE="registry.example/renderer@sha256:${digest}" \
+    "${project}/docs/documentation" validate \
+    >"${fixture}/pull-recovery.out" 2>&1
+grep -Fq 'exact immutable renderer is available locally' \
+    "${fixture}/pull-recovery.out"
+grep -Eq '^pull\t' "${docker_log}"
+grep -Eq '^run\t' "${docker_log}"
 
 cat >"${project}/docs/documentation.toml" <<'EOF'
 schema_version = 1
