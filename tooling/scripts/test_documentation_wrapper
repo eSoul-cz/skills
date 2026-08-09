@@ -189,8 +189,8 @@ DOCUMENTATION_REMOTE_RENDERER_IMAGE="registry.example/renderer@sha256:${digest}"
     >"${fixture}/pull-recovery.out" 2>&1
 grep -Fq 'exact immutable renderer is available locally' \
     "${fixture}/pull-recovery.out"
-grep -Eq '^pull\t' "${docker_log}"
-grep -Eq '^run\t' "${docker_log}"
+grep -Eq '^pull	' "${docker_log}"
+grep -Eq '^run	' "${docker_log}"
 
 cat >"${project}/docs/documentation.toml" <<'EOF'
 schema_version = 1
