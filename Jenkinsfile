@@ -152,7 +152,7 @@ pipeline {
 					}
 					def stagedManifest = readFile(file: 'build/release-artifacts/release.env')
 					def requiredManifestLine = "CONFIG_SCHEMA_VERSION=${configSchemaVersion}"
-					if (!stagedManifest.readLines().contains(requiredManifestLine)) {
+					if (!stagedManifest.readLines().contains(requiredManifestLine.toString())) {
 						error("Release draft is missing ${requiredManifestLine}.")
 					}
 					def artifacts = publishContainerReleaseArtifacts(
