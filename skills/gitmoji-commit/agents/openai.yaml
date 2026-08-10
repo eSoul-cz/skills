@@ -1,0 +1,7 @@
+interface:
+  display_name: "Gitmoji Commit"
+  short_description: "Split and commit work with Gitmoji messages"
+  default_prompt: "Use $gitmoji-commit to split, stage, and commit my work with Gitmoji messages."
+
+policy:
+  allow_implicit_invocation: true
