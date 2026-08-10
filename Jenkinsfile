@@ -116,7 +116,7 @@ pipeline {
 						sourceCommit: sourceCommit,
 						releaseMetadata: [
 							CONFIG_SCHEMA_VERSION: configSchemaVersion,
-							UPGRADE_NOTES: 'Adds named themes, eSoul client branding, project-local fonts, styled footnotes and callouts, configurable link notices, doctor diagnostics, and transactional hosted upgrades; configuration schema remains 1.',
+							UPGRADE_NOTES: 'Updates canonical bootstrap release URLs after the repository rename to eSoul-cz/skills; documentation tooling behavior and configuration schema remain 1.',
 						],
 						releaseFiles: [
 							'install.sh': bootstrapScript,
