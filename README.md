@@ -37,6 +37,16 @@ To work from a local checkout, replace `eSoul-cz/skills` with `.`.
 
 ## Skills
 
+### `gitmoji-commit`
+
+Splits work into focused commits by intention, stages and verifies each change, and writes one Gitmoji shortcode per normal agent-authored commit while respecting repository-specific conventions.
+
+Usage:
+
+```text
+$gitmoji-commit commit your work
+```
+
 ### `esoul-maintain-application-documentation`
 
 Creates, refreshes, verifies, reviews, and renders application user, developer, and operator documentation from repository evidence.
