@@ -1,0 +1,4 @@
+interface:
+  display_name: "eSoul Freelo Task Authoring"
+  short_description: "Prepare and create approved eSoul Freelo tasks"
+  default_prompt: "Use $esoul-freelo-task-authoring to prepare and create a well-specified eSoul task in Freelo."

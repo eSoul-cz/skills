@@ -130,15 +130,15 @@ run_tagged_bootstrap() {
 write_manifest 1.2.3
 DOCUMENTATION_TOOLS_VERSION= run_bootstrap
 test "$(sed -n '1p' "${captured_url}")" = \
-    "https://github.com/eSoul-cz/documentation-skill/releases/latest/download/release.env"
+    "https://github.com/eSoul-cz/skills/releases/latest/download/release.env"
 
 DOCUMENTATION_TOOLS_VERSION=1.2.3 run_bootstrap
 test "$(sed -n '1p' "${captured_url}")" = \
-    "https://github.com/eSoul-cz/documentation-skill/releases/download/1.2.3/release.env"
+    "https://github.com/eSoul-cz/skills/releases/download/1.2.3/release.env"
 
 DOCUMENTATION_TOOLS_VERSION= run_tagged_bootstrap
 test "$(sed -n '1p' "${captured_url}")" = \
-    "https://github.com/eSoul-cz/documentation-skill/releases/download/1.2.3/release.env"
+    "https://github.com/eSoul-cz/skills/releases/download/1.2.3/release.env"
 
 write_manifest 2.0.0
 if DOCUMENTATION_TOOLS_VERSION=1.2.3 run_bootstrap 2>"${fixture}/mismatch-error"; then
@@ -152,10 +152,10 @@ printf '{}\n' > "${project_root}/docs/.documentation-tools/managed-files.json"
 write_manifest 1.2.3 2
 run_upgrade_wrapper
 test "$(sed -n '1p' "${captured_url}")" = \
-    "https://github.com/eSoul-cz/documentation-skill/releases/latest/download/release.env"
+    "https://github.com/eSoul-cz/skills/releases/latest/download/release.env"
 run_upgrade_wrapper --to 1.2.3
 test "$(sed -n '1p' "${captured_url}")" = \
-    "https://github.com/eSoul-cz/documentation-skill/releases/download/1.2.3/release.env"
+    "https://github.com/eSoul-cz/skills/releases/download/1.2.3/release.env"
 
 DOCUMENTATION_TOOLS_VERSION=1.2.3 run_upgrade
 grep -Fxq -- '--plan-remote-upgrade' "${captured_docker_run}"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Freelo CLI"
+  short_description: "Manage Freelo projects and tasks through the CLI"
+  default_prompt: "Use $freelo to inspect or manage Freelo work through the authenticated CLI."

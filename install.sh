@@ -14,7 +14,7 @@ if [ -z "${REQUESTED_VERSION}" ] &&
 then
     REQUESTED_VERSION=${DOCUMENTATION_BOOTSTRAP_RELEASE_TAG}
 fi
-RELEASE_BASE_URL=https://github.com/eSoul-cz/documentation-skill/releases
+RELEASE_BASE_URL=https://github.com/eSoul-cz/skills/releases
 if [ -n "${REQUESTED_VERSION}" ]; then
     if ! printf '%s\n' "${REQUESTED_VERSION}" |
         grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'

@@ -1,139 +1,80 @@
-# eSoul application documentation
+# eSoul Skills
 
-This repository contains two independently consumable parts:
+Reusable agent skills and companion tools for eSoul projects.
 
-- `skills/esoul-maintain-application-documentation/` is the agent skill. It contains `SKILL.md`, agent metadata, focused references, and project-owned Markdown starters.
-- `tooling/` is the documentation tool distribution. It contains the Go installer and renderer, Lua filters, themes, fonts, Docker build, managed project wrapper, fixtures, release tests, and the default project configuration.
+## Install
 
-The skill deliberately does not contain or search for tooling source code. Once tooling is installed in an application repository, the skill interacts with it only through `docs/documentation`.
-
-## Install the skill
-
-List the skills discoverable from a local checkout:
+List the skills available from GitHub:
 
 ```bash
-npx skills add . --list
+npx skills add eSoul-cz/skills --list
 ```
 
-Install this skill from the checkout:
+Choose skills interactively:
 
 ```bash
-npx skills add . \
-  --skill esoul-maintain-application-documentation \
-  --agent codex \
-  --yes
+npx skills add eSoul-cz/skills
 ```
 
-Install it from GitHub:
+Install one skill globally for Codex:
 
 ```bash
-npx skills add eSoul-cz/documentation-skill
-```
-
-For a non-interactive global Codex installation:
-
-```bash
-npx skills add eSoul-cz/documentation-skill \
-  --skill esoul-maintain-application-documentation \
+npx skills add eSoul-cz/skills \
+  --skill <skill-name> \
   --agent codex \
   --global \
   --yes
 ```
 
-Only the nested skill directory is installed. The repository README, Jenkins pipeline, Go/Lua sources, Dockerfiles, release data, fonts, fixtures, and visual baselines remain outside the agent skill.
-
-## Install project tooling
-
-Tool installation is an explicit, separate operation from installing the agent skill. From the application repository, run:
+The Freelo task-authoring workflow requires both Freelo skills:
 
 ```bash
-curl -fsSL https://github.com/eSoul-cz/documentation-skill/releases/latest/download/install.sh | sh
+npx skills add eSoul-cz/skills --skill freelo --agent codex --global --yes
+npx skills add eSoul-cz/skills --skill esoul-freelo-task-authoring --agent codex --global --yes
 ```
 
-An explicit project path is also supported:
+To work from a local checkout, replace `eSoul-cz/skills` with `.`.
 
-```bash
-curl -fsSL https://github.com/eSoul-cz/documentation-skill/releases/latest/download/install.sh |
-  sh -s -- /absolute/project/root
+## Skills
+
+### `esoul-maintain-application-documentation`
+
+Creates, refreshes, verifies, reviews, and renders application user, developer, and operator documentation from repository evidence.
+
+Usage:
+
+```text
+$esoul-maintain-application-documentation verify the documentation in this repository
 ```
 
-The command downloads the bootstrap from the latest immutable GitHub Release. The script requires Docker, reads both digest-pinned images from that release’s `release.env` manifest, and pulls the public images from `rg.fr-par.scw.cloud/esoul-internal-tools`. It installs the remote profile, creates `docs/documentation.toml` only when missing, pins the renderer by its immutable digest, stores that digest in local Git configuration, and runs `docs/documentation doctor`. It does not clone this repository or install Go, Lua, Pandoc, or LaTeX on the host.
+### `freelo`
 
-The installed agent skill can perform the same setup when asked to configure documentation tooling. Existing managed installations are not overwritten; use the reviewed upgrade workflow for them.
+Operates Freelo projects, tasks, comments, time records, and related entities through the authenticated `freelo` CLI.
 
-To select a published tooling version:
+Usage:
 
-```bash
-curl -fsSL https://github.com/eSoul-cz/documentation-skill/releases/download/VERSION/install.sh |
-  DOCUMENTATION_TOOLS_VERSION=VERSION sh
+```text
+$freelo show the active tasks in my project
 ```
 
-For CI or a non-Git working directory, provide the configured renderer digest through `DOCUMENTATION_REMOTE_RENDERER_IMAGE`. Local Git configuration is deliberately untracked and is not transferred to CI.
+### `esoul-freelo-task-authoring`
 
-### Tooling development and managed upgrades
+Prepares implementation-ready eSoul tasks, checks for duplicates, presents an exact preview, and writes to Freelo only after approval. Requires the `freelo` skill.
 
-From a trusted checkout of this repository, install a local or remote development bundle with:
+Usage:
 
-```bash
-tooling/scripts/install_project_tools /absolute/project/root --remote
-tooling/scripts/install_project_tools /absolute/project/root --local
+```text
+$esoul-freelo-task-authoring turn this feature request into an approved Freelo task
 ```
 
-Use `--check` to verify managed files. Use `--upgrade` only after reviewing local changes. Preview an upgrade to the latest GitHub Release with:
+## Tools
 
-```bash
-tooling/scripts/upgrade_project_tools /absolute/project/root
-```
+- `docs/documentation` validates and renders application documentation. Install it in an application repository with:
 
-Select a specific semantic Git tag with:
+  ```bash
+  curl -fsSL https://github.com/eSoul-cz/skills/releases/latest/download/install.sh | sh
+  ```
 
-```bash
-tooling/scripts/upgrade_project_tools /absolute/project/root --to VERSION
-```
+- `freelo` is the authenticated CLI used by the Freelo skills. Authenticate it with `freelo auth login`.
 
-Append `--apply` only after reviewing the plan. The upgrade wrapper downloads the selected GitHub Release’s signed `release.env`, runs its digest-pinned installer image, and never consults repository-local release records. Application repositories keep their authored Markdown, assets, specification, decisions, and `docs/documentation.toml`; managed runtime files are recorded in `docs/.documentation-tools/managed-files.json`.
-
-## Develop and validate
-
-Run installer unit and integration tests:
-
-```bash
-cd tooling/install-project-tools
-go test ./...
-go vet ./...
-```
-
-Run renderer unit tests:
-
-```bash
-cd tooling/project-tools/docs/.documentation-tools/pdf
-go test ./...
-go vet ./...
-```
-
-Run the complete Docker-first renderer and visual-regression fixture:
-
-```bash
-tooling/scripts/test_renderer_smoke
-tooling/scripts/test_bootstrap_install
-tooling/scripts/test_documentation_wrapper
-```
-
-Validate skill discovery:
-
-```bash
-npx skills add . --list
-```
-
-## Releases
-
-The root `Jenkinsfile` validates the tooling and publishes multi-architecture renderer and installer images to the public `rg.fr-par.scw.cloud/esoul-internal-tools` registry. Publication runs only for a semantic Git tag, which is the authoritative release version. Jenkins injects that tag into the installer bundle; the committed `0.0.0` `VERSION` value is only an untagged-development placeholder. Both images include BuildKit SBOM and provenance attestations.
-
-After resolving the immutable image digests, Jenkins uses the `dockerHelpers` shared library to generate and sign standalone SPDX, provenance, and Trivy reports. It publishes the verified artifact set and canonical `release.env` bootstrap manifest through a GitHub Release. That manifest records the release’s configuration schema, immutable installer and renderer images, and signed supply-chain artifact URLs. Jenkins requires the pinned Cosign, Syft, GitHub CLI, and Trivy versions documented by `publishContainerReleaseArtifacts`, plus these credentials:
-
-- `github-documentation-skill-release-token` — repository-scoped GitHub Secret Text with `Contents: read and write`;
-- `cosign-documentation-skill-private-key` — encrypted Cosign private-key Secret File;
-- `cosign-documentation-skill-key-password` — Cosign key-password Secret Text;
-- `scaleway_secret_key` — existing Scaleway registry Secret Text.
-
-Git tags and their immutable GitHub Release assets are the complete release authority; no generated release record is committed back into this repository. See [the hosted image release notes](docs/hosted-image-plan.md) for the publication and migration contract.
+Tooling source and release automation live under `tooling/`, `install.sh`, and `Jenkinsfile`.

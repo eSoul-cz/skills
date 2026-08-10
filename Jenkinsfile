@@ -18,7 +18,7 @@ pipeline {
 		RENDERER_CONTEXT = 'tooling/project-tools/docs/.documentation-tools/pdf'
 		RENDERER_DOCKERFILE = 'tooling/project-tools/docs/.documentation-tools/pdf/Dockerfile'
 		INSTALLER_DOCKERFILE = 'tooling/install-project-tools/Dockerfile'
-		GITHUB_REPOSITORY = 'eSoul-cz/documentation-skill'
+		GITHUB_REPOSITORY = 'eSoul-cz/skills'
 		GITHUB_RELEASE_CREDENTIALS_ID = 'github-documentation-skill-release-token'
 		SCALEWAY_REGISTRY_CREDENTIALS_ID = 'scaleway_secret_key'
 		COSIGN_PRIVATE_KEY_CREDENTIALS_ID = 'cosign-documentation-skill-private-key'
