@@ -47,6 +47,25 @@ Usage:
 $gitmoji-commit commit your work
 ```
 
+### `final-pr-review`
+
+Finishes individual GitHub PRs and native stacked PRs: optional local CodeRabbit review before pushing, CI and remote review monitoring, fixes for valid findings, evidence-backed replies to invalid findings, and repeated verification until the current revision is approved. Does not merge or bypass required human reviews.
+
+Uses `gitmoji-commit` for commits and `code-review` for local review when available. Requires authenticated GitHub access and the repository's CodeRabbit integration; automatic CodeRabbit approval requires `reviews.request_changes_workflow` to be enabled.
+
+Usage:
+
+```text
+$final-pr-review create the PR, run local review before pushing, and iterate until CI passes and CodeRabbit approves
+$final-pr-review finish this GitHub stack bottom-up; skip local CodeRabbit review
+```
+
+Install from this checkout:
+
+```bash
+npx skills add . --skill final-pr-review --agent codex --global --yes
+```
+
 ### `esoul-maintain-application-documentation`
 
 Creates, refreshes, verifies, reviews, and renders application user, developer, and operator documentation from repository evidence.
