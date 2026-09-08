@@ -109,7 +109,7 @@ Always make the exact done state clear. For complex tasks, list acceptance crite
 
 Embed important source links naturally in sentences. A `Podklady` section may repeat the same links for scanning. Keep task descriptions self-contained except when `esoul-tasking` is orchestrating an explicitly resolved `github-freelo` run: then its paired GitHub issue owns the detailed specification and verification, while Freelo contains the outcome, scope summary, observable done conditions, and an issue link in the first paragraph. Require the paired workflow's preview, reciprocal links, and read-back verification. In all other cases, including direct use of this skill and `freelo-only` mode, never substitute an external issue or document for a self-contained task description.
 
-Show the preview as Markdown. Write simple sanitized HTML to Freelo using paragraphs, lists, links, and inline code; avoid decorative tables or complex markup.
+Show the preview as Markdown. Write simple sanitized HTML to Freelo using paragraphs, lists, links, and inline code; avoid decorative tables or complex markup. Give every link (`<a>`) `target="_blank" rel="noopener"` so it opens in a new tab.
 
 ### Tasks versus subtasks
 
