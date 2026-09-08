@@ -23,7 +23,7 @@ iframe { border: 0; position: absolute; left: 0; top: 0; transform-origin: top l
 <body>
 <header>
 <h1 id="title">Local design preview</h1>
-<p class="warning">Markup only — no app bridge, comments, database, or saved feedback.</p>
+<p class="warning">Design preview — isolated bundle scripts; no app bridge or saved feedback.</p>
 <div class="controls">
 <label>Frame <select id="frames" aria-label="Frame"></select></label>
 <label><input id="fit" type="checkbox" checked> Fit to width</label>
@@ -32,6 +32,8 @@ iframe { border: 0; position: absolute; left: 0; top: 0; transform-origin: top l
 </div>
 <p id="status" role="status">Loading validated manifest…</p>
 </header>
+<!-- Same-origin capability belongs to the separate bundle origin, never this UI's origin.
+     preview.js rejects a shared origin; the UI response's frame-src pins the bundle listener. -->
 <main id="viewport"><div id="stage"><iframe id="design" title="Prototype design" sandbox="allow-scripts allow-same-origin"></iframe></div></main>
 </body>
 </html>
