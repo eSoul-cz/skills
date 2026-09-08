@@ -31,7 +31,7 @@ node "$SKILL_DIR/scripts/mockup.mjs" preview ./sharing/shop --app-root /path/to/
 
 Omitting the bundle path selects `example/` relative to this skill, not the current directory. The app root defaults to `ESOUL_MOCKUP_APP_ROOT` or the current working directory, never the skill's install location. Explicit bundle/app-root paths are resolved from the current directory. `--php /path/to/php` or `PHP_BINARY` selects the runtime; use the application's PHP version rather than bypassing Composer's platform check. `--help` explains the complete CLI. The application also exposes `php bin/console mockups:validate DIRECTORY --json` for callers already running its CLI environment.
 
-Preview serves only on `http://127.0.0.1:8731/` by default; use the exact printed URL. Stop with Ctrl+C. When an agent harness manages long-running processes, start the command through its managed-process tool rather than a blocking shell invocation. Refresh after asset changes; restart after manifest changes to revalidate and reload identities.
+The preview UI serves only on `http://127.0.0.1:8731/` by default; use the exact printed URL. Executable bundle content is served on a separate, automatically allocated loopback port. Both listeners stop with Ctrl+C. When an agent harness manages long-running processes, start the command through its managed-process tool rather than a blocking shell invocation. Refresh after asset changes; restart after manifest changes to revalidate and reload identities.
 
 ## Agree the publishing destination
 
@@ -60,7 +60,7 @@ Small hover/active effects may stay in CSS. Any meaningful state that reviewers 
 
 `schedule-image.html` shows an image inside the same root contract with explicit intrinsic dimensions and descriptive `alt` text. It is reviewed through the normal app bridge, not a separate gallery system. The small local SVG is an independently authored fictional workshop schedule, not a client screenshot. Replace it with an authorized locally stored image when appropriate; keep the HTML wrapper.
 
-The application injects its versioned bridge when serving HTML. Do not copy `bridge-v1.js` into the bundle or add your own postMessage/pin implementation. The app owns review mode, frame navigation, pins, authors, threads, replies, moderation, and persistence. In comment mode it intercepts a click before the design link action. The frame never sends feedback API requests or supplies trusted revision/user IDs.
+The application injects its versioned bridge when serving HTML. Do not copy `bridge-v1.js` into the bundle or add your own review/pin protocol. The app owns review mode, frame navigation, pins, authors, threads, replies, moderation, and persistence. In comment mode it intercepts a click before the design link action. The frame never sends feedback API requests or supplies trusted revision/user IDs. The local server separately injects a measurement-only probe at serve time; never copy that probe into published bundles.
 
 ## Build and inspect locally
 
@@ -70,7 +70,7 @@ The application injects its versioned bridge when serving HTML. Do not copy `bri
 4. Run `preview`, open the printed loopback URL in a browser, and inspect all frames. Use frame selection and Fit to width; confirm 1440px desktop, 390px mobile, scrolling, text wrapping, focus/hover states, and all images/fonts loading without third-party requests. Follow every included link and verify the identity/width indicator updates.
 5. Watch the browser console and network panel for missing assets, CSP failures, unintended fetches, and broken navigation. Reload after changes and rerun validation before committing.
 
-**Local preview is only a markup/design aid.** It deliberately has no app bridge, comment editor, pin mode, database, or feedback saving. Its own frame selector, sizing, and identity inspection are local tools, not a second review renderer. Never claim this preview proves isolation, pin placement, reply persistence, or durable feedback. The real viewer is a separate-origin sandbox with authorization and stricter resource policy; verify there too.
+**Local preview is only a design aid.** Bundle JavaScript runs on an origin separate from the controls. The controller never reads the child DOM: it accepts only declared frame identities and integer heights from 1 to 65,536px, checking the sender window, exact origin, and a fresh per-load nonce. The nonce binds reports to that load; it cannot distinguish the injected probe from bundle scripts, which can spoof declared identities and heights within those bounds. These reports are untrusted layout hints, not tamper-proof geometry or an authorization/feedback interface. The preview has no app bridge, comment editor, pin mode, database, or feedback saving. Never claim local checks prove the real viewer's isolation, pin placement, reply persistence, or durable feedback; verify the authorized application viewer separately.
 
 ## Publish and prove the real review cycle
 
