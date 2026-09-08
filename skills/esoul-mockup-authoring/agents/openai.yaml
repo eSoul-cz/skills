@@ -1,0 +1,4 @@
+interface:
+  display_name: "eSoul Mockup Authoring"
+  short_description: "Author and validate static eSoul mockup bundles"
+  default_prompt: "Use $esoul-mockup-authoring to prepare a self-contained mockup bundle, validate it with the application's authoritative validator, and visually inspect every frame before publishing."

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup local design preview</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font: 15px/1.5 system-ui, sans-serif; color: #182d35; background: #e8edef; }
+header { padding: 16px 24px; background: #fff; border-bottom: 1px solid #c8d2d7; }
+h1 { font-size: 18px; margin: 0 0 8px; }
+p { margin: 6px 0; }
+.warning { color: #87401a; font-weight: 650; }
+.controls { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+select, button { font: inherit; padding: 5px; }
+#viewport { padding: 24px; overflow: auto; }
+#stage { position: relative; background: white; box-shadow: 0 3px 16px #182d3520; }
+iframe { border: 0; position: absolute; left: 0; top: 0; transform-origin: top left; background: white; }
+#dimensions { font-variant-numeric: tabular-nums; }
+</style>
+<script src="preview.js" defer></script>
+</head>
+<body>
+<header>
+<h1 id="title">Local design preview</h1>
+<p class="warning">Design preview — isolated bundle scripts; no app bridge or saved feedback.</p>
+<div class="controls">
+<label>Frame <select id="frames" aria-label="Frame"></select></label>
+<label><input id="fit" type="checkbox" checked> Fit to width</label>
+<button id="refresh" type="button">Reload design</button>
+<output id="dimensions" aria-live="polite"></output>
+</div>
+<p id="status" role="status">Loading validated manifest…</p>
+</header>
+<!-- The iframe and response CSP both enforce an opaque origin, including direct document visits. -->
+<main id="viewport"><div id="stage"><iframe id="design" title="Prototype design" sandbox="allow-scripts"></iframe></div></main>
+</body>
+</html>

@@ -145,6 +145,46 @@ npx skills add . \
   --yes
 ```
 
+### `esoul-mockup-authoring`
+
+Authors self-contained static bundles for the eSoul mockups module, with desktop/mobile frames, directly addressable interaction states, and image-only designs. Includes an original, neutral five-frame Workshop Notes example and a loopback-only design preview.
+
+Requires Node.js 20+, an application checkout containing `App\Services\Mockups\BundleValidator` and `config/mockups/manifest.schema.json`, and that checkout's Composer dependencies and compatible PHP runtime. The skill does not bundle a second validator or a checkout-relative schema symlink. Local preview does not implement comments, pinning, or persistence; those must be verified in the actual application.
+
+Bundle JavaScript runs on a separate, automatically allocated loopback port. The UI pins that origin and validates measurement messages by sender, origin, per-load nonce, declared identity, and bounded height. Both ports close when the preview stops; the measurement probe is injected locally and is not part of published bundles.
+
+```bash
+npx skills add eSoul-cz/skills --skill esoul-mockup-authoring --agent codex --global --yes
+```
+
+Replace the repository with `.` to install from this checkout; choose another supported agent as needed.
+
+Usage:
+
+```text
+$esoul-mockup-authoring prepare and validate a desktop/mobile mockup bundle, then inspect every frame locally
+```
+
+Resolve `SKILL_DIR` to the installed skill's directory, then validate or preview the bundled example:
+
+```bash
+node "$SKILL_DIR/scripts/mockup.mjs" validate --app-root /path/to/application --php /path/to/compatible/php
+node "$SKILL_DIR/scripts/mockup.mjs" preview --app-root /path/to/application --php /path/to/compatible/php
+```
+
+An explicit bundle directory follows `validate` or `preview`. Application root defaults to `ESOUL_MOCKUP_APP_ROOT` or the current directory; PHP defaults to `PHP_BINARY` or `php`. Publishing requires a configured GitHub source and authorized staff UI access; do not infer a production destination from the sample.
+
+The browser security regression uses the real application validator and a disposable Chrome profile:
+
+```bash
+ESOUL_MOCKUP_APP_ROOT=/path/to/application \
+PHP_BINARY=/path/to/compatible/php \
+CHROME_BINARY=/path/to/chrome \
+node --test tooling/scripts/test_mockup_preview.mjs
+```
+
+It checks that bundle JavaScript still executes, cannot modify the control UI, and cannot override layout with invalid measurement messages. The test is explicitly skipped when the application or Chrome location is not supplied; Jenkins's documentation-tooling checks do not replace this application-dependent browser test.
+
 ## Tools
 
 - `docs/documentation` validates and renders application documentation. Install it in an application repository with:
