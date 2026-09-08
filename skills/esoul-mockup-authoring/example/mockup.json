@@ -1,0 +1,24 @@
+{
+  "formatVersion": 1,
+  "title": "Workshop Notes — fictional studio",
+  "start": { "screen": "workshop", "frame": "desktop" },
+  "screens": [
+    {
+      "id": "workshop",
+      "title": "Workshop overview",
+      "frames": [
+        { "id": "desktop", "title": "Desktop", "entry": "pages/home-desktop.html", "width": 1440 },
+        { "id": "mobile", "title": "Mobile", "entry": "pages/home-mobile.html", "width": 390 },
+        { "id": "menu-open", "title": "Desktop session navigation", "entry": "pages/home-menu.html", "width": 1440 },
+        { "id": "mobile-menu", "title": "Mobile session navigation", "entry": "pages/home-mobile-menu.html", "width": 390 }
+      ]
+    },
+    {
+      "id": "schedule",
+      "title": "Image-only schedule",
+      "frames": [
+        { "id": "desktop", "title": "Illustrated schedule", "entry": "pages/schedule-image.html", "width": 1440 }
+      ]
+    }
+  ]
+}

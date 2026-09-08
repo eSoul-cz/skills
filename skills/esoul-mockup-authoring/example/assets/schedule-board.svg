@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1040" viewBox="0 0 1440 1040" role="img" aria-labelledby="title description">
+<title id="title">Workshop Notes: an illustrative afternoon</title>
+<desc id="description">Three fictional sessions on a cream and purple schedule board: paper forms, colour journal, and quiet sketching.</desc>
+<rect width="1440" height="1040" fill="#faf8f2"/>
+<rect x="48" y="48" width="1344" height="944" rx="32" fill="#eeebf7"/>
+<g font-family="system-ui, sans-serif" fill="#27243d">
+<text x="112" y="132" font-size="22" letter-spacing="3">WORKSHOP NOTES</text>
+<text x="112" y="232" font-size="62" font-weight="600">An afternoon to explore.</text>
+<text x="112" y="286" font-size="24" fill="#646174">A fictional schedule, illustrated for a static mockup.</text>
+<path d="M172 390 V842" stroke="#c3badf" stroke-width="4"/>
+<g fill="#ffffff"><rect x="228" y="354" width="1092" height="146" rx="18"/><rect x="228" y="538" width="1092" height="146" rx="18"/><rect x="228" y="722" width="1092" height="146" rx="18"/></g>
+<g fill="#5042a8"><circle cx="172" cy="426" r="25"/><circle cx="172" cy="610" r="25"/><circle cx="172" cy="794" r="25"/></g>
+<g font-size="23" fill="white" text-anchor="middle"><text x="172" y="434">1</text><text x="172" y="618">2</text><text x="172" y="802">3</text></g>
+<g font-size="32" font-weight="600"><text x="266" y="414">Paper forms</text><text x="266" y="598">Colour journal</text><text x="266" y="782">Quiet sketching</text></g>
+<g font-size="22" fill="#646174"><text x="266" y="456">Fold, cut, and build a small study.</text><text x="266" y="640">Find a palette in everyday objects.</text><text x="266" y="824">Slow down and draw something familiar.</text></g>
+<g font-size="24" text-anchor="end"><text x="1278" y="414">13:00</text><text x="1278" y="598">14:00</text><text x="1278" y="782">15:15</text></g>
+<g font-size="18" text-anchor="end" fill="#646174"><text x="1278" y="456">45 minutes</text><text x="1278" y="640">60 minutes</text><text x="1278" y="824">30 minutes</text></g>
+<text x="112" y="942" font-size="18" fill="#646174">Sample content only. No bookings, accounts, or real event information.</text>
+</g>
+</svg>
