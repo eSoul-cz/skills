@@ -1,0 +1,4 @@
+interface:
+  display_name: "eSoul Tasking"
+  short_description: "Author Freelo tasks with optional GitHub issue pairing"
+  default_prompt: "Use $esoul-tasking to resolve this repository's tasking convention and prepare approved Freelo work, optionally paired with GitHub issues."

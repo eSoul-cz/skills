@@ -84,13 +84,13 @@ Ask about an optional module when code or existing tasks suggest one but the use
 
 ### Title
 
-Use a concise, actionable result. Prefer an infinitive. When a module materially aids scanning, use exactly:
+Use a concise, actionable result. Prefer an infinitive. When context materially aids scanning, prefer the specific application module, or otherwise a useful one-word context, and use exactly:
 
 ```text
-<Module>: <Actionable result>
+<Context>: <Actionable result>
 ```
 
-Use a colon, not a dash. Omit the prefix when the module is unclear or unhelpful.
+Use a colon, not a dash. Omit the prefix when no useful context is clear. Represent work categories such as frontend, backend, or data with existing task labels, not category prefixes.
 
 ### Description
 
@@ -107,7 +107,7 @@ Optimize for a typical programmer's understanding, not maximum technical density
 
 Always make the exact done state clear. For complex tasks, list acceptance criteria as observable outcomes. Tests prove the criteria; they do not replace them.
 
-Embed important source links naturally in sentences. A `Podklady` section may repeat the same links for scanning. Never use an external issue or document as a substitute for a self-contained task description.
+Embed important source links naturally in sentences. A `Podklady` section may repeat the same links for scanning. Keep task descriptions self-contained except when `esoul-tasking` is orchestrating an explicitly resolved `github-freelo` run: then its paired GitHub issue owns the detailed specification and verification, while Freelo contains the outcome, scope summary, observable done conditions, and an issue link in the first paragraph. Require the paired workflow's preview, reciprocal links, and read-back verification. In all other cases, including direct use of this skill and `freelo-only` mode, never substitute an external issue or document for a self-contained task description.
 
 Show the preview as Markdown. Write simple sanitized HTML to Freelo using paragraphs, lists, links, and inline code; avoid decorative tables or complex markup.
 
