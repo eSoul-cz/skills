@@ -17,7 +17,7 @@ Resolve `SKILL_DIR` to the directory containing this file, not the caller's work
 
 The only authoritative format schema is the application's `config/mockups/manifest.schema.json`. This skill deliberately contains no copy or checkout-relative symlink to that schema. Supply `--app-root /path/to/esoul-internal` or `ESOUL_MOCKUP_APP_ROOT`, or run the helper from the application root; it reads that checkout's schema and validator directly. Keep the selected app checkout aligned with the deployed module version. This skills repository alone does not supply the application runtime.
 
-Validation delegates to `App\Services\Mockups\BundleValidator` with the canonical schema. There is deliberately no weaker Node-only schema implementation or silent fallback. The PHP adapter loads Composer autoloading without booting the application container, so no database, GitHub token, or production environment credentials are required for validation. PHP must satisfy that checkout's Composer platform requirements.
+Validation delegates to `App\Services\Mockups\BundleValidator` with the canonical schema. There is deliberately no weaker Node-only schema implementation or silent fallback. The app checkout and PHP executable are trusted code-execution inputs selected by the operator: review that checkout before running validation, and never derive `--app-root`, `ESOUL_MOCKUP_APP_ROOT`, or `PHP_BINARY` from a bundle or exported feedback. Loading its Composer autoloader executes application/dependency code without booting the application container; no database, GitHub token, or production environment credentials are required. PHP must satisfy that checkout's Composer platform requirements.
 
 ```sh
 # From an application root, with SKILL_DIR resolved to the installed esoul-mockup-authoring directory:
@@ -36,6 +36,8 @@ The preview UI serves only on `http://127.0.0.1:8731/` by default; use the exact
 ## Agree the publishing destination
 
 Read staff-provided source configuration: repository `owner/repo`, branch, and repository-relative directory. Inspect existing source and bundles before replacing anything. Never infer a production destination from this example or put credentials into files. If the destination is not provided or discoverable, finish local authoring and ask for that specific publishing prerequisite.
+
+Before any push, synchronization, publication, or application write, obtain explicit user authorization for the repository, branch, directory, target environment, and intended writes. Existing explicit authorization for that scope is sufficient; discovering source configuration or having staff access is not. Include verification writes—test pins/threads/replies, status changes, and a second revision—in that approval. Otherwise remain local or read-only and ask for the missing authorization; never post test feedback into a client environment merely to complete this checklist.
 
 A successful sync publishes immediately. Use a dedicated sharing branch when the design needs approval before clients see it. Copy only the contents of `example/` into the chosen bundle directory to start; do not publish this skill's scripts, documentation, source dependency directories, or authoring inputs.
 
@@ -74,7 +76,7 @@ The application injects its versioned bridge when serving HTML. Do not copy `bri
 
 ## Publish and prove the real review cycle
 
-1. Commit and push built artifacts to the configured GitHub branch/directory using the repository's commit conventions. Never claim an unpushed local commit is published.
+1. After confirming the authorized destination and write scope above, commit and push built artifacts to that GitHub branch/directory using the repository's commit conventions. Never claim an unpushed local commit is published.
 2. Let the signed GitHub webhook trigger synchronization, or use staff **Sync now**. Check the recorded operation until it reports published/unchanged or a useful failure. Compare the recorded source commit and the expected design. Unchanged content may retain the earlier revision commit; the sync operation records the newly observed commit.
 3. On failure, fix the cause and retry. The previous published revision must remain active; do not tell reviewers to clear storage as a publication fix.
 4. In the actual authorized viewer, verify every frame and relative navigation. At desktop fit scale and after scrolling, place a pin near a clearly labelled element. Confirm it stays at that location, including after reopening the frame. Repeat on mobile and the image-only frame.
