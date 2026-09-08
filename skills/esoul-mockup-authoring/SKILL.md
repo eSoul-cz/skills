@@ -4,7 +4,7 @@ description: Author, adapt, validate, locally preview, and publish ready-built i
 compatibility: Node.js 20+ and the application's supported PHP runtime with Composer dependencies; an eSoul application checkout supplies the authoritative bundle validator. Browser access is required for visual verification.
 metadata:
   author: eSoul
-  version: "1.0.0"
+  version: "1.0.1"
 ---
 
 # eSoul mockup authoring
@@ -31,7 +31,7 @@ node "$SKILL_DIR/scripts/mockup.mjs" preview ./sharing/shop --app-root /path/to/
 
 Omitting the bundle path selects `example/` relative to this skill, not the current directory. The app root defaults to `ESOUL_MOCKUP_APP_ROOT` or the current working directory, never the skill's install location. Explicit bundle/app-root paths are resolved from the current directory. `--php /path/to/php` or `PHP_BINARY` selects the runtime; use the application's PHP version rather than bypassing Composer's platform check. `--help` explains the complete CLI. The application also exposes `php bin/console mockups:validate DIRECTORY --json` for callers already running its CLI environment.
 
-The preview UI serves only on `http://127.0.0.1:8731/` by default; use the exact printed URL. Executable bundle content is served on a separate, automatically allocated loopback port. Both listeners stop with Ctrl+C. When an agent harness manages long-running processes, start the command through its managed-process tool rather than a blocking shell invocation. Refresh after asset changes; restart after manifest changes to revalidate and reload identities.
+The preview UI serves only on `http://127.0.0.1:8731/` by default; use the exact printed URL. Bundle assets are served on a separate, automatically allocated loopback port, but executable documents receive an opaque sandbox origin. Both listeners stop with Ctrl+C. When an agent harness manages long-running processes, start the command through its managed-process tool rather than a blocking shell invocation. Refresh after asset changes; restart after manifest changes to revalidate and reload identities.
 
 ## Agree the publishing destination
 
@@ -52,7 +52,7 @@ A successful sync publishes immediately. Use a dedicated sharing branch when the
 - Use `data-mockup-label` for meaningful element context. Adapted Pencil names may remain as `data-pencil-name`; the bridge reads both. These labels aid human location lookup, not automatic pin migration.
 - Keep scripts, fonts, styles, and images inside the bundle. Use paths relative to each HTML/CSS file, including `../assets/...` from `pages/`. Do not use root-relative, CDN, repository, production API, or escaping `<base>` URLs. A CSS `url()` is relative to that stylesheet, not the page.
 - Commit actual runtime files, not Git LFS pointers, submodule references, symlinks, secrets, dependency trees, or source-only build inputs. The server validates paths, file types/sizes, referenced files, marked roots, and manifest consistency. Fix rejection rather than bypassing validation.
-- No server endpoints, service workers, production requests, embedded comments, browser comment storage, review toolbar, or export implementation belong in a bundle.
+- No server endpoints, network requests, service workers, cookies, localStorage/sessionStorage, other browser persistence, embedded comments, review toolbar, or export implementation belong in a bundle.
 
 ## Author interaction states and images
 
@@ -72,7 +72,9 @@ The application injects its versioned bridge when serving HTML. Do not copy `bri
 4. Run `preview`, open the printed loopback URL in a browser, and inspect all frames. Use frame selection and Fit to width; confirm 1440px desktop, 390px mobile, scrolling, text wrapping, focus/hover states, and all images/fonts loading without third-party requests. Follow every included link and verify the identity/width indicator updates.
 5. Watch the browser console and network panel for missing assets, CSP failures, unintended fetches, and broken navigation. Reload after changes and rerun validation before committing.
 
-**Local preview is only a design aid.** Bundle JavaScript runs on an origin separate from the controls. The controller never reads the child DOM: it accepts only declared frame identities and integer heights from 1 to 65,536px, checking the sender window, exact origin, and a fresh per-load nonce. The nonce binds reports to that load; it cannot distinguish the injected probe from bundle scripts, which can spoof declared identities and heights within those bounds. These reports are untrusted layout hints, not tamper-proof geometry or an authorization/feedback interface. The preview has no app bridge, comment editor, pin mode, database, or feedback saving. Never claim local checks prove the real viewer's isolation, pin placement, reply persistence, or durable feedback; verify the authorized application viewer separately.
+**Local preview is only a design aid.** Both the iframe and response CSP enforce `sandbox="allow-scripts"` without `allow-same-origin`, matching the deployed viewer's opaque-origin isolation. Generated code cannot access the parent DOM, cookies, localStorage, or sessionStorage. CSP restricts resources to local bundle assets and the injected measurement probe, and blocks network connections, workers, nested frames, forms, and base-URL overrides. Successful asset responses use wildcard CORS without credentials so relative ES modules and fonts can load from the opaque document; error responses do not grant CORS access.
+
+The controller never reads the child DOM: it accepts only declared frame identities and integer heights from 1 to 65,536px, checking the exact iframe window, `event.origin === 'null'`, and a fresh per-load nonce. Initialization uses `targetOrigin: '*'` only because an opaque origin cannot be addressed directly; the target is always that fixed iframe window. The child validates its parent window and the exact controls origin. The nonce binds reports to that load; it cannot distinguish the injected probe from bundle scripts, which can spoof declared identities and heights within those bounds. These reports are untrusted layout hints, not tamper-proof geometry or an authorization/feedback interface. The preview has no app bridge, comment editor, pin mode, database, or feedback saving. Never claim local checks prove the real viewer's isolation, grant authorization, pin placement, reply persistence, or durable feedback; verify the authorized application viewer separately.
 
 ## Publish and prove the real review cycle
 
