@@ -42,7 +42,7 @@ async function ready(child) {
     }
 }
 
-test('script-capable bundles cannot modify the UI, whose layout accepts only bounded declared-frame reports', {
+test('opaque bundles load local modules without browser state access, while UI layout accepts only bounded declared-frame reports', {
     skip: !appRoot || !chrome ? 'Requires ESOUL_MOCKUP_APP_ROOT, compatible PHP_BINARY, and CHROME_BINARY.' : false,
     timeout: 60000,
 }, async t => {
@@ -62,10 +62,18 @@ test('script-capable bundles cannot modify the UI, whose layout accepts only bou
     const bundle = join(fixture, 'bundle');
     await cp(join(skillRoot, 'example'), bundle, { recursive: true });
     const page = join(bundle, 'pages/home-desktop.html');
-    await writeFile(page, (await readFile(page, 'utf8')).replace('</body>', '<script src="../assets/attack.js"></script></body>'));
+    await writeFile(page, (await readFile(page, 'utf8')).replace('</body>', '<script src="../assets/attack.js"></script><script type="module" src="../assets/module.js"></script></body>'));
+    await writeFile(join(bundle, 'assets/value.js'), 'export const value = "local module loaded";');
+    await writeFile(join(bundle, 'assets/module.js'), 'import { value } from "./value.js"; document.querySelector("[data-mockup-screen]").dataset.moduleResult = value;');
     await writeFile(join(bundle, 'assets/attack.js'), `
 const root = document.querySelector('[data-mockup-screen]');
 root.style.minHeight = '2300px';
+const denied = {};
+// Deliberately bypass static API-name checks: sandboxing must remain the runtime security boundary.
+for (const key of ['localStorage', 'sessionStorage']) {
+    try { window[key]; denied[key] = false; } catch (error) { denied[key] = error.name === 'SecurityError'; }
+}
+try { document['cookie']; denied.cookie = false; } catch (error) { denied.cookie = error.name === 'SecurityError'; }
 try {
     parent.document.documentElement.dataset.previewCompromised = 'true';
     parent.postMessage({ type: 'preview-test:done' }, location.origin);
@@ -74,14 +82,16 @@ try { window.frameElement.removeAttribute('sandbox'); } catch {}
 window.addEventListener('message', event => {
     if (event.source !== parent || event.data?.type !== 'esoul-preview:inspect') return;
     const report = { type: 'esoul-preview:frame', nonce: event.data.nonce, entry: 'pages/home-desktop.html', screenId: 'workshop', frameId: 'desktop', height: 9999 };
-    setTimeout(() => {
+    setTimeout(async () => {
+        let networkBlocked = false;
+        try { await window['fetch']('../assets/value.js'); } catch (error) { networkBlocked = error.name === 'TypeError'; }
         parent.postMessage(report, event.origin); // Bundle scripts can spoof geometry within the accepted bounds.
         parent.postMessage({ ...report, nonce: 'wrong-load', height: 8888 }, event.origin);
         parent.postMessage({ ...report, height: 0 }, event.origin);
         parent.postMessage({ ...report, height: 65537 }, event.origin);
         parent.postMessage({ ...report, height: '8888' }, event.origin);
         parent.postMessage({ ...report, entry: 'not-a-frame.html', height: 8888 }, event.origin);
-        parent.postMessage({ type: 'preview-test:done' }, event.origin);
+        parent.postMessage({ type: 'preview-test:done', origin: window.origin, denied, networkBlocked, moduleResult: root.dataset.moduleResult }, event.origin);
     }, 200);
 });
 `);
@@ -122,7 +132,7 @@ window.addEventListener('message', event => {
     await command('Page.addScriptToEvaluateOnNewDocument', { source: `
 window.previewTestDone = new Promise(resolve => {
     addEventListener('message', event => {
-        if (event.source === document.querySelector('#design')?.contentWindow && event.data?.type === 'preview-test:done') resolve();
+        if (event.source === document.querySelector('#design')?.contentWindow && event.data?.type === 'preview-test:done') resolve({ ...event.data, messageOrigin: event.origin });
     });
 });
 ` }, sessionId);
@@ -130,11 +140,16 @@ window.previewTestDone = new Promise(resolve => {
     await command('Page.navigate', { url: uiOrigin }, sessionId);
     await loaded;
     const capture = await command('Runtime.evaluate', {
-        expression: 'window.previewTestDone.then(() => document.documentElement.outerHTML)',
+        expression: 'window.previewTestDone.then(report => ({ report, html: document.documentElement.outerHTML }))',
         awaitPromise: true, returnByValue: true,
     }, sessionId);
     assert.equal(capture.exceptionDetails, undefined, 'Browser verification failed');
-    const html = capture.result.value;
+    const { html, report } = capture.result.value;
+    assert.equal(report.origin, 'null', 'Generated code must execute with an opaque origin');
+    assert.equal(report.messageOrigin, 'null', 'Frame messages must carry the opaque origin');
+    assert.deepEqual(report.denied, { localStorage: true, sessionStorage: true, cookie: true });
+    assert.equal(report.moduleResult, 'local module loaded', 'Opaque frames must load relative ES module imports');
+    assert.equal(report.networkBlocked, true, 'Prototype network requests must be blocked even to local bundle assets');
     assert.doesNotMatch(html, /data-preview-compromised=/, 'Bundle JavaScript modified the parent document');
     assert.match(html, /height: 9999px/, 'The UI must accept bounded reports from bundle scripts without treating them as trusted measurements');
     assert.doesNotMatch(html, /height: (?:0|8888|65537)px/, 'An invalid nonce, identity, type, or out-of-range report changed preview geometry');
@@ -145,5 +160,11 @@ window.previewTestDone = new Promise(resolve => {
     assert.equal(new URL(bundleOrigin).hostname, '127.0.0.1');
     assert.equal((await fetch(`${uiOrigin}/bundle/pages/home-desktop.html`)).status, 404, 'UI origin must never serve bundle code');
     assert.equal((await fetch(`${bundleOrigin}/preview.js`)).status, 404, 'Bundle origin must never serve the control UI');
-    assert.equal((await fetch(`${bundleOrigin}/bundle/assets/attack.js`)).status, 200);
+    const asset = await fetch(`${bundleOrigin}/bundle/assets/attack.js`);
+    assert.equal(asset.status, 200);
+    assert.equal(asset.headers.get('access-control-allow-origin'), '*');
+    assert.equal(asset.headers.get('access-control-allow-credentials'), null);
+    const missing = await fetch(`${bundleOrigin}/bundle/assets/missing.js`);
+    assert.equal(missing.status, 404);
+    assert.equal(missing.headers.get('access-control-allow-origin'), null);
 });
