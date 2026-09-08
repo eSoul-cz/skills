@@ -32,8 +32,7 @@ iframe { border: 0; position: absolute; left: 0; top: 0; transform-origin: top l
 </div>
 <p id="status" role="status">Loading validated manifest…</p>
 </header>
-<!-- Same-origin capability belongs to the separate bundle origin, never this UI's origin.
-     preview.js rejects a shared origin; the UI response's frame-src pins the bundle listener. -->
-<main id="viewport"><div id="stage"><iframe id="design" title="Prototype design" sandbox="allow-scripts allow-same-origin"></iframe></div></main>
+<!-- The iframe and response CSP both enforce an opaque origin, including direct document visits. -->
+<main id="viewport"><div id="stage"><iframe id="design" title="Prototype design" sandbox="allow-scripts"></iframe></div></main>
 </body>
 </html>

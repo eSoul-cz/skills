@@ -62,10 +62,11 @@
         height = 0;
         dimensions.textContent = '';
         status.textContent = 'Waiting for isolated frame measurement…';
-        iframe.contentWindow.postMessage({ type: 'esoul-preview:inspect', nonce }, bundleOrigin);
+        // Opaque origins cannot be addressed directly; only this exact iframe receives initialization.
+        iframe.contentWindow.postMessage({ type: 'esoul-preview:inspect', nonce }, '*');
     });
     window.addEventListener('message', event => {
-        if (event.source !== iframe.contentWindow || event.origin !== bundleOrigin || !nonce) return;
+        if (event.source !== iframe.contentWindow || event.origin !== 'null' || !nonce) return;
         const data = event.data;
         if (!data || typeof data !== 'object' || Array.isArray(data) || data.nonce !== nonce) return;
         if (data.type === 'esoul-preview:error') {

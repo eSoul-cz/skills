@@ -16,7 +16,7 @@ Preview is loopback-only markup/design inspection: no app bridge, feedback edito
 
 /**
  * Validate with the application's canonical validator before exposing any content.
- * Preview uses distinct loopback origins so executable bundles cannot access the UI.
+ * Preview uses opaque sandbox origins so executable bundles cannot access browser state or the UI.
  */
 
 async function main() {
@@ -75,7 +75,7 @@ async function main() {
         response.setHeader('Referrer-Policy', 'no-referrer');
         response.setHeader('Content-Security-Policy', controls
             ? `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; frame-src ${bundleOrigin}; connect-src 'self'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`
-            : `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'self'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; frame-ancestors ${uiOrigin}; sandbox allow-scripts allow-same-origin`);
+            : `default-src 'none'; script-src ${bundleOrigin}/bundle/ ${bundleOrigin}/__preview-frame.js 'unsafe-inline'; style-src ${bundleOrigin}/bundle/ 'unsafe-inline'; img-src ${bundleOrigin}/bundle/ data:; font-src ${bundleOrigin}/bundle/ data:; media-src ${bundleOrigin}/bundle/; connect-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; frame-ancestors ${uiOrigin}; sandbox allow-scripts`);
         try {
             if (request.headers.host !== `127.0.0.1:${request.socket.localPort}` || !['GET', 'HEAD'].includes(request.method)) {
                 response.writeHead(403).end('Forbidden');
@@ -97,6 +97,7 @@ async function main() {
             }
             if (pathname === '/__preview-frame.js') {
                 response.setHeader('Content-Type', 'text/javascript; charset=utf-8');
+                response.setHeader('Access-Control-Allow-Origin', '*');
                 response.end(request.method === 'HEAD' ? undefined : await readFile(resolve(skillRoot, 'scripts/preview-frame.js')));
                 return;
             }
@@ -106,14 +107,17 @@ async function main() {
             if (!inside || inside === '..' || inside.startsWith(`..${sep}`) || isAbsolute(inside) || !(await stat(file)).isFile()) throw new Error('Not found');
             const type = types[extname(file).toLowerCase()];
             if (!type) throw new Error('Unsupported file');
+            // Opaque-origin modules and fonts need CORS, but never credentialed access.
+            response.setHeader('Access-Control-Allow-Origin', '*');
             response.setHeader('Content-Type', type);
             if (request.method === 'HEAD') response.end();
             else if (extname(file).toLowerCase() === '.html') {
                 const html = await readFile(file, 'utf8');
                 // Appended rather than replacing markup inside author scripts or comments.
-                response.end(`${html}\n<script src="/__preview-frame.js?uiOrigin=${encodeURIComponent(uiOrigin)}"></script>`);
+                response.end(`${html}\n<script src="/__preview-frame.js?uiOrigin=${encodeURIComponent(uiOrigin)}" crossorigin="anonymous"></script>`);
             } else createReadStream(file).on('error', () => response.destroy()).pipe(response);
         } catch {
+            response.removeHeader('Access-Control-Allow-Origin');
             response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('Not found');
         }
     }
