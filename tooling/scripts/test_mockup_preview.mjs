@@ -79,6 +79,12 @@ try {
     parent.postMessage({ type: 'preview-test:done' }, location.origin);
 } catch {}
 try { window.frameElement.removeAttribute('sandbox'); } catch {}
+// Only the controls may switch the authoring affordance on; a same-window message must not.
+new MutationObserver(() => {
+    if (!document.documentElement.hasAttribute('data-esoul-preview-hints')) return;
+    const link = document.querySelector('[data-mockup-screen] a[href]');
+    parent.postMessage({ type: 'preview-test:hints', outlined: getComputedStyle(link).outlineStyle === 'dashed' }, '*');
+}).observe(document.documentElement, { attributes: true, attributeFilter: ['data-esoul-preview-hints'] });
 window.addEventListener('message', event => {
     if (event.source !== parent || event.data?.type !== 'esoul-preview:inspect') return;
     const report = { type: 'esoul-preview:frame', nonce: event.data.nonce, entry: 'pages/home-desktop.html', screenId: 'workshop', frameId: 'desktop', height: 9999 };
@@ -91,7 +97,10 @@ window.addEventListener('message', event => {
         parent.postMessage({ ...report, height: 65537 }, event.origin);
         parent.postMessage({ ...report, height: '8888' }, event.origin);
         parent.postMessage({ ...report, entry: 'not-a-frame.html', height: 8888 }, event.origin);
-        parent.postMessage({ type: 'preview-test:done', origin: window.origin, denied, networkBlocked, moduleResult: root.dataset.moduleResult }, event.origin);
+        window.postMessage({ type: 'esoul-preview:hints', nonce: event.data.nonce, on: true, scale: 1 }, location.origin);
+        await new Promise(resolve => setTimeout(resolve, 50));
+        const hintsForced = document.documentElement.hasAttribute('data-esoul-preview-hints');
+        parent.postMessage({ type: 'preview-test:done', origin: window.origin, denied, networkBlocked, hintsForced, moduleResult: root.dataset.moduleResult }, event.origin);
     }, 200);
 });
 `);
@@ -130,9 +139,15 @@ window.addEventListener('message', event => {
     const { sessionId } = await command('Target.attachToTarget', { targetId, flatten: true });
     await command('Page.enable', {}, sessionId);
     await command('Page.addScriptToEvaluateOnNewDocument', { source: `
+const fromDesign = event => event.source === document.querySelector('#design')?.contentWindow;
 window.previewTestDone = new Promise(resolve => {
     addEventListener('message', event => {
-        if (event.source === document.querySelector('#design')?.contentWindow && event.data?.type === 'preview-test:done') resolve({ ...event.data, messageOrigin: event.origin });
+        if (fromDesign(event) && event.data?.type === 'preview-test:done') resolve({ ...event.data, messageOrigin: event.origin });
+    });
+});
+window.previewTestHints = new Promise(resolve => {
+    addEventListener('message', event => {
+        if (fromDesign(event) && event.data?.type === 'preview-test:hints') resolve(event.data);
     });
 });
 ` }, sessionId);
@@ -153,6 +168,23 @@ window.previewTestDone = new Promise(resolve => {
     assert.doesNotMatch(html, /data-preview-compromised=/, 'Bundle JavaScript modified the parent document');
     assert.match(html, /height: 9999px/, 'The UI must accept bounded reports from bundle scripts without treating them as trusted measurements');
     assert.doesNotMatch(html, /height: (?:0|8888|65537)px/, 'An invalid nonce, identity, type, or out-of-range report changed preview geometry');
+    assert.equal(report.hintsForced, false, 'Bundle scripts must not switch the authoring affordance on');
+    // Switching it on paints outlines and must leave the reported geometry untouched; anything that
+    // reserved layout space would resize the frame and move every pin placed against it.
+    const hints = await command('Runtime.evaluate', {
+        expression: `(async () => {
+            const design = document.querySelector('#design');
+            const before = design.style.height;
+            document.querySelector('#hints').click();
+            const painted = await window.previewTestHints;
+            await new Promise(resolve => setTimeout(resolve, 200));
+            return { ...painted, before, after: design.style.height };
+        })()`,
+        awaitPromise: true, returnByValue: true,
+    }, sessionId);
+    assert.equal(hints.exceptionDetails, undefined, 'Enabling the authoring affordance failed');
+    assert.equal(hints.result.value.outlined, true, 'The affordance must outline a declared link');
+    assert.equal(hints.result.value.after, hints.result.value.before, 'The affordance changed the measured frame height');
     const configResponse = await fetch(`${uiOrigin}/preview-config.json`);
     assert.equal(configResponse.status, 200);
     const { bundleOrigin } = await configResponse.json();
