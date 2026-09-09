@@ -7,6 +7,7 @@
     const viewport = document.querySelector('#viewport');
     const stage = document.querySelector('#stage');
     const fit = document.querySelector('#fit');
+    const hints = document.querySelector('#hints');
     const status = document.querySelector('#status');
     const dimensions = document.querySelector('#dimensions');
     const [manifest, config] = await Promise.all(['manifest.json', 'preview-config.json'].map(async path => {
@@ -22,6 +23,7 @@
     let current;
     let height = 0;
     let nonce;
+    let lastHints;
     document.querySelector('#title').textContent = `${manifest.title} — local design preview`;
     for (const frame of frames) {
         const option = document.createElement('option');
@@ -30,10 +32,30 @@
         selector.append(option);
     }
 
+    /** Zoom applied to the frame, from the manifest's trusted design width. */
+    function currentScale() {
+        if (!current || !fit.checked) return 1;
+        return Math.min(1, Math.max(1, viewport.clientWidth - 48) / current.width);
+    }
+
+    /**
+     * Ask the frame to outline what a reader can click, at a width the current zoom keeps visible.
+     * Design-only affordance: it paints outlines and tints, never layout, so the reported height
+     * stays the same whether it is on or off.
+     */
+    function syncHints(scale) {
+        if (!nonce) return;
+        const state = `${hints.checked}:${scale}`;
+        if (state === lastHints) return;
+        lastHints = state;
+        iframe.contentWindow.postMessage({ type: 'esoul-preview:hints', nonce, on: hints.checked, scale }, '*');
+    }
+
     /** Fit a bounded height report using the manifest's trusted design width, not a child-supplied width. */
     function measure() {
         if (!current || !height) return;
-        const scale = fit.checked ? Math.min(1, Math.max(1, viewport.clientWidth - 48) / current.width) : 1;
+        const scale = currentScale();
+        syncHints(scale);
         iframe.style.width = `${current.width}px`;
         iframe.style.height = `${height}px`;
         iframe.style.transform = `scale(${scale})`;
@@ -64,6 +86,9 @@
         status.textContent = 'Waiting for isolated frame measurement…';
         // Opaque origins cannot be addressed directly; only this exact iframe receives initialization.
         iframe.contentWindow.postMessage({ type: 'esoul-preview:inspect', nonce }, '*');
+        // Following a design link loads a new document, so the choice has to be re-sent to keep it.
+        lastHints = undefined;
+        syncHints(1);
     });
     window.addEventListener('message', event => {
         if (event.source !== iframe.contentWindow || event.origin !== 'null' || !nonce) return;
@@ -89,6 +114,7 @@
     });
     selector.addEventListener('change', () => open(selector.value));
     fit.addEventListener('change', measure);
+    hints.addEventListener('change', () => syncHints(currentScale()));
     window.addEventListener('resize', measure);
     document.querySelector('#refresh').addEventListener('click', () => open(selector.value));
     open(frames.find(frame => frame.screenId === manifest.start.screen && frame.id === manifest.start.frame).entry);
