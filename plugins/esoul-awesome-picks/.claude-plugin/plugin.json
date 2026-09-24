@@ -1,0 +1,8 @@
+{
+  "name": "esoul-awesome-picks",
+  "version": "0.1.0",
+  "description": "Curated eSoul selection of skills from sickn33/antigravity-awesome-skills (commit 7b534bc): WordPress/WooCommerce, Laravel/PHP, web performance, accessibility, E2E testing, SEO, Docker, Jenkins, MySQL, data storytelling, SQL and GDPR. Community content under MIT; see LICENSE-CONTENT.",
+  "author": { "name": "sickn33 and contributors, curated by eSoul" },
+  "repository": "https://github.com/sickn33/antigravity-awesome-skills",
+  "license": "MIT"
+}

@@ -1,0 +1,7 @@
+interface:
+  display_name: "eSoul Workflow"
+  short_description: "Size eSoul work and route it to the right skills"
+  default_prompt: "Use $esoul-workflow to plan, build, verify, and ship this eSoul task."
+
+policy:
+  allow_implicit_invocation: true

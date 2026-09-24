@@ -1,0 +1,9 @@
+{
+  "name": "esoul-skills",
+  "version": "0.3.0",
+  "description": "eSoul's own agent skills: esoul-workflow (entry point), gitmoji-commit, final-pr-review, freelo, esoul-freelo-task-authoring, esoul-tasking, esoul-maintain-application-documentation, esoul-mockup-authoring.",
+  "author": { "name": "eSoul", "email": "info@esoul.cz", "url": "https://esoul.cz" },
+  "homepage": "https://github.com/eSoul-cz/skills",
+  "repository": "https://github.com/eSoul-cz/skills",
+  "license": "MIT"
+}

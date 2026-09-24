@@ -2,7 +2,50 @@
 
 Reusable agent skills and companion tools for eSoul projects.
 
+## The eSoul workspace (Claude Code / Claude in VS Code)
+
+The fastest way to set a colleague up with the full eSoul workflow is the bundled
+Claude Code marketplace in this repo. It installs eSoul's own skills plus the
+third-party engineering and design skills the workflow relies on.
+
+**One-time setup per person:**
+
+```bash
+# add the eSoul marketplace (only once per machine)
+claude plugin marketplace add eSoul-cz/skills
+
+# install the workflow set
+claude plugin install esoul-skills@esoul          # esoul-workflow + all eSoul skills
+claude plugin install esoul-awesome-picks@esoul   # WordPress, Laravel, SEO, data, ...
+claude plugin install mattpocock-skills@esoul      # tdd, code-review, diagnosing-bugs, grilling
+claude plugin install frontend-design@esoul        # distinctive, non-templated UI
+```
+
+The same install works in the terminal and in Claude in VS Code: both read the
+same `~/.claude` configuration, so a plugin installed once is available in both.
+
+`mattpocock-skills` and `frontend-design` are referenced from their upstream
+repositories, so their updates come from the original authors. `esoul-skills`
+and `esoul-awesome-picks` are maintained here.
+
+Start any real task with the router:
+
+```text
+$esoul-workflow build, fix, review or analyse this eSoul task
+```
+
+**Optional, situational skills** (install per person only when needed, not part of
+the core workflow):
+
+```bash
+npx skills add remotion-dev/skills                                   # video in React
+npx skills add https://github.com/coleam00/excalidraw-diagram-skill  # Excalidraw diagrams
+npx skills add https://github.com/browser-use/browser-use            # local Chrome control
+npx skills add https://github.com/valyuai/skills --skill valyu-best-practices  # paid search API
+```
+
 ## Install
+
 
 List the skills available from GitHub:
 
@@ -184,6 +227,17 @@ node --test tooling/scripts/test_mockup_preview.mjs
 ```
 
 It checks that bundle JavaScript still executes, cannot modify the control UI, and cannot override layout with invalid measurement messages. The test is explicitly skipped when the application or Chrome location is not supplied; Jenkins's documentation-tooling checks do not replace this application-dependent browser test.
+
+### `esoul-workflow`
+
+Default entry point for eSoul work on web applications, WordPress sites, and data analyses. Loads repository context, sizes the task (S, M, L, bug, analysis), and routes each step to the owning skill instead of repeating it: `esoul-tasking` for tracked work, `esoul-mockup-authoring` and `frontend-design` for UI, `gitmoji-commit` for commits, `final-pr-review` for PRs. Uses the Matt Pocock skills (`grilling`, `tdd`, `diagnosing-bugs`, `code-review`) and CodeGraph when installed, and degrades gracefully without them. Includes short references for the eSoul web stack, the WP-template WordPress deployment model, and reproducible data analysis.
+
+Usage:
+
+```text
+$esoul-workflow add a newsletter signup to the WooCommerce checkout
+$esoul-workflow analyse last quarter's orders by acquisition channel
+```
 
 ## Tools
 

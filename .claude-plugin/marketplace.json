@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "esoul",
+  "owner": { "name": "eSoul", "email": "info@esoul.cz", "url": "https://esoul.cz" },
+  "description": "eSoul's Claude workspace: the eSoul skills, a curated community pick, and the third-party engineering and design plugins the eSoul workflow relies on.",
+  "plugins": [
+    {
+      "name": "esoul-skills",
+      "source": "./",
+      "category": "workflow",
+      "description": "eSoul's own skills, including the esoul-workflow entry point that sizes a task and routes it to the right skill."
+    },
+    {
+      "name": "esoul-awesome-picks",
+      "source": "./plugins/esoul-awesome-picks",
+      "category": "engineering",
+      "description": "Curated WordPress, Laravel/PHP, performance, accessibility, E2E, SEO, Docker, Jenkins, MySQL, data and GDPR skills."
+    },
+    {
+      "name": "mattpocock-skills",
+      "source": { "source": "github", "repo": "mattpocock/skills" },
+      "category": "engineering",
+      "description": "Matt Pocock's engineering skills (grilling, tdd, diagnosing-bugs, code-review, and more). Upstream, updates from the author."
+    },
+    {
+      "name": "frontend-design",
+      "source": { "source": "git-subdir", "url": "anthropics/claude-code", "path": "plugins/frontend-design" },
+      "category": "design",
+      "description": "Anthropic's frontend-design skill for distinctive, non-templated UI. Upstream, updates from Anthropic."
+    }
+  ]
+}
