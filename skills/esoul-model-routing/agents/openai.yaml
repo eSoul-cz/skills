@@ -1,0 +1,7 @@
+interface:
+  display_name: "eSoul Model Routing"
+  short_description: "Pick the right Claude model and effort for a task"
+  default_prompt: "Use $esoul-model-routing to choose and set the right model and effort for this task."
+
+policy:
+  allow_implicit_invocation: true

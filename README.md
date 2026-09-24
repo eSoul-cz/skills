@@ -239,6 +239,17 @@ $esoul-workflow add a newsletter signup to the WooCommerce checkout
 $esoul-workflow analyse last quarter's orders by acquisition channel
 ```
 
+### `esoul-model-routing`
+
+Choose and set the right Claude model and effort level for a task, to balance cost and quality: Haiku for trivial mechanical work, Sonnet for contained changes, Opus for real engineering, and `best` (Fable where available, else Opus) for the hardest or most sensitive work. Covers the current lineup and the Claude Code aliases, and picks the model for subagents it dispatches. Advises and sets the model; it does not silently swap the running turn.
+
+Usage:
+
+```text
+$esoul-model-routing which model should I use to refactor the checkout?
+$esoul-model-routing make this quick and cheap
+```
+
 ## Tools
 
 - `docs/documentation` validates and renders application documentation. Install it in an application repository with:

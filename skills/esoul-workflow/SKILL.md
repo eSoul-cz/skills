@@ -35,6 +35,8 @@ Pick the smallest size that fits, and say which size you picked in one line.
 
 Escalate the size as soon as a hidden decision appears. Never de-escalate silently.
 
+When model or effort matters (a cheap mechanical job, or an expensive-to-get-wrong one), use the `esoul-model-routing` skill to pick the model and effort, then tell the user the command to set it.
+
 ## 3. Run the flow
 
 ### Clarify (M, L)
