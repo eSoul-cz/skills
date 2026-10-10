@@ -163,7 +163,7 @@ The second command is for top-level findings/commands only. Pass bodies from pre
 
 Before repeating a reply after interruption or a timeout, fetch its conversation and compare the intended finding/disposition/fix commit. A timed-out write may already have succeeded.
 
-For CodeRabbit approval, inspect REST review `user.login`, `state`, `commit_id`, `submitted_at`, and `html_url`. Require a real `APPROVED` review from the verified actor with `commit_id` equal to the latest head. An old-SHA approval, dismissed approval, or later changes request fails the gate. Inspect later `COMMENTED` reviews for new findings and incomplete review state rather than treating an earlier approval as unconditional. Also establish that review coverage postdates the last base/trunk change; REST review commit identity alone cannot prove this. After a changed comparison base, request fresh full review and record that cycle.
+For CodeRabbit approval, inspect REST review `user.login`, `state`, `commit_id`, `submitted_at`, and `html_url` for the verified actor. Its latest non-dismissed decision (`APPROVED` or `CHANGES_REQUESTED`) must be `APPROVED`; a dismissed approval or a later changes request fails the gate. Inspect later `COMMENTED` reviews for new findings rather than treating an earlier approval as unconditional. The approval's `commit_id` may be older than the head: CodeRabbit reviews every push automatically and posts nothing new when an incremental review finds no new issues. Establish coverage of the current head from CodeRabbit's commit status on the head SHA (created by the verified account, usually context `CodeRabbit`): `pending` means in progress, `success` means the review of that head completed, `failure` or `error` means it did not. The waiter reports this as `review.checks` and each reviewer's `reviewedHead`. If CodeRabbit's commit status is disabled, require a review whose `commit_id` equals the head instead.
 
 `reviewDecision` is GitHub's aggregate decision. Use it for effective required-review policy, but not to identify the CodeRabbit approver. Human/CODEOWNER requirements may remain unsatisfied after the bot approves. Read both classic branch protection and effective branch rules when needed; active rulesets can impose additional requirements:
 
@@ -182,9 +182,9 @@ Use the repository's verified service-account mention. Post one command per just
 
 | Top-level PR comment | Use |
 | --- | --- |
-| `@coderabbitai review` | Request incremental review of a new revision when automatic review did not run and manual review is allowed. |
-| `@coderabbitai full review` | Re-review the whole diff after a changed comparison base/restack or incomplete coverage. |
-| `@coderabbitai approve` | Only after all findings have evidenced dispositions and no dispute remains; it can resolve threads and only approves with `reviews.request_changes_workflow: true`. |
+| `@coderabbitai review` | Request a review of the current head only when its automatic review failed, errored, was rate-limited (after the reported reset), or never started, and manual review is allowed. Never for each new commit. |
+| `@coderabbitai full review` | Re-review the whole diff only when CodeRabbit reports incomplete coverage. |
+| `@coderabbitai approve` | Only when CodeRabbit's latest decision is not already `APPROVED`, all findings have evidenced dispositions, and no dispute remains; it can resolve threads and only approves with `reviews.request_changes_workflow: true`. |
 
 Never use blanket `@coderabbitai resolve`. `approve` and `resolve` are not supported in inline thread replies. A green bot check, “no actionable comments,” resolved threads, or the bot saying approval is disabled is not a submitted GitHub approval. Do not enable `request_changes_workflow` without authorization. With it enabled, CodeRabbit requires comments resolved, latest commit reviewed, and no failing pre-merge checks.
 

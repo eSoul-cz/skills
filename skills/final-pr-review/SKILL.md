@@ -5,7 +5,7 @@ description: Finish work by creating or updating a GitHub PR, optionally running
 
 # Final PR review
 
-Own the finish loop, not just PR creation. Continue through local verification, publication, CI, remote review, fixes, replies, and fresh approval. Stop only at the completion gate or a concrete external blocker; never report a pending review as finished.
+Own the finish loop, not just PR creation. Continue through local verification, publication, CI, remote review, fixes, replies, and approval. Stop only at the completion gate or a concrete external blocker; never report a pending review as finished.
 
 ## Scope and authority
 
@@ -82,11 +82,11 @@ Act on `reason`: `pr-closed` or `revision-changed` → refresh the ledger; `ci-f
 
 - Identify the actual CodeRabbit account from the repository integration and authored review/check metadata; do not trust a display name or assume the bot login is always identical across installations.
 - Read **all pages** of reviews, inline review threads and their replies, and top-level PR comments. CodeRabbit can put actionable findings, including out-of-diff findings, in a review body or walkthrough rather than an inline thread. Include other reviewers' actionable feedback in scope as well.
-- Wait for CodeRabbit to finish processing the current revision. Check review/check/progress metadata and reviewed commit evidence; absence of findings, a successful CLI exit, or a green CodeRabbit check does not equal approval.
-- If review was not triggered, inspect drafts, pauses, ignore directives, branch filters, integration permissions, rate limits, and effective configuration. Do not silently remove these policies. When manual review is allowed, post one top-level `@coderabbitai review` per new revision; use the verified account's mention if different. `full review` is for a changed base/restack or evidence that a full diff needs re-review, not every polling cycle.
+- Wait for CodeRabbit to finish processing the current head. CodeRabbit reviews every push automatically; when an incremental review finds nothing new, it posts no new review or comment and only marks its status check completed. A successful CodeRabbit check on the current head therefore shows the head was reviewed, but it is not approval: approval is the verified account's latest non-dismissed `APPROVED` review, which may be on an earlier commit. If the repository disables CodeRabbit's commit status, require a CodeRabbit review of the current head instead. Absence of findings or a successful CLI exit is not approval.
+- Request a review manually only when CodeRabbit's automatic review of the current head did not complete: its check failed or errored, it reports a rate limit or error, or it never started for the head before the waiter stalled. First inspect drafts, pauses, ignore directives, branch filters, integration permissions, rate limits (wait out a reported reset before requesting), and effective configuration; do not silently remove these policies. When manual review is allowed, post one top-level `@coderabbitai review` for that head; use the verified account's mention if different. Use `full review` only when CodeRabbit reports incomplete coverage. Never request a review merely because a commit was pushed, the base changed, or the approval is on an earlier commit.
 - Deduplicate review requests and replies against remote state, including after resuming an interrupted session. If a write times out, re-read before retrying it.
 
-A push, rebase, retarget, lower-layer update, or externally changed head/base invalidates the affected ledger's green/approved evidence. Refresh it and return to these tracks even when the old approval remains visible.
+A push, rebase, retarget, lower-layer update, or externally changed head/base invalidates the affected ledger's green CI and review-completion evidence. Refresh it and return to both tracks. An earlier CodeRabbit approval stays valid once CodeRabbit's automatic review of the new head completes without new findings or a changes request; do not force a re-review to move the approval onto the new head.
 
 ## 5. Triage, fix, and reply
 
@@ -107,7 +107,7 @@ Reply to inline findings in their original review thread, not a new top-level co
 
 After pushing, post evidence-backed fix replies. Prefer CodeRabbit/reviewer acknowledgment and resolution. Resolve a specific thread yourself only when repository policy permits and its disposition is evidenced; an invalid-but-disputed finding remains open. Never equate `isOutdated` with resolved or dismiss a changes-requested review yourself.
 
-Never use blanket `@coderabbitai resolve`. After **every** finding has a defensible disposition and no dispute remains, a single top-level `@coderabbitai approve` may request approval. It can resolve threads, so it must not be used to conceal outstanding work. It only submits approval when `reviews.request_changes_workflow` is enabled. If disabled, report the exact policy prerequisite and request an authorized policy decision; do not change configuration or substitute a resolved-thread count for an approval.
+Never use blanket `@coderabbitai resolve`. After **every** finding has a defensible disposition and no dispute remains, a single top-level `@coderabbitai approve` may request approval when CodeRabbit's latest decision is not already `APPROVED`. It can resolve threads, so it must not be used to conceal outstanding work. It only submits approval when `reviews.request_changes_workflow` is enabled. If disabled, report the exact policy prerequisite and request an authorized policy decision; do not change configuration or substitute a resolved-thread count for an approval.
 
 Return to local verification/review, publication, and both remote tracks after any fix. Re-read remote discussions for new findings even when the previous batch is fully addressed.
 
@@ -119,7 +119,7 @@ For a native stack, a lower-layer fix normally requires `gh stack rebase --upsta
 
 Use the stack tool's lease-protected push; never raw `--force`. On lease failure fetch/reconcile the competing update rather than retrying with a new lease blindly. Resolve conflicts with the repository's conflict workflow; never drop unfamiliar commits. Commit preparation remains governed by `gitmoji-commit`; stack rebasing is a separate authorized lifecycle operation, not permission to amend/rewrite unrelated commit messages.
 
-Re-run applicable local verification and the selected local review on each changed layer **before** pushing the restack. Refresh metadata, checks, discussions, and approval for the edited layer and every descendant whose head or base changed. An unchanged top-layer patch does not preserve its approval evidence across a changed base.
+Re-run applicable local verification and the selected local review on each changed layer **before** pushing the restack. Refresh metadata, checks, discussions, and review completion for the edited layer and every descendant whose head or base changed; CodeRabbit reviews each pushed head automatically under the review-track rules above.
 
 If a predecessor merges or someone changes stack membership during the loop, rediscover the stack and use the supported sync workflow only within authorized scope. Sync can rebase and push; it is not a read-only discovery command. Do not prune branches, dissolve/reorder the stack, or merge a predecessor merely to get green status. Ordinary dependent PR chains use the repository's established restack tool/workflow; do not apply native stack commands to them blindly.
 
@@ -129,7 +129,7 @@ Immediately before completion, re-fetch each in-scope PR and compare its head **
 
 1. Intended commits are published; the PR targets the intended base and native stack membership/order is preserved where applicable.
 2. Applicable required and expected CI has completed successfully for this revision, with any intentional N/A explicitly evidenced. No active failed or pending applicable check is ignored.
-3. Remote CodeRabbit review completed for this revision and the verified CodeRabbit account has a submitted, non-dismissed `APPROVED` review on its current head after the last relevant base change. No later blocking review or unresolved dispute supersedes it.
+3. CodeRabbit's check on the current head completed successfully (or, when its commit status is disabled, a CodeRabbit review covers the current head), and the verified CodeRabbit account's latest non-dismissed decision is `APPROVED`. That approval may be on an earlier commit when later automatic reviews found nothing new. No later changes request, blocking review, new unresolved CodeRabbit finding, or unresolved dispute supersedes it.
 4. Every valid finding is fixed and verified, every invalid/duplicate finding has an evidence-backed reply, and required review conversations are resolved under repository policy. No new untriaged finding remains.
 5. Repository-required approvals, including human/CODEOWNER reviews where applicable, are satisfied with no outstanding changes requested. A CodeRabbit approval alone does not bypass them; an aggregate `reviewDecision` alone does not prove CodeRabbit approved.
 6. No applicable protection/mergeability issue remains, except a documented stack dependency that will clear only when an approved predecessor merges. Do not merge to clear it. If GitHub cannot establish the required gate for the current layer yet, report it as waiting/blocked, not approved-and-ready.
