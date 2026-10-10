@@ -121,6 +121,18 @@ Install from this checkout:
 npx skills add . --skill final-pr-review --agent codex --global --yes
 ```
 
+Waiting for CI and remote review uses the bundled read-only poller, so agents do not write their own polling loops. It needs Node.js 18+ and authenticated `gh`, and works on one PR at a time. From the installed skill directory, run:
+
+```bash
+node scripts/wait-pr.mjs https://github.com/OWNER/REPO/pull/123 --expect-head HEAD_SHA --since LAST_INVENTORY_TIME
+```
+
+It exits with a JSON snapshot when CI fails, discussion or review activity appears, the revision changes, or CI and review settle on the current head. Run `node scripts/wait-pr.mjs --help` for all options and exit codes. Its regression tests use a fake `gh` and need no network:
+
+```bash
+node --test tooling/scripts/test_wait_pr.mjs
+```
+
 ### `esoul-maintain-application-documentation`
 
 Creates, refreshes, verifies, reviews, and renders application user, developer, and operator documentation from repository evidence.

@@ -61,7 +61,14 @@ After publishing, fetch the remote PR metadata and verify the expected remote he
 
 ## 4. Wait for CI and remote CodeRabbit independently
 
-Monitor both tracks without waiting for one to finish before inspecting the other. Use the harness's supervised/background waiting facilities when available; otherwise use bounded polling with backoff (for example 30 seconds, increasing to 120 seconds), honoring API rate-limit/reset and retry headers. Do not busy-loop or post repeated review commands each poll.
+Monitor both tracks without waiting for one to finish before inspecting the other. Wait with the bundled read-only poller [`scripts/wait-pr.mjs`](scripts/wait-pr.mjs) (Node.js 18+ and authenticated `gh`) instead of writing ad-hoc loops, and run it under the harness's supervised/background facility when available. It polls one PR's check runs, commit statuses, reviews, and discussion with 30–120 second backoff, honors rate-limit and retry headers, and exits with one JSON snapshot when something needs attention. `$SKILL_DIR` is this skill's installed directory:
+
+```bash
+node "$SKILL_DIR/scripts/wait-pr.mjs" <pr-url> --expect-head <head-sha> --expect-base <base-sha> \
+  --since <time-of-last-full-inventory> [--reviewer <verified-login>] [--require-check <expected-check>]... [--timeout <seconds>]
+```
+
+Act on `reason`: `pr-closed` or `revision-changed` → refresh the ledger; `ci-failed` → CI track; `review-check-failed` → the reviewer's automatic review failed, see the review track; `activity` → re-read the complete discussion inventory, because the snapshot lists only recent items; `settled` → CI finished without failures and every tracked reviewer completed its review of the current head, so evaluate the completion gate using each reviewer's `decision`. Exit 3 (`stalled`) means no observable change within `--stall-timeout` (default 30 minutes) and is the blocked condition. Exit 4 (`timeout`) only means your wall-clock budget expired; rerun with `--since <observedAt>` and `--last-progress <lastProgressAt>` from its output. Pass `--require-check` for every expected check discovered below, `--ignore-check` only for a diagnosed unrelated baseline failure, and `--allow-no-checks` only after verifying CI is N/A. Run one waiter per in-scope stack layer. The waiter never posts, reruns, or resolves anything. If Node.js is unavailable, poll the documented `gh` commands manually with the same backoff and rate-limit rules. Do not busy-loop or post repeated review commands each poll.
 
 ### CI track
 
