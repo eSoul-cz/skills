@@ -18,7 +18,7 @@ Own the finish loop, not just PR creation. Continue through local verification, 
 
 ## 1. Discover the actual PR and stack
 
-Read applicable `AGENTS.md`, `CONTEXT.md`, PR templates, CI configuration, and `.coderabbit.yaml` if present. Inspect the task's staged, unstaged, untracked, and committed changes. Identify repository host, base and head repositories, branch, remotes, existing PR, and permitted work. Check `gh` authentication without printing tokens. Never assume `origin`, `main`, GitHub.com, or that the head and base repositories are identical.
+Read applicable `AGENTS.md`, `CONTEXT.md` (falling back to `GLOSSARY.md` for conventions it lacks), PR templates, CI configuration, and `.coderabbit.yaml` if present. Inspect the task's staged, unstaged, untracked, and committed changes. Identify repository host, base and head repositories, branch, remotes, existing PR, and permitted work. Check `gh` authentication without printing tokens. Never assume `origin`, `main`, GitHub.com, or that the head and base repositories are identical.
 
 Resolve an explicit PR/branch first; otherwise discover the open PR for the current branch, including its head repository. Reuse it rather than creating duplicates. Ask only if multiple candidates or ownership remain ambiguous after inspection. If no PR exists, derive its base from repository/task/stack evidence before creation. Do not push a default or protected branch as a feature branch.
 

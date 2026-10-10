@@ -1,6 +1,6 @@
 ---
 name: esoul-tasking
-description: Prepare, preview, and create eSoul work as a self-contained Freelo task or a linked GitHub issue and Freelo task. Use when the user invokes esoul-tasking, asks to pair GitHub issues with Freelo tasks, or authors work under a repository tasking convention. Depends directly on esoul-freelo-task-authoring. Resolve and record the split/no-split convention in root CONTEXT.md, inspect real code and existing work, and require explicit approval before remote writes. Does not implement work or manage its later lifecycle.
+description: Prepare, preview, and create eSoul work as a self-contained Freelo task or a linked GitHub issue and Freelo task. Use when the user invokes esoul-tasking, asks to pair GitHub issues with Freelo tasks, or authors work under a repository tasking convention. Depends directly on esoul-freelo-task-authoring. Resolve and record the split/no-split convention in root CONTEXT.md (falling back to GLOSSARY.md), inspect real code and existing work, and require explicit approval before remote writes. Does not implement work or manage its later lifecycle.
 ---
 
 # eSoul tasking
@@ -28,10 +28,10 @@ Use the available authenticated Freelo tools according to the companion. In `git
 
 ## 1. Resolve and persist the repository convention
 
-Read applicable `AGENTS.md` files and the repository-root `CONTEXT.md` before planning work. Resolve the stored convention in this order:
+Read applicable `AGENTS.md` files and the repository-root `CONTEXT.md` before planning work. If `CONTEXT.md` has no tasking convention, check the root `GLOSSARY.md` as a fallback for repositories that renamed `CONTEXT.md` while migrating to `GLOSSARY.md`. Resolve the stored convention in this order:
 
 1. Use an applicable tasking convention in `AGENTS.md` as authoritative. Synchronize only that convention into root `CONTEXT.md` under `## Tasking convention`, replacing a conflicting tasking section while preserving unrelated content.
-2. Otherwise respect the tasking convention already in root `CONTEXT.md`; do not overwrite it with a default.
+2. Otherwise respect the tasking convention already in root `CONTEXT.md` or its `GLOSSARY.md` fallback; do not overwrite it with a default.
 3. If neither defines a mode, ask the user to choose `freelo-only` or `github-freelo` and wait. Explain that the answer will be recorded in root `CONTEXT.md`. An explicit request to establish the project's mode already supplies this choice; a one-off task request does not establish a permanent policy.
 
 Record the chosen mode using this compact form (the example shows `freelo-only`; write `github-freelo` instead when that is the chosen mode):
@@ -44,13 +44,13 @@ Use the `esoul-tasking` skill for task authoring.
 - Mode: `freelo-only`
 ```
 
-Create root `CONTEXT.md` if absent. Keep edits idempotent; preserve unrelated sections, the companion's separate `## Freelo` mapping, and any additional applicable tasking rules. Do not leave duplicate or contradictory tasking sections. If the authoritative instructions are ambiguous or contain an unsupported mode, ask rather than inventing a mapping. Without a repository root or a writable context file, report the missing prerequisite instead of choosing a global configuration location.
+Create root `CONTEXT.md` if absent; write conventions only there, never to `GLOSSARY.md`. When updating a tasking section found only in the `GLOSSARY.md` fallback, move it into `CONTEXT.md` instead of duplicating it. Keep edits idempotent; preserve unrelated sections, the companion's separate `## Freelo` mapping, and any additional applicable tasking rules. Do not leave duplicate or contradictory tasking sections. If the authoritative instructions are ambiguous or contain an unsupported mode, ask rather than inventing a mapping. Without a repository root or a writable context file, report the missing prerequisite instead of choosing a global configuration location.
 
 Invocation authorizes synchronization of an existing authoritative convention. The first mode confirmation authorizes only its standardized context edit, not GitHub or Freelo writes. Report any context edit before task preview. Never create a commit merely to record this policy; committing requires separate user authorization.
 
 ### Per-request overrides
 
-An explicit request may override the stored mode for the current run without modifying `CONTEXT.md`. Show the stored mode, the effective mode, and the reason in the preview. Ask if it is unclear whether the user intends a one-off override or a permanent change; do not persist an inferred preference. Honor a repository rule that explicitly prohibits overrides.
+An explicit request may override the stored mode for the current run without modifying `CONTEXT.md` or `GLOSSARY.md`. Show the stored mode, the effective mode, and the reason in the preview. Ask if it is unclear whether the user intends a one-off override or a permanent change; do not persist an inferred preference. Honor a repository rule that explicitly prohibits overrides.
 
 Persist a different mode only when the user explicitly requests a project-policy change. If `AGENTS.md` defines the old mode, explain the conflict and resolve the authoritative policy with the user before synchronizing it; do not write a competing rule only into `CONTEXT.md`.
 

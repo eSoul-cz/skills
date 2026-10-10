@@ -9,7 +9,7 @@ The single entry point for eSoul work. It decides *how much process* a task need
 
 ## 1. Load context before touching anything
 
-1. Read, in this order and only if present: applicable `AGENTS.md`, `CLAUDE.md`, root `CONTEXT.md`, then ADRs in the area being touched. Repository conventions always override this skill.
+1. Read, in this order and only if present: applicable `AGENTS.md`, `CLAUDE.md`, root `CONTEXT.md` for repository conventions (falling back to root `GLOSSARY.md` for conventions it lacks), `GLOSSARY.md` or `GLOSSARY-MAP.md` for domain vocabulary (falling back to legacy `CONTEXT.md` or `CONTEXT-MAP.md`), then ADRs in the area being touched. Repository conventions always override this skill.
 2. Identify the work type and read exactly one reference:
    - Web application or frontend: [references/web.md](references/web.md)
    - WordPress site: [references/wordpress.md](references/wordpress.md)

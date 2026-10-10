@@ -155,7 +155,7 @@ $esoul-freelo-task-authoring turn this feature request into an approved Freelo t
 
 Authors work in either `freelo-only` mode (a self-contained Freelo task) or `github-freelo` mode (a detailed GitHub issue paired with a management-oriented Freelo task). Requires `esoul-freelo-task-authoring` and its `freelo` dependency.
 
-Resolves the tasking convention from applicable `AGENTS.md` instructions first, then root `CONTEXT.md`. If neither defines a mode, asks once and records the choice under `## Tasking convention`. An authoritative `AGENTS.md` convention is synchronized into that section without overwriting unrelated context. Explicit one-off overrides do not change the stored policy. Neither choosing a mode nor recording it approves remote writes.
+Resolves the tasking convention from applicable `AGENTS.md` instructions first, then root `CONTEXT.md`, then root `GLOSSARY.md` for repositories that renamed `CONTEXT.md` while migrating to glossaries. If none defines a mode, asks once and records the choice under `## Tasking convention` in `CONTEXT.md`. An authoritative `AGENTS.md` convention is synchronized into that section without overwriting unrelated context. Explicit one-off overrides do not change the stored policy. Neither choosing a mode nor recording it approves remote writes.
 
 Uses module or useful one-word context prefixes (`Context: Actionable result`) and existing labels in each system, not frontend/backend/data title prefixes. In split mode, titles match, GitHub owns the full specification and verification, and both entities link to each other. Every remote write requires an approved preview; creation is followed by read-back verification, with partial failures reported rather than blindly retried.
 

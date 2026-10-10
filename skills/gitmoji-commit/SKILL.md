@@ -1,6 +1,6 @@
 ---
 name: gitmoji-commit
-description: Split, stage, verify, and create focused Git commits using one Gitmoji shortcode per intention. Use whenever the user asks to commit, stage and commit, commit the current work, split work into commits, or write a commit message, and whenever an agent is about to create a normal agent-authored commit. First honor a repository-specific convention in AGENTS.md or CONTEXT.md; otherwise establish this Gitmoji convention in CONTEXT.md. Do not rewrite existing, generated, or automatic commits.
+description: Split, stage, verify, and create focused Git commits using one Gitmoji shortcode per intention. Use whenever the user asks to commit, stage and commit, commit the current work, split work into commits, or write a commit message, and whenever an agent is about to create a normal agent-authored commit. First honor a repository-specific convention in AGENTS.md or CONTEXT.md (falling back to GLOSSARY.md); otherwise establish this Gitmoji convention in CONTEXT.md. Do not rewrite existing, generated, or automatic commits.
 ---
 
 # Gitmoji commit
@@ -9,23 +9,24 @@ Create a readable history by separating work according to intention and assignin
 
 ## Resolve the repository convention
 
-Before planning commits, read the applicable `AGENTS.md` files and the repository-root `CONTEXT.md`.
+Before planning commits, read the applicable `AGENTS.md` files and the repository-root `CONTEXT.md`. If `CONTEXT.md` has no commit convention, check the root `GLOSSARY.md` as a fallback for repositories that renamed `CONTEXT.md` while migrating to `GLOSSARY.md`. Write conventions only to `CONTEXT.md`, never to `GLOSSARY.md`.
 
 1. Treat an applicable commit convention in `AGENTS.md` as authoritative.
-2. Otherwise use the commit convention in the root `CONTEXT.md`.
+2. Otherwise use the commit convention in the root `CONTEXT.md` or its `GLOSSARY.md` fallback.
 3. Otherwise establish the default convention below in the root `CONTEXT.md`.
 
 When `AGENTS.md` defines a commit convention:
 
-- copy only that convention into the root `CONTEXT.md` under `## Commit convention`;
+- copy only that convention into the root `CONTEXT.md` under `## Commit convention`, creating the file if absent;
+- move a commit-convention section found only in the `GLOSSARY.md` fallback into `CONTEXT.md` instead of duplicating it;
 - replace a conflicting commit-convention section while preserving all unrelated context;
 - make the edit idempotent;
 - commit this context synchronization separately using the effective `AGENTS.md` convention;
 - follow that convention, not Gitmoji, if it differs from this skill.
 
-When only `CONTEXT.md` defines a different convention, respect it and do not overwrite it.
+When only `CONTEXT.md` or its `GLOSSARY.md` fallback defines a different convention, respect it and do not overwrite it.
 
-When neither file defines a convention, create or update the root `CONTEXT.md` with this block, preserving all existing content:
+When none of these files defines a convention, create or update the root `CONTEXT.md` with this block, preserving all existing content:
 
 ````md
 ## Commit convention

@@ -11,18 +11,18 @@ Create implementation-ready eSoul tasks without taking over their later lifecycl
 
 Load and follow the `freelo` skill before using Freelo. Prefer the available Freelo MCP tools; use the authenticated `freelo` CLI with `--agent` only when MCP lacks the required read or write. Never call the Freelo API directly with `curl`.
 
-Read all applicable `AGENTS.md` files and the active repository's `CONTEXT.md` before analyzing the task. Treat repository instructions as authoritative for implementation and verification conventions.
+Read all applicable `AGENTS.md` files and the active repository's `CONTEXT.md` and `GLOSSARY.md` before analyzing the task. Treat repository instructions as authoritative for implementation and verification conventions. `CONTEXT.md` holds repository conventions such as the Freelo mapping; `GLOSSARY.md` holds domain vocabulary. Repositories that renamed `CONTEXT.md` while migrating to `GLOSSARY.md` may still keep conventions in `GLOSSARY.md`, so read it as the fallback for conventions missing from `CONTEXT.md`.
 
 ## 1. Confirm the project first
 
 Resolve the Freelo project before task analysis or Freelo duplicate search:
 
 1. Use an explicitly named project without asking again.
-2. Otherwise prefer a clear Freelo mapping in the active repository's `CONTEXT.md`.
+2. Otherwise prefer a clear Freelo mapping in the active repository's `CONTEXT.md` or its `GLOSSARY.md` fallback.
 3. Otherwise infer a candidate from the request, active codebase, repository name, and existing context.
 4. When inference was required, ask the user to confirm the project and wait. State that confirmation will record the mapping in `CONTEXT.md`.
 
-After the first inferred-project confirmation, add or update this compact block near the beginning of `CONTEXT.md`:
+After the first inferred-project confirmation, add or update this compact block near the beginning of `CONTEXT.md`, creating the file if absent; never write it to `GLOSSARY.md`:
 
 ```md
 ## Freelo
@@ -32,7 +32,7 @@ After the first inferred-project confirmation, add or update this compact block 
 - URL: https://app.freelo.io/project/<numeric id>
 ```
 
-The same confirmation authorizes only this standardized context edit. Report the edit before continuing; do not include it later in the task preview. If `CONTEXT.md` contains a conflicting mapping, stop and resolve the conflict with the user.
+The same confirmation authorizes only this standardized context edit. Report the edit before continuing; do not include it later in the task preview. If `CONTEXT.md` or its `GLOSSARY.md` fallback contains a conflicting mapping, stop and resolve the conflict with the user.
 
 Never author tasks for multiple Freelo projects in one run. Ask the user to handle another project in a separate run.
 
@@ -49,13 +49,13 @@ Load the confirmed Freelo project's:
 
 Search for duplicates and related work before every preview. Search by outcome, domain vocabulary, module, class names, file names, and alternate Czech/English terms. Include active and finished work. Do not rely on title equality alone.
 
-Derive the project's vocabulary from `CONTEXT.md`, code, and existing tasks. Write primarily in Czech. Preserve established programming terms and eSoul czenglish such as `string`, `unique`, migrace, commandy, and requesty. When a domain concept has a normal Czech name and an English code equivalent, introduce both, for example `chovatel (Breeder)`. Use only the English term when no reliable Czech term is available.
+Derive the project's vocabulary from `GLOSSARY.md` or the contexts named by `GLOSSARY-MAP.md` (falling back to legacy `CONTEXT.md` or `CONTEXT-MAP.md`), code, and existing tasks. Write primarily in Czech. Preserve established programming terms and eSoul czenglish such as `string`, `unique`, migrace, commandy, and requesty. When a domain concept has a normal Czech name and an English code equivalent, introduce both, for example `chovatel (Breeder)`. Use only the English term when no reliable Czech term is available.
 
 Never copy secrets, credentials, tokens, production personal data, or sensitive raw datasets into Freelo. Use anonymized examples, safe references, or a description of the source location. Stop when the task cannot be specified safely.
 
 ## 3. Interview adaptively
 
-Skip the interview when the request is simple or already complete. Otherwise ask exactly one question at a time, wait for the answer, and include a recommended answer. Resolve decision dependencies in order. Do not ask questions answerable from the codebase, repository instructions, `CONTEXT.md`, or Freelo.
+Skip the interview when the request is simple or already complete. Otherwise ask exactly one question at a time, wait for the answer, and include a recommended answer. Resolve decision dependencies in order. Do not ask questions answerable from the codebase, repository instructions, `CONTEXT.md`, `GLOSSARY.md`, or Freelo.
 
 Continue until the following are clear enough for the task type:
 
