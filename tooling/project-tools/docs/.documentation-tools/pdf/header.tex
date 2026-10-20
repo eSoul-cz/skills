@@ -78,12 +78,16 @@
   \end{Verbatim}%
   \end{tcolorbox}%
 }
+% Long snake_case identifiers in inline code may break after an underscore,
+% so they wrap inside narrow table columns instead of overrunning them.
+\newcommand{\documentationcodeunderscore}{\textunderscore\allowbreak}
 \AtBeginDocument{%
   \ifcsname Shaded\endcsname
     \renewenvironment{Shaded}{\begin{tcolorbox}[documentationcodebox]}{\end{tcolorbox}}%
   \fi
   \let\documentationoriginaltexttt\texttt
-  \renewcommand{\texttt}[1]{{\color{documentationcode}\documentationoriginaltexttt{#1}}}%
+  \renewcommand{\texttt}[1]{{\color{documentationcode}\let\_\documentationcodeunderscore
+    \documentationoriginaltexttt{#1}}}%
 }
 % Arrows, box drawing, geometric shapes and check marks are missing from the
 % theme fonts. They come from DejaVu Sans in text and DejaVu Sans Mono in code.
