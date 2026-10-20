@@ -234,7 +234,7 @@ then
 fi
 grep -Fq 'could not calculate checksum' "${fixture}/checksum.out"
 
-grep -Fq '{−}{{\ensuremath{-}}}1' \
+grep -Fq '\newunicodechar{−}{\ensuremath{-}}' \
     "${project}/docs/.documentation-tools/pdf/header.tex"
 
 echo "Documentation wrapper regression tests passed."
