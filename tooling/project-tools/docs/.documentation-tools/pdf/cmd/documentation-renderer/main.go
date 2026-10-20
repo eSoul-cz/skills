@@ -553,7 +553,6 @@ func buildGuide(root string, cfg config, guide guideConfig) (string, error) {
 		"--pdf-engine=xelatex",
 		"--toc",
 		"--number-sections",
-		"--listings",
 		"--include-in-header=" + themeFiles.Header,
 		"--include-in-header=" + header,
 		"--resource-path=" + stagingDir,
