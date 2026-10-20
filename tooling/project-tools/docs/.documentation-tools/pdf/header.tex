@@ -82,6 +82,9 @@
 % so they wrap inside narrow table columns instead of overrunning them.
 \newcommand{\documentationcodeunderscore}{\textunderscore\allowbreak}
 \AtBeginDocument{%
+  % Highlighted blocks (Highlighting) only set breaklines; let long tokens
+  % without spaces wrap there too.
+  \fvset{breakanywhere}%
   \ifcsname Shaded\endcsname
     \renewenvironment{Shaded}{\begin{tcolorbox}[documentationcodebox]}{\end{tcolorbox}}%
   \fi
