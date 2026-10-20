@@ -91,6 +91,10 @@ case "${normalized}" in
     *"missing release notes"*"docs/missing.md#draft"*) ;;
     *) echo "ERROR: invalid-link notice is missing or mapped incorrectly." >&2; exit 1 ;;
 esac
+case "${normalized}" in
+    *"registrační číslo"*"a → b ↔ c"*"max 10 fotek, 5 MB každá"*"place-bid ──emit──▶ subscriber"*) ;;
+    *) echo "ERROR: Unicode text in inline code or a code block is missing or reordered." >&2; exit 1 ;;
+esac
 extracted_text=$(cat "${extracted}")
 expected_footnote_paragraphs='A multiline footnote keeps emphasis, inline code, a reference link, and Czech text: příliš žluťoučký kůň.
 A second paragraph verifies that longer notes retain their structure.'

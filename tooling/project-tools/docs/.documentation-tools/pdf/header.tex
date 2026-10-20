@@ -5,8 +5,6 @@
 \usepackage{xurl}
 \setkeys{Gin}{keepaspectratio}
 \newfontfamily\documentsymbolfont{Noto Sans Symbols}
-\newunicodechar{→}{{\documentsymbolfont\char"2192}}
-\newunicodechar{↓}{{\documentsymbolfont\char"2193}}
 \newunicodechar{−}{\ensuremath{-}}
 \newunicodechar{≤}{\ensuremath{\leq}}
 \newunicodechar{≥}{\ensuremath{\geq}}
@@ -61,55 +59,68 @@
   fonttitle=\bfseries,
   title=\documentationplannedtitle
 }
-\AtBeginDocument{%
-  \lstset{
-    breaklines=true,
-    breakatwhitespace=false,
-    columns=fullflexible,
-    literate=
-      {±}{{\ensuremath{\pm}}}1
-      {Á}{{\'{A}}}1
-      {É}{{\'{E}}}1
-      {Í}{{\'{I}}}1
-      {Ó}{{\'{O}}}1
-      {Ú}{{\'{U}}}1
-      {Ý}{{\'{Y}}}1
-      {á}{{\'{a}}}1
-      {é}{{\'{e}}}1
-      {í}{{\'{i}}}1
-      {ó}{{\'{o}}}1
-      {ú}{{\'{u}}}1
-      {ý}{{\'{y}}}1
-      {Č}{{\v{C}}}1
-      {Ď}{{\v{D}}}1
-      {Ě}{{\v{E}}}1
-      {Ň}{{\v{N}}}1
-      {Ř}{{\v{R}}}1
-      {Š}{{\v{S}}}1
-      {Ť}{{\v{T}}}1
-      {Ž}{{\v{Z}}}1
-      {č}{{\v{c}}}1
-      {ď}{{\v{d}}}1
-      {ě}{{\v{e}}}1
-      {ň}{{\v{n}}}1
-      {ř}{{\v{r}}}1
-      {š}{{\v{s}}}1
-      {ť}{{\v{t}}}1
-      {ž}{{\v{z}}}1
-      {Ů}{{\r{U}}}1
-      {ů}{{\r{u}}}1
-      {–}{{-}}1
-      {−}{{\ensuremath{-}}}1
-      {→}{{\ensuremath{\rightarrow}}}1
-      {↓}{{\ensuremath{\downarrow}}}1
-      {≤}{{\ensuremath{\leq}}}1
-      {≥}{{\ensuremath{\geq}}}1
-      {×}{{\ensuremath{\times}}}1
-      {µ}{{\ensuremath{\mu}}}1
-      {²}{{\ensuremath{^2}}}1
-      {♀}{{\documentsymbolfont\char"2640}}1
-      {♂}{{\documentsymbolfont\char"2642}}1
-  }
+% Code is typeset by Pandoc's fancyvrb path (Shaded/Highlighting) and by the
+% plain verbatim environment below, not by listings: under XeLaTeX listings
+% cannot process characters above U+00FF, so Czech letters, arrows and box
+% drawing in code were reordered, set in the wrong font or broke the build.
+\usepackage{fvextra}
+\definecolor{documentationcode}{HTML}{435489}
+\definecolor{documentationcodebackground}{HTML}{F7F7F7}
+\definecolor{documentationcoderule}{HTML}{B3B2B3}
+\tcbset{documentationcodebox/.style={breakable,enhanced,arc=0pt,boxrule=0.4pt,
+  colback=documentationcodebackground,colframe=documentationcoderule,
+  left=4pt,right=4pt,top=2pt,bottom=2pt,before skip=0.6em,after skip=0.8em}}
+\renewenvironment{verbatim}{%
+  \VerbatimEnvironment
+  \begin{tcolorbox}[documentationcodebox]%
+  \begin{Verbatim}[breaklines,breakanywhere,fontsize=\small]%
+}{%
+  \end{Verbatim}%
+  \end{tcolorbox}%
 }
+% Long snake_case identifiers in inline code may break after an underscore,
+% so they wrap inside narrow table columns instead of overrunning them.
+\newcommand{\documentationcodeunderscore}{\textunderscore\allowbreak}
+\AtBeginDocument{%
+  % Highlighted blocks (Highlighting) only set breaklines; let long tokens
+  % without spaces wrap there too.
+  \fvset{breakanywhere}%
+  \ifcsname Shaded\endcsname
+    \renewenvironment{Shaded}{\begin{tcolorbox}[documentationcodebox]}{\end{tcolorbox}}%
+  \fi
+  \let\documentationoriginaltexttt\texttt
+  \renewcommand{\texttt}[1]{{\color{documentationcode}\let\_\documentationcodeunderscore
+    \documentationoriginaltexttt{#1}}}%
+}
+% Arrows, box drawing, geometric shapes and check marks are missing from the
+% theme fonts. They come from DejaVu Sans in text and DejaVu Sans Mono in code.
+\newfontfamily\documentfallbackfont{DejaVu Sans}
+\newfontfamily\documentfallbackmonofont{DejaVu Sans Mono}
+\makeatletter
+\newcount\documentation@fallbackchar
+\def\documentation@fallbackglyph#1{%
+  \edef\documentation@currentfamily{\f@family}%
+  \edef\documentation@monofamily{\ttdefault}%
+  \ifx\documentation@currentfamily\documentation@monofamily
+    {\documentfallbackmonofont\char#1\relax}%
+  \else
+    {\documentfallbackfont\char#1\relax}%
+  \fi}
+\def\documentation@fallbackrange#1#2{%
+  \documentation@fallbackchar=#1\relax
+  \loop
+    \begingroup
+      \lccode`\~=\documentation@fallbackchar
+      \lowercase{\endgroup
+        \edef~{\noexpand\documentation@fallbackglyph{\the\documentation@fallbackchar}}}%
+    \catcode\documentation@fallbackchar=13\relax
+  \ifnum\documentation@fallbackchar<#2\relax
+    \advance\documentation@fallbackchar by 1\relax
+  \repeat}
+\documentation@fallbackrange{"2190}{"21FF}
+\documentation@fallbackrange{"2500}{"257F}
+\documentation@fallbackrange{"25A0}{"25FF}
+\documentation@fallbackrange{"2713}{"2718}
+\makeatother
 \RedeclareSectionCommand[tocnumwidth=5.75em]{subsection}
 \RedeclareSectionCommand[tocnumwidth=7em]{subsubsection}
