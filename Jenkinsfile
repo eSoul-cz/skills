@@ -116,7 +116,7 @@ pipeline {
 						sourceCommit: sourceCommit,
 						releaseMetadata: [
 							CONFIG_SCHEMA_VERSION: configSchemaVersion,
-							UPGRADE_NOTES: 'Updates canonical bootstrap release URLs after the repository rename to eSoul-cz/skills; documentation tooling behavior and configuration schema remain 1.',
+							UPGRADE_NOTES: 'Typesets code with fvextra instead of listings, so Czech letters, arrows and box drawing in inline code and code blocks render in order; adds DejaVu fallbacks for missing symbols and lets inline code wrap after underscores. Code blocks no longer show line numbers. The upgrade replaces the managed header.tex; configuration schema remains 1.',
 						],
 						releaseFiles: [
 							'install.sh': bootstrapScript,
