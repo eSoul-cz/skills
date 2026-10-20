@@ -13,6 +13,14 @@ reference to that same note.[^shared] It also exercises a complex footnote.[^com
 
 The inline expression $x \le y$ is passed through Pandoc's math representation.
 
+Code keeps Czech letters and symbols in their order and font: `registrační číslo`,
+`a → b ↔ c`, and a plain block with box drawing:
+
+```text
+title, photos[]   # max 10 fotek, 5 MB každá
+place-bid ──emit──▶ subscriber
+```
+
 The [external maintenance notes](external.md) remain useful in Markdown but are
 not part of this rendered guide.
 
