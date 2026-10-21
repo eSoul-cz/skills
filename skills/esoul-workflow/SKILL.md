@@ -1,6 +1,6 @@
 ---
 name: esoul-workflow
-description: Default operating workflow for eSoul work on web applications (PHP/Laravel/Symfony, frontend), WordPress sites, and data analyses. Use at the start of any non-trivial eSoul task (build, change, fix, debug, review, analyse, or plan work) to size the task, load repository context, pick the right companion skill, and finish with verified, committed, reviewed output. Routes to gitmoji-commit, final-pr-review, esoul-tasking, esoul-mockup-authoring, esoul-maintain-application-documentation, and the Matt Pocock engineering skills (grilling, tdd, diagnosing-bugs, code-review, prototype, handoff) when installed.
+description: Default operating workflow for eSoul work on web applications (PHP/Laravel/Symfony, frontend), WordPress sites, and data analyses. Use at the start of any non-trivial eSoul task (build, change, fix, debug, review, analyse, or plan work) to size the task, load repository context, pick the right companion skill, and finish with verified, committed, reviewed output. Routes to esoul-project-lifecycle for project-level preparation, gitmoji-commit, final-pr-review, esoul-tasking, esoul-mockup-authoring, esoul-maintain-application-documentation, and the Matt Pocock engineering skills (grilling, tdd, diagnosing-bugs, code-review, prototype, handoff) when installed.
 ---
 
 # eSoul workflow
@@ -50,8 +50,13 @@ When model or effort matters (a cheap mechanical job, or an expensive-to-get-wro
 - Use `esoul-tasking`, which resolves the repository tasking convention (`freelo-only` or `github-freelo`) and requires approval before every remote write.
 - Do not use Matt Pocock's `to-spec`, `to-tickets`, `triage`, or `wayfinder` to publish work unless the repository has been explicitly configured for them. eSoul tracks work in Freelo, which those skills do not support.
 
+### Project-level work
+
+Use `esoul-project-lifecycle` instead of this flow when the task is about the project rather than one change: starting or retrofitting a project, processing client materials or a client meeting, writing or changing an ADR, planning phases and slices, preparing the codebase for agents, creating issues from the plan, launch readiness, or auditing conformance. It owns everything up to a prepared issue; implementation comes back here.
+
 ### Plan (L only)
 
+- In projects with `docs/plan/`, plan through `esoul-project-lifecycle` (`plan` mode) so slices land in the slice table.
 - Write the plan as vertical, independently shippable slices (tracer bullets), each with its own acceptance check.
 - Create one task per slice via `esoul-tasking`, then execute slices one at a time as M tasks.
 - When a session runs long or work must continue elsewhere, write a handoff (`handoff` skill if installed; otherwise a short Markdown note with goal, state, decisions, next step, and open risks).
