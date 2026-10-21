@@ -1,0 +1,160 @@
+name: Úkol
+description: Nová funkcionalita, změna, refaktoring nebo datová práce
+title: ""
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Název piš ve tvaru `Kontext: Akční výsledek` (např. `Košík: Přepočítat dopravu po změně
+        množství`) a **stejný název použij i pro párový Freelo úkol** — viz
+        [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md#každá-práce-je-pár). Žádný prefix
+        kategorie a žádné ID slice v názvu. Kategorii (`frontend`, `backend`, `data-migration`,
+        `infrastructure`, `documentation`, případně `integration`) vyjádři štítkem.
+
+  - type: input
+    id: header
+    attributes:
+      label: Slice
+      description: >-
+        Hlavička úkolu: ID slice z `docs/plan/seznam-slices.md`, fáze s bránou a rozsah. Úkol mimo
+        plán napiš `mimo plán`.
+      value: "**Slice:** F?-?? · **Fáze:** F? (brána G?) · **Rozsah:** S"
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Kontext
+      description: Co a proč se má stát, odkud požadavek vzešel.
+      placeholder: |
+        Odkud to přišlo (schůzka, podklad, review, chyba v provozu), jaký problém to řeší
+        a co se stane, když se to neudělá.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Dotčené oblasti
+      description: >-
+        Ověřené cesty k souborům, třídy, moduly, routy, tabulky. **Piš jen to, co jsi v repu
+        skutečně ověřil** — nepravdivá cesta stojí řešitele víc času než prázdné pole.
+    validations:
+      required: false
+
+  - type: textarea
+    id: changes
+    attributes:
+      label: Co je potřeba
+      description: Číslovaný seznam konkrétních změn.
+      placeholder: |
+        1. …
+        2. …
+    validations:
+      required: true
+
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Mimo rozsah
+      description: Co tento úkol záměrně nedělá a kam to patří (jiný slice, jiné issue).
+      placeholder: |
+        - …
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Akceptační kritéria
+      description: >-
+        Technické, pozorovatelné podmínky hotovosti. Ověřuje je vývojář. Pokud úkol mění nebo
+        zavádí výpočet, uveď zdroj v `docs/podklady/` (soubor, list, buňka nebo sloupec), který má
+        výsledek reprodukovat.
+      value: |
+        - [ ]
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: uat
+    attributes:
+      label: UAT
+      description: >-
+        UAT není totéž co akceptační kritéria. **UAT je scénář, který v aplikaci proklikne
+        netechnický člověk** a na konci umí říct ano/ne. Uveď rozměry z `CONTEXT.md` (Project
+        profile) s konkrétními hodnotami. Každý krok = akce uživatele + očekávaný výsledek za
+        šipkou. Žádné SQL, žádné příkazy, žádné čtení logů. U technické práce napiš
+        `**Role:** vývojář eSoul`, nebo výslovně „Bez uživatelsky viditelného dopadu“ a popiš
+        technickou kontrolu s pozorovatelným výsledkem.
+      value: |
+        **Role:**
+        **Předpoklad:**
+        {{UAT_DIMENSION_LINES}}
+
+        1. [ ] Akce uživatele → očekávaný výsledek.
+        2. [ ] … → …
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Poznámky k implementaci
+      description: Omezení, pasti, na co si dát pozor, co záměrně nedělat.
+    validations:
+      required: false
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Závislosti
+      description: >-
+        Blokující issue zapiš jako nativní GitHub závislost (`blocked_by`); ta je zdrojem pravdy
+        a Freelo relace ji zrcadlí. Sem napiš jen přehled a závislost na `proposed` ADR nebo
+        otevřené otázce (`Q-nn`).
+      placeholder: |
+        - Blokováno: #…
+        - Otevřená otázka: Q-…
+    validations:
+      required: false
+
+  - type: textarea
+    id: links
+    attributes:
+      label: Odkazy
+      description: ADR, plán a slice, design (soubor a frame), podklady.
+      placeholder: |
+        - ADR: docs/adr/NNNN-….md
+        - Plán: docs/plan/seznam-slices.md (F?-??)
+        - Design: docs/design_pencil/… (frame …)
+        - Podklady: docs/podklady/…
+    validations:
+      required: false
+
+  - type: input
+    id: freelo
+    attributes:
+      label: Freelo
+      description: URL párového úkolu. Doplň hned po jeho založení.
+      placeholder: https://app.freelo.io/task/…
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contract
+    attributes:
+      label: Kontrola kontraktu
+      options:
+        - label: >-
+            Použité pojmy odpovídají `GLOSSARY.md`, nebo je součástí úkolu doplnění glosáře.
+          required: false
+        - label: >-
+            Úkol neodporuje žádnému `accepted` ADR, nebo je rozpor popsaný a má vzniknout nové ADR.
+          required: false
+        - label: >-
+            Úkol nestojí na otevřené otázce ani na `proposed` ADR, nebo to výslovně uvádí.
+          required: false

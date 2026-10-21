@@ -1,0 +1,4 @@
+interface:
+  display_name: "eSoul Project Lifecycle"
+  short_description: "Prepare and maintain an eSoul project from podklady to agent-ready issues"
+  default_prompt: "Use $esoul-project-lifecycle to bootstrap, retrofit, update, plan, or audit this eSoul project according to the company process."

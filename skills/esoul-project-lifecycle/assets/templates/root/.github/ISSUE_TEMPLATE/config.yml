@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "Freelo projekt {{FREELO_PROJECT_NAME}}"
+    url: "https://app.freelo.io/project/{{FREELO_PROJECT_ID}}"
+    about: >-
+      Řízení práce, odhady a výkazy. Každé issue má párový Freelo úkol se stejným názvem.
+  - name: eSoul dev docs
+    url: https://dev.docs.esoul.cz
+    about: Firemní standardy pro Git, CI/CD, Freelo a psaní kódu.

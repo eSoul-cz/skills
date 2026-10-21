@@ -1,0 +1,20 @@
+# Zachovat review a schvalovací politiku organizace; jen zúžit generovaný, binární a převzatý
+# vstup, který se reviewuje u svého zdroje, ne tady.
+inheritance: true
+reviews:
+  path_filters:
+    # Lockfiles: mění je správce balíčků, obsah se kontroluje přes changelog a Jenkins.
+    - "!pnpm-lock.yaml"
+    - "!package-lock.json"
+    - "!yarn.lock"
+    - "!composer.lock"
+    # Podklady klienta a binární soubory v Git LFS.
+    - "!assets/**"
+    # Design: šifrované .pen soubory, obrázky, exporty a vygenerovaný mockup bundle.
+    - "!**/*.pen"
+    - "!docs/design_pencil/images/**"
+    - "!docs/design_pencil/exports/**"
+    - "!docs/design_pencil/mockup/bundle/**"
+    - "!docs/design_pencil/mockup/assets/**"
+    # Převzaté (vendored) agent skilly, připnuté v skills-lock.json.
+    - "!.agents/skills/**"
