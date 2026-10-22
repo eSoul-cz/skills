@@ -138,8 +138,10 @@ These were approved for every eSoul project. Templates in `assets/templates/` al
 | Application guides and PDFs | `esoul-maintain-application-documentation` |
 | Decision interviews | `grilling`, `domain-modeling` when installed |
 
-If a required companion is missing, stop and give the install command:
-`npx skills@1.7.2 add eSoul-cz/skills --skill <name> --agent <agent> --yes`.
+If a required companion is missing, stop and give the install command for the whole chain
+(the installer does not resolve dependencies), replacing `codex` with the user's agent:
+`npx skills@1.7.2 add eSoul-cz/skills --skill esoul-project-lifecycle esoul-tasking
+esoul-freelo-task-authoring freelo --agent codex --yes`.
 
 ## 7. Finish every run
 

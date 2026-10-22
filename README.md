@@ -289,8 +289,10 @@ npx skills@1.7.2 add eSoul-cz/skills \
 Check a project without changing anything (Node 20 or newer; `--github` also reads issues and repository settings through `gh`). Resolve `SKILL_DIR` to the installed skill's directory, for example `skills/esoul-project-lifecycle` in this checkout:
 
 ```bash
-node "$SKILL_DIR/scripts/conformance.mjs" /path/to/project --github eSoul-cz/<repo>
+node "$SKILL_DIR/scripts/conformance.mjs" /path/to/project --github eSoul-cz/example-repo
 ```
+
+Replace `/path/to/project` and `eSoul-cz/example-repo` with the project checkout and its repository.
 
 ## Tools
 

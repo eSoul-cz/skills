@@ -27,9 +27,9 @@ This reference only adds what a batch from the slice table needs.
   or „Bez uživatelsky viditelného dopadu“ plus a concrete technical check.
 - Labels: one category label (`frontend`, `backend`, `data-migration`, `infrastructure`,
   `documentation`) plus `integration` or `bug` when they apply. Triage at creation:
-  `needs-triage`, or `ready-for-human` for work an agent cannot do (credentials, client calls,
-  design), or `needs-info` when it waits on a question or a proposed ADR. Issues become
-  `ready-for-agent` only at gate B5, after the completeness audit.
+  `needs-triage`, or `needs-info` when it waits on a question or a proposed ADR. At gate B5,
+  after the completeness audit, issues become `ready-for-agent`, or `ready-for-human` for work
+  an agent cannot do (credentials, client calls, design).
 - Milestone = the slice's phase.
 - Freelo: first line `GitHub issue: <issue URL> · Slice F1-17 · Fáze F1 · Rozsah S`, then one or
   two sentences of outcome, `Hotovo, když:` ending with „UAT scénář v issue projde“. Category
