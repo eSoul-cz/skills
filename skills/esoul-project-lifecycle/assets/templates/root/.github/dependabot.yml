@@ -1,0 +1,27 @@
+# CI běží na Jenkinsu, ekosystém github-actions proto záměrně chybí. Jenkins testuje i PR od
+# Dependabotu; co dál spustit před merge, viz CONTRIBUTING.md (Checks, Pull requesty).
+# Jeden záznam na ekosystém podle profilu stacku (composer, npm pro pnpm i npm, docker pro
+# produkční image). Minor a patch aktualizace se sdružují do jednoho PR týdně — jinak Dependabot
+# vygeneruje víc PR, než tým stihne přečíst.
+version: 2
+updates:
+  - package-ecosystem: "{{DEPENDABOT_ECOSYSTEM}}"
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Prague
+    open-pull-requests-limit: 5
+    labels: ["dependencies"]
+    commit-message:
+      # Mezera na konci je záměrná: za prefix končící závorkou by Dependabot doplnil
+      # dvojtečku („:arrow_up: [deps]: Bump …“).
+      prefix: ":arrow_up: [deps] "
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    ignore:
+      # Major upgrade frameworku je projektové rozhodnutí (issue + ADR), ne Dependabot PR.
+      - dependency-name: "{{FRAMEWORK_PACKAGE}}"
+        update-types: ["version-update:semver-major"]

@@ -93,6 +93,8 @@ The GitHub issue is the source of truth for the detailed specification. Follow r
 - implementation constraints, dependencies, and source links;
 - a link to the paired Freelo task.
 
+Record dependencies between issues as native GitHub issue dependencies (`blocked_by`), which are the source of truth, and mirror them as Freelo relations through the companion. When the repository plans work in slices, put the slice header the repository defines (for example `**Slice:** F1-17 · **Fáze:** F1 · **Rozsah:** S`) at the top of the issue and the slice ID on the first line of the Freelo summary, never in the title.
+
 The Freelo description is a short management summary, not a second full specification. Put the GitHub issue link in its first paragraph, then the outcome, scope summary, and observable done conditions. Point to the issue for detailed acceptance criteria and verification. Keep estimates and work-management metadata in Freelo, using the companion's rules; do not maintain a second estimate in the issue.
 
 Use Markdown for the GitHub body and preview. Use the companion's sanitized HTML rules for Freelo, including link attributes. After initial creation, insert the actual reciprocal URLs returned by the services; never guess IDs or leave preview placeholders in stored content. In the issue, put the Freelo link in the existing links section, or add a compact links section if absent.
@@ -112,7 +114,7 @@ Use the companion's complete task preview and exact-approval rules. Additionally
 - the stored and effective modes, including any one-off override;
 - in split mode, the resolved GitHub repository, exact issue title/body, existing issue labels, and the distinct Freelo summary and metadata;
 - results of both duplicate searches in split mode, including existing entities to reuse or modify;
-- every intended remote operation, including reciprocal links, edits to existing entities, relations, and comments.
+- every intended remote operation, including reciprocal links, edits to existing entities, GitHub `blocked_by` dependencies, Freelo relations, milestones, and comments.
 
 Group split-mode previews by pair. When IDs do not yet exist, clearly describe the link substitutions as part of the preview: the issue URL returned by creation goes into Freelo, and the returned Freelo task URL goes into that issue. Approval covers these mechanical substitutions and the disclosed final backlink edit, not any other content change. It does not authorize storing literal placeholders.
 
@@ -125,11 +127,12 @@ In `freelo-only` mode, execute the companion's approved Freelo workflow and retu
 In `github-freelo` mode, after approval:
 
 1. Re-read relevant existing counterparts before modifying them. If their state or content has changed materially since preview, stop for a revised preview instead of overwriting concurrent work. For new work, create dependency prerequisites before dependent pairs.
-2. For each new pair, create the GitHub issue with the approved specification and existing labels. Omit the not-yet-known Freelo backlink rather than storing a placeholder. Capture the returned issue URL. When using `gh`, pass the Markdown body through `--body-file` to avoid shell quoting or multiline corruption.
+2. For each new pair, create the GitHub issue with the approved specification, existing labels, and approved milestone. Omit the not-yet-known Freelo backlink rather than storing a placeholder. Capture the returned issue URL. When using `gh`, pass the Markdown body through `--body-file` to avoid shell quoting or multiline corruption.
 3. Create the Freelo task using the companion workflow, with the actual issue URL in the approved summary. Write its approved metadata, labels, subtasks, and relations. For existing counterparts, perform only the approved reuse or refinement operations; create only the missing side, using the existing side's verified URL.
-4. Complete the reciprocal links. Read the current issue body before adding its Freelo URL; preserve unrelated content and avoid duplicate links. If an unexpected material change appeared, stop and re-preview. Set the Freelo description's issue link as needed for an approved reused task.
-5. Read back every created or modified issue and task. Verify both titles, labels, targets, the full issue specification, the Freelo summary and metadata, subtasks/relations, and reciprocal URLs. Check semantic content after Freelo sanitization, not byte equality. Report any mismatch; a successful write response alone is not completion.
-6. Return clickable links to every created or modified entity, including both members of each pair. Claim a complete pair only after both sides and links are verified.
+4. Add the approved GitHub `blocked_by` dependencies (they use the blocking issue's database `id`, not its number) and mirror them as Freelo relations through the companion.
+5. Complete the reciprocal links. Read the current issue body before adding its Freelo URL; preserve unrelated content and avoid duplicate links. If an unexpected material change appeared, stop and re-preview. Set the Freelo description's issue link as needed for an approved reused task.
+6. Read back every created or modified issue and task. Verify both titles, labels, the issue milestone, every approved GitHub `blocked_by` dependency and its mirrored Freelo relation, targets, the full issue specification, the Freelo summary and metadata, subtasks/relations, and reciprocal URLs. Check semantic content after Freelo sanitization, not byte equality. Report any mismatch; a successful write response alone is not completion.
+7. Return clickable links to every created or modified entity, including both members of each pair. Claim a complete pair only after both sides and links are verified.
 
 Writes across and within these systems are not atomic. On failure or an uncertain write outcome, stop dependent writes, read actual state in both systems, and report exactly what exists, what succeeded, and what remains. Do not blindly retry creation, delete, roll back, or silently change mode. Preserve successful entities and offer an evidence-based completion plan; obtain fresh approval for changed operations or content before resuming. Apply the same procedure when resuming an interrupted run, including when only one counterpart exists.
 

@@ -262,6 +262,38 @@ $esoul-model-routing which model should I use to refactor the checkout?
 $esoul-model-routing make this quick and cheap
 ```
 
+### `esoul-project-lifecycle`
+
+The eSoul project process from first client materials to agent-ready work. Bootstraps or retrofits a repository with the standard rules (`AGENTS.md`, `CONTEXT.md` project profile, `GLOSSARY.md`, `CONTRIBUTING.md`, issue and PR templates, CodeRabbit, CODEOWNERS), keeps client podklady and legacy evidence, the question register, ADRs, project guidelines, the design brief and the plan with slices, prepares the codebase for agents (quality gates, reference module, parity tests), turns slices into GitHub issue + Freelo pairs through `esoul-tasking`, folds every client session back into the docs in one PR, and audits conformance and completeness.
+
+Works for any stack. Ships stack profiles for the common eSoul stacks (Laravel + Inertia, Medusa + Nuxt, Astro) and a checklist for new ones, and two process tiers: `full` for applications and `light` for websites. Includes starter templates for every document and a read-only `scripts/conformance.mjs` checker. Implementation is handed to `esoul-workflow`.
+
+Usage:
+
+```text
+$esoul-project-lifecycle bootstrap this repository for the new client project
+$esoul-project-lifecycle client-update from today's meeting notes
+$esoul-project-lifecycle audit this project against the eSoul standard
+```
+
+It writes issues and Freelo tasks only through `esoul-tasking`, so install the chain together:
+
+```bash
+npx skills@1.7.2 add eSoul-cz/skills \
+  --skill esoul-project-lifecycle esoul-tasking esoul-freelo-task-authoring freelo \
+  --agent codex \
+  --global \
+  --yes
+```
+
+Check a project without changing anything (Node 20 or newer; `--github` also reads issues and repository settings through `gh`). Resolve `SKILL_DIR` to the installed skill's directory, for example `skills/esoul-project-lifecycle` in this checkout:
+
+```bash
+node "$SKILL_DIR/scripts/conformance.mjs" /path/to/project --github eSoul-cz/example-repo
+```
+
+Replace `/path/to/project` and `eSoul-cz/example-repo` with the project checkout and its repository.
+
 ## Tools
 
 - `docs/documentation` validates and renders application documentation. Install it in an application repository with:

@@ -1,0 +1,23 @@
+# Kdo je automaticky přidán jako reviewer. GitHub tiše ignoruje neexistující tým nebo
+# uživatele bez přístupu k repu, proto je výchozím vlastníkem existující tým @eSoul-cz/esoul.
+
+# Výchozí vlastník všeho
+*                                   @eSoul-cz/esoul
+
+# Kontrakt projektu a rozhodnutí — mění se vědomě, ne mimochodem
+/CONTEXT.md                         {{LEAD_OWNERS}}
+/GLOSSARY.md                        {{LEAD_OWNERS}}
+/AGENTS.md                          {{LEAD_OWNERS}}
+/CLAUDE.md                          {{LEAD_OWNERS}}
+/CONTRIBUTING.md                    {{LEAD_OWNERS}}
+/docs/adr/                          {{LEAD_OWNERS}}
+/docs/project_guidelines/           {{LEAD_OWNERS}}
+
+# Podklady od klienta — obsahují reálná data, nemažou se ani nemění
+/docs/podklady/                     {{LEAD_OWNERS}}
+/assets/                            {{LEAD_OWNERS}}
+
+# Infrastruktura, CI a nastavení review
+/.github/                           {{LEAD_OWNERS}}
+/.coderabbit.yaml                   {{LEAD_OWNERS}}
+/Jenkinsfile                        {{LEAD_OWNERS}}

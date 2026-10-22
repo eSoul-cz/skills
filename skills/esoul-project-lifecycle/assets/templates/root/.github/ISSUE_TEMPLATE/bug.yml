@@ -1,0 +1,108 @@
+name: Chyba
+description: Něco nefunguje, jak má
+title: ""
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Název piš ve tvaru `Kontext: Akční výsledek` a stejný název použij i pro párový Freelo
+        úkol. Kategorii (`frontend`, `backend`, `data-migration`, `infrastructure`) vyjádři
+        štítkem, ne prefixem. Žádná reálná data klienta (jména, kontakty, částky z podkladů).
+
+  - type: textarea
+    id: observed
+    attributes:
+      label: Pozorované chování
+      description: Co se skutečně děje. Chybová hláška doslovně, screenshot vítán.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Očekávané chování
+      description: >-
+        Co se mělo stát místo toho, a proč si to myslíš. U čísel uveď, odkud správná hodnota
+        plyne — zdroj v `docs/podklady/`, ADR, nebo ruční přepočet.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Kroky k reprodukci
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Dopad
+      description: Rozdíl mezi křivým zarovnáním a špatnou částkou je řádový.
+      options:
+        - Blokuje klíčový tok (uživatel nedokončí hlavní akci)
+        - Zkreslená data, částky nebo doklady
+        - Zpřístupnění osobních nebo cizích dat
+        - Funkční omezení (existuje obchvat)
+        - Kosmetika
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Prostředí
+      options:
+        - lokální
+        - staging / preview
+        - produkce
+    validations:
+      required: true
+
+  - type: input
+    id: role
+    attributes:
+      label: Role
+      description: >-
+        Pod jakou rolí je chyba vidět (role podle `GLOSSARY.md`), nebo `nepřihlášený uživatel`,
+        nebo `napříč rolemi`.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Dotčené oblasti
+      description: Ověřené cesty k souborům, třídy, routy, tabulky — pokud je znáš.
+    validations:
+      required: false
+
+  - type: textarea
+    id: uat
+    attributes:
+      label: UAT (regresní ověření)
+      description: >-
+        Kroky, kterými se po opravě ověří, že je chyba pryč — včetně původního reprodukčního
+        scénáře. Proklikne je netechnický člověk; rozměry z `CONTEXT.md` s konkrétními hodnotami.
+      value: |
+        **Role:**
+        **Předpoklad:**
+        {{UAT_DIMENSION_LINES}}
+
+        1. [ ] Akce uživatele → očekávaný výsledek.
+    validations:
+      required: true
+
+  - type: input
+    id: freelo
+    attributes:
+      label: Freelo
+      description: URL párového úkolu. Doplň hned po jeho založení.
+      placeholder: https://app.freelo.io/task/…
+    validations:
+      required: false

@@ -119,26 +119,24 @@ Create a separate top-level task when a part can be delivered independently, nee
 
 Prefer one assignee for a task. When multiple people are genuinely required, assign independently owned smart subtasks or split top-level tasks. Keep one accountable parent owner when appropriate.
 
-Fit each ordinary parent task into one one-week sprint. Estimate implementation, tests, ordinary local fixes, and required documentation in whole hours. State estimate confidence in the preview. When a task exceeds 20 hours, actively propose a split; allow an approved exception when cohesion warrants it. Keep estimates on the parent by default. Estimate a subtask only when it is unusually substantial.
+Fit each ordinary parent task into one one-week sprint. Estimate human time: briefing the coding agent, checking its work, review, UAT, and fixes, in 15-minute steps. Agent time is not estimated; actual human time is logged as Freelo work reports. State estimate confidence in the preview. When a task exceeds 4 hours of human time, actively propose a split; allow an approved exception when cohesion warrants it. Keep estimates on the parent by default. Estimate a subtask only when it is unusually substantial. A repository convention in `CONTEXT.md` may define a different estimate unit; follow it and show it in the preview.
 
 ## 5. Choose metadata
 
 Resolve tasklist IDs by name in the confirmed project; never hardcode IDs from another project.
 
-- Choose `To Do` when the task is complete, unblocked, and available for anyone to take. Assignee and due date may both be empty.
-- Also choose `To Do` when the task has a clear assignee and due date and is unblocked.
-- Require a whole-hour parent estimate for every `To Do` task.
+- Choose `To Do` only when the task has a complete description, an assignee, an approved estimate, and no open blockers. A due date is optional.
 - Choose `Backlog` for preparation, missing decisions, blockers, or other work not ready to start. Its estimate may be absent.
-- Choose `Project Management` only after explicit LTT confirmation. Do not require an estimate unless the user explicitly sets a budget.
+- Choose the recurring-work list (`LTT`; older projects call it `Project Management`) only after explicit LTT confirmation. Do not require an estimate unless the user explicitly sets a budget.
 - Never create directly in `In progress`, `Code review`, `Testing`, or `Done` as part of ordinary authoring.
 
-If only an assignee or only a due date is known, ask for the other when it matters. The task may still enter `To Do` under the complete/unblocked/free-pick rule. Never invent either value.
+If a task meant for `To Do` lacks an assignee or estimate, ask, or keep it in `Backlog`. A confirmed LTT task without a budget needs no estimate. Never invent an assignee, estimate, or due date.
 
 Apply at least one label to every created task. Use only labels already available and demonstrably used in the target project, preserving exact name, case, UUID, and color. Never suggest or create a new label. Ask when no existing label can be selected reliably.
 
 ## 6. Handle related work and duplicates
 
-Prefer native Freelo task relations when the currently available MCP/CLI explicitly supports creating them. Otherwise add temporary reciprocal comments so a person can create the native relation manually and delete the comments in the UI.
+Use native Freelo task relations when the currently available MCP/CLI supports creating them. Do not add temporary comments asking a person to create relations manually. When a relation cannot be written, keep the dependency in the description's `Závislosti` section with the other task's clickable URL and report the missing relation. In `github-freelo` mode the GitHub issue's native `blocked_by` dependency is the source of truth and the Freelo relation mirrors it.
 
 Use Freelo's exact relationship names:
 
@@ -146,7 +144,7 @@ Use Freelo's exact relationship names:
 - `Je duplikát` on both tasks;
 - `Je blokován` on the dependent task and `Blokuje` on the prerequisite task.
 
-Include the other task's clickable Freelo URL in each comment. Preview all reciprocal comments before writing them.
+Preview every relation before writing it.
 
 Never create a complete duplicate. Show the existing task and propose a safe refinement when appropriate:
 
@@ -155,7 +153,7 @@ Never create a complete duplicate. Show the existing task and propose a safe ref
 - `In progress`: do not expand scope without explicit approval; keep a small clarification there or create separately linked substantial work.
 - `Code review` or `Testing`: keep only corrections required by the approved scope; create newly discovered scope as a separate related task.
 - `Done`: do not reopen or rewrite automatically; create a separate related change.
-- `Project Management`: add to the same confirmed LTT only when it is truly continuing work; otherwise create separately.
+- `LTT` (or `Project Management`): add to the same confirmed LTT only when it is truly continuing work; otherwise create separately.
 
 Updating an existing task is allowed only as the approved duplicate-prevention exception. Do not otherwise manage task lifecycle or implementation state.
 
@@ -167,10 +165,9 @@ Before any Freelo write, show one complete preview grouped by task when several 
 - exact title and description;
 - subtasks and any exceptional subtask assignees/estimates;
 - existing labels;
-- whole-hour estimate and confidence;
+- estimate (human time in 15-minute steps unless the repository defines otherwise) and confidence;
 - assignee and due date;
 - duplicate-search results and proposed relations;
-- every reciprocal comment to be added to another task;
 - unverified assumptions.
 
 Allow the user to approve the entire same-project batch or explicitly selected tasks. Create only the approved items.
@@ -185,8 +182,8 @@ After approval:
 2. Create each parent, then set its full description and metadata.
 3. Create approved subtasks and assign or estimate exceptional smart subtasks only as previewed.
 4. Apply labels by existing UUID where possible.
-5. Create native relations or approved reciprocal fallback comments.
-6. Read back every created or modified task and verify tasklist, content, subtasks, labels, estimate, assignee, due date, and relations/comments.
+5. Create approved native relations; report any that the tools cannot write.
+6. Read back every created or modified task and verify tasklist, content, subtasks, labels, estimate, assignee, due date, and relations.
 7. Return clickable links for every created or modified Freelo entity on first mention.
 
 Freelo writes are not atomic. On partial failure, do not delete, roll back, or recreate a parent automatically. Stop dependent writes, read the actual state, report exactly what succeeded and what remains, and offer a safe completion plan requiring fresh approval for any changed operations.
