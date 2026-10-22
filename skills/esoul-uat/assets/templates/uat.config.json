@@ -1,0 +1,16 @@
+{
+  "project": "{{REPOSITORY}}",
+  "locale": "cs-CZ",
+  "devices": {},
+  "fieldDevices": [],
+  "login": {
+    "path": "/login",
+    "email": "input[type=email]",
+    "password": "input[type=password]",
+    "submit": "button[type=submit]"
+  },
+  "roles": {
+    "N": { "routes": ["/login"] },
+    "A": { "routes": ["/"] }
+  }
+}

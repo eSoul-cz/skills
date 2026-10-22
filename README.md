@@ -240,6 +240,24 @@ node --test tooling/scripts/test_mockup_preview.mjs
 
 It checks that bundle JavaScript still executes, cannot modify the control UI, and cannot override layout with invalid measurement messages. The test is explicitly skipped when the application or Chrome location is not supplied; Jenkins's documentation-tooling checks do not replace this application-dependent browser test.
 
+### `esoul-uat`
+
+Plans, verifies, runs, and reports user acceptance testing of eSoul applications, e-shops, and websites as an end user. The scenario catalogue is Markdown in `docs/testing/uat/` of the project, built from the product type in the project profile (`esoul-project-lifecycle`). Runs use Claude in Chrome in a dedicated Chrome profile for functional scenarios and Playwright with the installed Google Chrome for device emulation, screenshots, and a layout audit (overflow, overlaps, clipped text, tap targets, broken images, font fallback). When a `.pen`, Figma, or mockup design exists, screens are compared with it. Failed scenarios become approved GitHub issue + Freelo pairs through the repository's tasking skill, with URL, screenshot, reproduction, and proposed fix. Credentials stay in `~/.config/esoul-uat/`, never in the repository.
+
+Requires Node.js 18+. The sweep needs `playwright` (`npm install --prefix ~/.cache/esoul-uat playwright@1`) and Google Chrome; the catalogue and run tool has no dependencies.
+
+```bash
+npx skills add eSoul-cz/skills --skill esoul-uat --agent codex --global --yes
+node --test skills/esoul-uat/scripts/uat.test.mjs
+```
+
+Usage:
+
+```text
+$esoul-uat verify whether the UAT scenarios match the current code
+$esoul-uat run chapters AUT and NAV on the UAT instance, desktop and mobile, with design checks
+```
+
 ### `esoul-workflow`
 
 Default entry point for eSoul work on web applications, WordPress sites, and data analyses. Loads repository context, sizes the task (S, M, L, bug, analysis), and routes each step to the owning skill instead of repeating it: `esoul-tasking` for tracked work, `esoul-mockup-authoring` and `frontend-design` for UI, `gitmoji-commit` for commits, `final-pr-review` for PRs. Uses the Matt Pocock skills (`grilling`, `tdd`, `diagnosing-bugs`, `code-review`) and CodeGraph when installed, and degrades gracefully without them. Includes short references for the eSoul web stack, the WP-template WordPress deployment model, and reproducible data analysis.
