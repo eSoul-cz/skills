@@ -9,8 +9,9 @@ z podkladů klienta v `assets/klient/`. Meta title, description a URL jsou v
 - **Pravopis a typografie:** jednopísmenné předložky a spojky (k, s, v, z, o, u, a, i) nesmí
   zůstat na konci řádku; na webu se vážou k dalšímu slovu nezlomitelnou mezerou. Jednotná
   terminologie napříč webem; termín, který klient používá jinak, se zapíše sem.
-- **Žádné zástupné značky v textech.** Údaj, který klient nepotvrdil, se rozhodne podle podkladů
-  a zapíše do [Co dodá klient](sitemap-a-meta.md#co-dodá-klient) s tím, jak byl rozhodnut.
+- **Žádné zástupné značky na webu.** Údaj, který klient nepotvrdil (cena, kontakt, tvrzení), zůstane
+  v tomto souboru jako `TBD`, zapíše se do [Co dodá klient](sitemap-a-meta.md#co-dodá-klient) a
+  na web jde až po potvrzení; do té doby se vynechá. Spuštění vyžaduje, aby žádné `TBD` nezbylo.
 - **Kde texty platí po spuštění:** <!-- U webu s administrací: tento soubor je podklad pro seed
   textů do adminu a po spuštění platí texty v adminu. U statického webu: zdrojem jsou obsahové
   soubory v repozitáři a tento soubor se při změně textu upravuje ve stejném PR. -->

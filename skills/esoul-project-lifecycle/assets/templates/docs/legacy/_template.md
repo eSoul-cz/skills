@@ -15,7 +15,7 @@ snapshot: YYYY-MM-DD
 
 > **Jak to bylo.** Popis toho, jak původní systém řešil téma, ne požadavek na novou aplikaci.
 > Cílový stav definují [GLOSSARY.md](../../GLOSSARY.md) a [docs/adr/](../adr/index.md).
-
+>
 > Cílové řešení: [ADR-NNNN](../adr/NNNN-english-slug.md).
 
 ## Jak to bylo

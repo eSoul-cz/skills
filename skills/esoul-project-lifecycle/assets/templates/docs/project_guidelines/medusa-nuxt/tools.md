@@ -51,7 +51,7 @@ Before each commit run:
 pnpm check
 ```
 
-It runs `lint`, `format:check`, `structure`, `skills:check`, `typecheck`, `test` and
+It runs `lint`, `format:check`, `structure`, `skills:check`, `typecheck`, `test:unit` and
 `test:tooling`, does not stop at the first failure, and exits non-zero if any step failed. Every
 step only reads. Integration tests, E2E tests, the audit and the build are required when the
 checks table in [CONTRIBUTING.md](../../CONTRIBUTING.md) says so. For a quick loop in one package,

@@ -34,8 +34,11 @@ same order.
    `CONTRIBUTING.md`, „Run the issue's UAT scenario“ becomes „accepted on the preview“; in
    `CONTRIBUTING.md` „Každá práce je pár“ follows the recorded tasking mode (`freelo-only` allows
    tasks without issues); references to `docs/plan/seznam-slices.md` point to `docs/plan.md`;
-   in `code-review.md` the reviewer reads the task's acceptance instead of `## UAT`. The
-   conformance script's `broken-link` warning lists every link still to adapt.
+   in `code-review.md` the reviewer reads the task's acceptance instead of `## UAT`. In
+   `docs/agents/issue-tracker.md`, `freelo-only` projects replace the GitHub pairing with Freelo
+   tasks only and drop the milestone and slice-table rules; `docs/agents/domain.md` points to
+   `docs/rozhodnuti.md` instead of ADRs and drops `GLOSSARY.md` until it exists. The conformance
+   script's `broken-link` warning lists every link still to adapt.
 5. **Fill placeholders.** Replace every `{{…}}`. Unknown values become `TBD` plus a question in
    the register, never a guess. Remove optional blocks that do not apply. Skip files that do
    not apply instead of leaving them half-filled: `docs/legacy/` without a previous system,

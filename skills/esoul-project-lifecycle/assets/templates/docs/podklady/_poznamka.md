@@ -13,7 +13,7 @@ snapshot: YYYY-MM-DD
 
 > **Důkaz, ne zadání.** Popis souboru `nazev-souboru.xlsx` tak, jak byl předán. Cílový stav
 > definují ADR v [`docs/adr/`](../adr/index.md).
-
+>
 > Cílové řešení: [ADR-NNNN](../adr/NNNN-english-slug.md).
 
 ## Co v podkladu je

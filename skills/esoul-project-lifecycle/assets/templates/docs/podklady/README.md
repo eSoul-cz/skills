@@ -9,7 +9,7 @@ snapshot: {{DATE}}
 > předal, ve stavu uvedeném ve frontmatteru každé poznámky. Jsou to podklady, ne specifikace.
 > Cílový stav definují ADR v [`docs/adr/`](../adr/index.md) a pravidla v
 > [`docs/project_guidelines/`](../project_guidelines/index.md).
-
+>
 > **Pozor: podklady obsahují reálná data klienta.** Verzují se vědomě, protože jsou nutným
 > vstupem pro návrh, plán i parity testy. **Repozitář musí zůstat privátní.**
 

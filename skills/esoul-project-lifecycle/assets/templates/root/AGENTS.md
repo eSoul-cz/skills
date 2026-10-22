@@ -45,14 +45,17 @@ the quality gates and the deployment; the detail is in `docs/project_guidelines/
   guidelines do not say. Where the client has a workbook, a parity test reproduces it.
 - **Real client data never leaves `docs/podklady/` and `assets/`.** Names, contacts, amounts and
   other personal or business data from the client's material never appear in code, tests,
-  fixtures, factories, seeders, issues or pull requests. Agents work only with anonymized dumps;
-  never load, read or request a non-anonymized database export.
+  fixtures, factories, seeders, issues or pull requests. The one exception is a parity fixture
+  that the testing guideline allows: numbers and workbook cell references only, never names,
+  contacts, project or company identifiers. Agents work only with anonymized dumps; never load,
+  read or request a non-anonymized database export.
 - **Client files and data belong in the tracked repository**, never in gitignored places
   (`storage/`, `tmp/`, Downloads): binaries in `assets/` through Git LFS, guides in `docs/`.
   The only exception is unanonymized legacy evidence, which stays in the gitignored `_reference/`.
-- **Work labelled `data-migration`** (migrations, imports, data fixes, reports) does not change
-  application code or the data model directly. When a fix needs such a change, write the proposed
-  fix down and ask for a new issue/task pair.
+- **Work labelled `data-migration`** (migrations, imports, data fixes, reports) changes only what
+  its issue explicitly specifies, including an approved schema change. Anything beyond that in
+  application code or the data model is not done in passing: write the proposed fix down and ask
+  for a new issue/task pair.
 - **A new domain term goes into [GLOSSARY.md](GLOSSARY.md) in the same pull request** that
   introduces it. No synonyms: one concept, one Czech term, one English identifier.
 - **Do not write summary, report or analysis Markdown files.** Documentation goes into the places

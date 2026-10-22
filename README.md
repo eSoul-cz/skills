@@ -279,17 +279,17 @@ $esoul-project-lifecycle audit this project against the eSoul standard
 It writes issues and Freelo tasks only through `esoul-tasking`, so install the chain together:
 
 ```bash
-npx skills add eSoul-cz/skills \
+npx skills@1.7.2 add eSoul-cz/skills \
   --skill esoul-project-lifecycle esoul-tasking esoul-freelo-task-authoring freelo \
   --agent codex \
   --global \
   --yes
 ```
 
-Check a project without changing anything (Node 20 or newer; `--github` also reads issues and repository settings through `gh`):
+Check a project without changing anything (Node 20 or newer; `--github` also reads issues and repository settings through `gh`). Resolve `SKILL_DIR` to the installed skill's directory, for example `skills/esoul-project-lifecycle` in this checkout:
 
 ```bash
-node skills/esoul-project-lifecycle/scripts/conformance.mjs /path/to/project --github eSoul-cz/<repo>
+node "$SKILL_DIR/scripts/conformance.mjs" /path/to/project --github eSoul-cz/<repo>
 ```
 
 ## Tools

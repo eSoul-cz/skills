@@ -5,7 +5,9 @@ This reference only adds what a batch from the slice table needs.
 
 ## Before the batch
 
-1. Gates B1–B4 are approved, or the user explicitly accepts tasking ahead of a gate.
+1. Gates B1–B4 are approved, or the project lead has approved early tasking for this phase as
+   described in SKILL.md › Phases and gates. Issues created early stay `needs-info` or
+   `needs-triage` until B5.
 2. `CONTEXT.md` has `## Freelo`, `## Tasking convention` (`github-freelo` for the full tier) and
    `## Project profile › UAT dimensions`.
 3. GitHub milestones exist for every phase, and the labels from the bootstrap exist. Creating

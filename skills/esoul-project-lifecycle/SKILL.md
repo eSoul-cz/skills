@@ -65,6 +65,10 @@ The full tier runs these phases in order; the light tier runs the reduced set in
 | P8 Tasking | Issue + Freelo pairs, milestones, `blocked_by` | — |
 | P9 Completeness audit | Plan ↔ issues ↔ Freelo ↔ podklady ↔ ADR report resolved | B5: issues become `ready-for-agent` |
 
+One exception is allowed: the project lead may approve tasking (P8) for a phase before B4, for
+example to make a retrofit visible as pairs. Record that approval in the PR that updates the
+slice table; the issues stay out of `ready-for-agent` until B5.
+
 Gates B0–B5 are eSoul's readiness gates. The plan's delivery gates `G0`, `G1`, … are the
 milestones agreed with the client; `G0` (ready for development) is reached at B5.
 
@@ -135,7 +139,7 @@ These were approved for every eSoul project. Templates in `assets/templates/` al
 | Decision interviews | `grilling`, `domain-modeling` when installed |
 
 If a required companion is missing, stop and give the install command:
-`npx skills add eSoul-cz/skills --skill <name> --agent <agent> --yes`.
+`npx skills@1.7.2 add eSoul-cz/skills --skill <name> --agent <agent> --yes`.
 
 ## 7. Finish every run
 

@@ -20,19 +20,12 @@ fit together. The process around it (branches, checks, Definition of Done, mergi
 
 ## Severity
 
-> [!CAUTION]
-> **Blocker** — the pull request must not merge until the finding is resolved.
-
-> [!WARNING]
-> **High** — materially wrong behaviour, lost authorised work, or a violation of an `accepted`
-> ADR or of a MUST rule in `AGENTS.md` or these guidelines.
-
-> [!IMPORTANT]
-> **Medium** — significant duplication, overengineering, a missing test for a non-critical path,
-> or another maintainability risk.
-
-> [!NOTE]
-> **Low** — local cleanup that can be included with related remediation.
+- **Blocker** — the pull request must not merge until the finding is resolved.
+- **High** — materially wrong behaviour, lost authorised work, or a violation of an `accepted`
+  ADR or of a MUST rule in `AGENTS.md` or these guidelines.
+- **Medium** — significant duplication, overengineering, a missing test for a non-critical path,
+  or another maintainability risk.
+- **Low** — local cleanup that can be included with related remediation.
 
 `Blocker` and `High` prevent the merge. `Medium` and `Low` MAY be merged when the author fixes
 them in the same pull request or the project lead accepts a follow-up; a follow-up is a new issue
