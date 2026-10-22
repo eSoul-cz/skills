@@ -28,11 +28,11 @@ test('sample chapter is valid', () => {
 test('validation reports broken scenarios', () => {
     const chapter = parseChapter(
         [
-            '---',
-            'id: ZV',
-            'title: Zvířata',
-            'part: A',
-            '---',
+            '# Zvířata',
+            '',
+            '- **Kapitola:** ZV',
+            '- **Část:** A',
+            '',
             '## ZV-02 Špatné číslo',
             '- **Role:** B',
             '- **Typ:** neznamy',

@@ -1,10 +1,7 @@
----
-id: AUT
-title: Přihlášení a účet
-part: A
----
-
 # Přihlášení a účet
+
+- **Kapitola:** AUT
+- **Část:** A
 
 Ukázková kapitola: přihlášení, odhlášení a úprava vlastního profilu. Nahraď ji kapitolami
 projektu; formát popisuje `references/scenario-format.md` ve skillu `esoul-uat`.

@@ -94,18 +94,16 @@ function splitRow(line) {
 export function parseChapter(text, file = 'chapter') {
     const lines = text.replace(/\r\n/g, '\n').split('\n');
     const chapter = { file, meta: {}, scenarios: [], errors: [] };
+    // Chapter header: "# Title" followed by "- **Kapitola:** ID" and "- **Část:** A|B" before
+    // the first scenario. No YAML front matter: chapters are concatenated into one PDF.
     let i = 0;
-    if (lines[0]?.trim() === '---') {
-        i = 1;
-        while (i < lines.length && lines[i].trim() !== '---') {
-            const m = lines[i].match(/^([A-Za-z_]+):\s*(.*)$/);
-            if (m) chapter.meta[m[1]] = m[2].replace(/^["']|["']$/g, '');
-            i++;
-        }
-        i++;
-    } else {
-        chapter.errors.push(`${file}: chybí front matter (id, title, part)`);
+    for (; i < lines.length && !/^##\s/.test(lines[i]); i++) {
+        const title = lines[i].match(/^#\s+(.+?)\s*$/);
+        if (title && !chapter.meta.title) chapter.meta.title = title[1];
+        const field = lines[i].match(/^\s*-\s+\*\*(Kapitola|Část):\*\*\s*(.*)$/);
+        if (field) chapter.meta[field[1] === 'Kapitola' ? 'id' : 'part'] = field[2].trim().replace(/^`|`$/g, '');
     }
+    if (!chapter.meta.id) chapter.errors.push(`${file}: chybí „- **Kapitola:** ID“ pod nadpisem`);
     let current = null;
     let headerSeen = false;
     for (; i < lines.length; i++) {
@@ -176,9 +174,9 @@ export function validate(chapters, devices = DEVICES) {
     for (const chapter of chapters) {
         const { file, meta } = chapter;
         errors.push(...chapter.errors);
-        if (!/^[A-Z]{2,4}$/.test(meta.id ?? '')) errors.push(`${file}: front matter id musí být 2–4 velká písmena`);
-        if (!meta.title) errors.push(`${file}: chybí title`);
-        if (!['A', 'B'].includes(meta.part)) errors.push(`${file}: part musí být A nebo B`);
+        if (meta.id && !/^[A-Z]{2,4}$/.test(meta.id)) errors.push(`${file}: Kapitola musí být 2–4 velká písmena`);
+        if (!meta.title) errors.push(`${file}: chybí nadpis kapitoly „# …“`);
+        if (!['A', 'B'].includes(meta.part)) errors.push(`${file}: Část musí být A nebo B`);
         if (chapter.scenarios.length === 0) errors.push(`${file}: kapitola nemá žádný scénář`);
         let expected = 1;
         const types = [];

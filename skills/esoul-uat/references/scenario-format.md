@@ -7,13 +7,10 @@ in the project's language (Czech for Czech clients). Field names below are fixed
 ## Chapter
 
 ```md
----
-id: ZV
-title: Registr zvířat
-part: A
----
-
 # Registr zvířat
+
+- **Kapitola:** ZV
+- **Část:** A
 
 Jeden až tři odstavce: co kapitola pokrývá a na co si dát pozor.
 
@@ -40,10 +37,14 @@ Jeden až tři odstavce: co kapitola pokrývá a na co si dát pozor.
 
 ## Fields
 
+No YAML front matter: all chapters are concatenated into one PDF, and per-file metadata
+would overwrite the document title.
+
+
 | Field | Values | Meaning |
 |---|---|---|
-| front matter `id` | 2–4 capital letters | chapter prefix, stable |
-| front matter `part` | `A`, `B` | A = testable today, B = specified or backend without screens |
+| `Kapitola` (under the `#` title) | 2–4 capital letters | chapter prefix, stable |
+| `Část` (under the `#` title) | `A`, `B` | A = testable today, B = specified or backend without screens |
 | `Role` | role codes from `environment.md`, several with `/` | who performs the steps |
 | `Typ` | `happy`, `validace`, `opravneni`, `negativni`, `okrajovy`, `vykon`, `design`, `priprava` | scenario type |
 | `Základ` | `kod`, `zadani` | expected result verified in code and tests, or taken from the specification |
