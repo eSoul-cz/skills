@@ -130,7 +130,7 @@ Resolve tasklist IDs by name in the confirmed project; never hardcode IDs from a
 - Choose the recurring-work list (`LTT`; older projects call it `Project Management`) only after explicit LTT confirmation. Do not require an estimate unless the user explicitly sets a budget.
 - Never create directly in `In progress`, `Code review`, `Testing`, or `Done` as part of ordinary authoring.
 
-If the assignee or estimate is unknown, ask, or keep the task in `Backlog`. Never invent an assignee, estimate, or due date.
+If a task meant for `To Do` lacks an assignee or estimate, ask, or keep it in `Backlog`. A confirmed LTT task without a budget needs no estimate. Never invent an assignee, estimate, or due date.
 
 Apply at least one label to every created task. Use only labels already available and demonstrably used in the target project, preserving exact name, case, UUID, and color. Never suggest or create a new label. Ask when no existing label can be selected reliably.
 
