@@ -12,6 +12,7 @@
  *   uat.mjs report   <run-dir>
  */
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { basename, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -247,10 +248,10 @@ function writeRun(runDir, run) {
 const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 
 /**
- * Read-modify-write of results.json under a lock file shared by uat.mjs and sweep.mjs, so
- * a sweep running next to functional scenarios never overwrites a newer result.
+ * Run `action` while holding the lock file shared by uat.mjs and sweep.mjs, so a sweep
+ * running next to functional scenarios never overwrites a newer result.
  */
-export function updateRun(runDir, change) {
+export function withRunLock(runDir, action) {
     const lock = join(runDir, 'results.json.lock');
     const deadline = Date.now() + 30000;
     for (;;) {
@@ -265,13 +266,26 @@ export function updateRun(runDir, change) {
         }
     }
     try {
-        const run = readRun(runDir);
-        const result = change(run);
-        writeRun(runDir, run);
-        return result;
+        return action();
     } finally {
         rmSync(lock, { force: true });
     }
+}
+
+/**
+ * Read-modify-write of results.json under the run lock. With `expectedUuid`, the write is
+ * refused when the run was re-initialised in the meantime (init --force).
+ */
+export function updateRun(runDir, change, expectedUuid = null) {
+    return withRunLock(runDir, () => {
+        const run = readRun(runDir);
+        if (expectedUuid && run.run.uuid !== expectedUuid) {
+            throw new Error(`Běh v ${runDir} byl mezitím znovu založen, zápis odmítnut.`);
+        }
+        const result = change(run);
+        writeRun(runDir, run);
+        return result;
+    });
 }
 
 function runCounts(items) {
@@ -282,7 +296,6 @@ function runCounts(items) {
 
 function cmdInit(scenariosDir, runDir, options) {
     if (!options.env || !options['base-url']) fail('init vyžaduje --env a --base-url');
-    if (existsSync(join(runDir, 'results.json')) && !options.force) fail(`${join(runDir, 'results.json')} už existuje. Pokračuj v běhu, nebo zvol nový adresář; přepsání jen s --force.`);
     const chapters = loadCatalogue(scenariosDir);
     const devices = list(options.devices).length ? list(options.devices) : ['desktop'];
     const { errors } = validate(chapters, [...new Set([...DEVICES, ...devices])]);
@@ -320,6 +333,7 @@ function cmdInit(scenariosDir, runDir, options) {
     const run = {
         run: {
             id: basename(runDir),
+            uuid: randomUUID(),
             environment: options.env,
             base_url: options['base-url'],
             commit: options.commit ?? 'neznámý',
@@ -334,7 +348,12 @@ function cmdInit(scenariosDir, runDir, options) {
         layout: [],
         design: [],
     };
-    writeRun(runDir, run);
+    const written = withRunLock(runDir, () => {
+        if (existsSync(join(runDir, 'results.json')) && !options.force) return false;
+        writeRun(runDir, run);
+        return true;
+    });
+    if (!written) fail(`${join(runDir, 'results.json')} už existuje. Pokračuj v běhu, nebo zvol nový adresář; přepsání jen s --force.`);
     console.log(`✓ ${join(runDir, 'results.json')}: ${items.length} položek (${devices.join(', ')})`);
 }
 

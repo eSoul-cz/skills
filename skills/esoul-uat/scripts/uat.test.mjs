@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { loadCatalogue, parseChapter, validate } from './uat.mjs';
+import { loadCatalogue, parseChapter, updateRun, validate } from './uat.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const sample = join(here, '..', 'assets', 'templates', 'scenarios');
@@ -138,4 +138,16 @@ test('init accepts project devices passed with --devices', () => {
     const run = join(dir, 'run');
     cli('init', dir, run, '--env', 'uat', '--base-url', 'https://x.cz', '--devices', 'kiosk');
     assert.equal(JSON.parse(readFileSync(join(run, 'results.json'), 'utf8')).results[0].device, 'kiosk');
+});
+
+test('a writer bound to a run refuses to write after init --force replaced it', () => {
+    const run = join(mkdtempSync(join(tmpdir(), 'esoul-uat-')), 'r');
+    cli('init', sample, run, '--env', 'uat', '--base-url', 'https://x.cz');
+    const original = JSON.parse(readFileSync(join(run, 'results.json'), 'utf8')).run.uuid;
+    assert.ok(original);
+    updateRun(run, (current) => current.layout.push({ url: 'a', findings: [] }), original);
+    cli('init', sample, run, '--env', 'uat', '--base-url', 'https://x.cz', '--force');
+    assert.throws(() => updateRun(run, (current) => current.layout.push({ url: 'b', findings: [] }), original), /znovu založen/);
+    assert.equal(JSON.parse(readFileSync(join(run, 'results.json'), 'utf8')).layout.length, 0);
+    assert.equal(existsSync(join(run, 'results.json.lock')), false);
 });

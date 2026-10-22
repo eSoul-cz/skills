@@ -11,7 +11,7 @@
  * Logs in per role through the configured form, visits routes, saves full-page screenshots,
  * runs layout-audit.js, and appends findings to <run>/results.json under "layout".
  */
-import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -97,8 +97,12 @@ async function main() {
     const shotsDir = join(runDir, 'screenshots');
     mkdirSync(shotsDir, { recursive: true });
     const project = config.project || 'project';
+    // Stored sessions contain cookies: keep the directory and every state file private.
     const sessionDir = join(cacheRoot, project);
-    mkdirSync(sessionDir, { recursive: true });
+    mkdirSync(sessionDir, { recursive: true, mode: 0o700 });
+    chmodSync(sessionDir, 0o700);
+    for (const name of readdirSync(sessionDir)) chmodSync(join(sessionDir, name), 0o600);
+    const runUuid = results.run.uuid ?? null;
     const auditSource = readFileSync(join(here, 'layout-audit.js'), 'utf8');
     const devices = { ...DEVICES, ...(config.devices ?? {}) };
     const login = config.login ?? {};
@@ -136,6 +140,7 @@ async function main() {
                         await page.waitForTimeout(500);
                         if (page.url().includes(login.path ?? '/login')) die(`Přihlášení role ${role} selhalo.`);
                         await context.storageState({ path: statePath });
+                        chmodSync(statePath, 0o600);
                     }
                 }
                 for (const route of routes) {
@@ -183,7 +188,7 @@ async function main() {
                         if (!o.reset) entry.findings = entry.findings.map((f) => (triage.has(key(f)) ? { ...f, confirmed: triage.get(key(f)) } : f));
                         current.layout = current.layout.filter((l) => !same(l));
                         current.layout.push(entry);
-                    });
+                    }, runUuid);
                     console.log(`${role} ${deviceId} ${route}: ${(audit.findings ?? []).length} nálezů, ${consoleErrors.length} chyb konzole, ${failed.length} chybných požadavků${error ? `, ${error}` : ''}`);
                 }
                 await context.close();

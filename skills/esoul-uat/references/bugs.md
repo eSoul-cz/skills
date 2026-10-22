@@ -60,14 +60,18 @@ When the run folder must stay local (real client data), redact the screenshot fi
 
 ## Writing
 
-The repository's `Tasking convention` (root `CONTEXT.md`, falling back to `GLOSSARY.md`)
-decides the form. In `github-freelo` projects each bug is an issue + Freelo task pair; in
-`freelo-only` projects each bug is one self-contained Freelo task with the same content and
-the screenshot attached to the task.
+The repository's tasking convention decides the form. Resolve it like `esoul-tasking`: an
+applicable `AGENTS.md` first, then root `CONTEXT.md`, then `GLOSSARY.md`. When none of them
+sets a mode, ask the user to choose `freelo-only` or `github-freelo` before the preview.
+
+- `github-freelo`: each bug is an issue + Freelo task pair. Record it as
+  `--bug "#<issue> freelo:<task-id>"`.
+- `freelo-only`: each bug is one self-contained Freelo task with the same content and the
+  screenshot attached. Record it as `--bug "freelo:<task-id>"`; never invent an issue number.
 
 Hand the approved list to the tasking skill. Show **one preview for the whole run**,
 numbered, so the user can approve all or some. After writing, add the issue and task links
-to `results.json` (`uat.mjs record … --bug <issue>#<freelo-id>`) and regenerate the report.
+to `results.json` with the `--bug` format above and regenerate the report.
 
 The bug's fix later goes through `esoul-workflow`. When it is merged and deployed, re-run the
 failing scenario and record the new result in a new run or a re-test section of the report.
