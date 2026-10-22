@@ -5,13 +5,13 @@
  *   uat.mjs validate <scenarios-dir>
  *   uat.mjs stats    <scenarios-dir | run-dir>
  *   uat.mjs init     <scenarios-dir> <run-dir> --env uat --base-url URL [--commit SHA]
- *                    [--devices desktop,mobile] [--chapters PRE,AUT] [--priority P1,P2]
+ *                    [--devices desktop,mobile] [--chapters PRE,AUT] [--priority P1,P2] [--force]
  *   uat.mjs next     <run-dir>
  *   uat.mjs record   <run-dir> <SCENARIO-ID> --device D --status S [--step N] [--url U]
  *                    [--note T] [--evidence PATH]... [--bug REF]
  *   uat.mjs report   <run-dir>
  */
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -109,6 +109,11 @@ export function parseChapter(text, file = 'chapter') {
     for (; i < lines.length; i++) {
         const line = lines[i];
         const heading = line.match(/^##\s+([A-Z]{2,4}-\d{2,3})\s+(.+?)\s*$/);
+        if (!heading && /^##\s+[A-Za-z]{1,6}-?\d/.test(line)) {
+            chapter.errors.push(`${file}:${i + 1}: nadpis „${line.trim()}“ vypadá jako scénář, ale neodpovídá tvaru „## ABC-01 Název“`);
+            current = null;
+            continue;
+        }
         if (heading) {
             current = { id: heading[1], title: heading[2], fields: {}, steps: [], line: i + 1 };
             chapter.scenarios.push(current);
@@ -233,7 +238,40 @@ function readRun(runDir) {
 }
 
 function writeRun(runDir, run) {
-    writeFileSync(join(runDir, 'results.json'), `${JSON.stringify(run, null, 2)}\n`);
+    const file = join(runDir, 'results.json');
+    const temporary = `${file}.${process.pid}.tmp`;
+    writeFileSync(temporary, `${JSON.stringify(run, null, 2)}\n`);
+    renameSync(temporary, file);
+}
+
+const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
+/**
+ * Read-modify-write of results.json under a lock file shared by uat.mjs and sweep.mjs, so
+ * a sweep running next to functional scenarios never overwrites a newer result.
+ */
+export function updateRun(runDir, change) {
+    const lock = join(runDir, 'results.json.lock');
+    const deadline = Date.now() + 30000;
+    for (;;) {
+        try {
+            closeSync(openSync(lock, 'wx'));
+            break;
+        } catch (error) {
+            if (error.code !== 'EEXIST') throw error;
+            if (existsSync(lock) && Date.now() - statSync(lock).mtimeMs > 60000) rmSync(lock, { force: true });
+            if (Date.now() > deadline) fail(`Zámek ${lock} je obsazený déle než 30 s.`);
+            sleep(50);
+        }
+    }
+    try {
+        const run = readRun(runDir);
+        const result = change(run);
+        writeRun(runDir, run);
+        return result;
+    } finally {
+        rmSync(lock, { force: true });
+    }
 }
 
 function runCounts(items) {
@@ -244,10 +282,11 @@ function runCounts(items) {
 
 function cmdInit(scenariosDir, runDir, options) {
     if (!options.env || !options['base-url']) fail('init vyžaduje --env a --base-url');
+    if (existsSync(join(runDir, 'results.json')) && !options.force) fail(`${join(runDir, 'results.json')} už existuje. Pokračuj v běhu, nebo zvol nový adresář; přepsání jen s --force.`);
     const chapters = loadCatalogue(scenariosDir);
-    const { errors } = validate(chapters);
-    if (errors.length) fail(`Katalog má ${errors.length} chyb, spusť validate.`);
     const devices = list(options.devices).length ? list(options.devices) : ['desktop'];
+    const { errors } = validate(chapters, [...new Set([...DEVICES, ...devices])]);
+    if (errors.length) fail(`Katalog má ${errors.length} chyb, spusť validate.`);
     const chapterFilter = list(options.chapters);
     const priorities = list(options.priority);
     const items = [];
@@ -300,20 +339,23 @@ function cmdInit(scenariosDir, runDir, options) {
 }
 
 function cmdRecord(runDir, id, options) {
-    const run = readRun(runDir);
     if (!options.device || !options.status) fail('record vyžaduje --device a --status');
     if (!STATUSES.includes(options.status)) fail(`--status musí být z ${STATUSES.join(', ')}`);
-    const item = run.results.find((r) => r.scenario === id && r.device === options.device);
-    if (!item) fail(`${id}@${options.device} není v rozsahu běhu.`);
-    item.status = options.status;
-    if (options.step !== undefined) item.step = Number(options.step);
-    if (options.url) item.url = options.url;
-    if (options.note) item.note = String(options.note);
-    if (options.evidence) item.evidence = [...new Set([...item.evidence, ...list(options.evidence)])];
-    if (options.bug) item.bug = String(options.bug);
-    item.at = new Date().toISOString();
-    if (run.results.every((r) => r.status !== 'not-run')) run.run.finished_at = item.at;
-    writeRun(runDir, run);
+    if (!readRun(runDir).results.some((r) => r.scenario === id && r.device === options.device)) {
+        fail(`${id}@${options.device} není v rozsahu běhu.`);
+    }
+    const item = updateRun(runDir, (run) => {
+        const found = run.results.find((r) => r.scenario === id && r.device === options.device);
+        found.status = options.status;
+        if (options.step !== undefined) found.step = Number(options.step);
+        if (options.url) found.url = options.url;
+        if (options.note) found.note = String(options.note);
+        if (options.evidence) found.evidence = [...new Set([...found.evidence, ...list(options.evidence)])];
+        if (options.bug) found.bug = String(options.bug);
+        found.at = new Date().toISOString();
+        if (run.results.every((r) => r.status !== 'not-run')) run.run.finished_at = found.at;
+        return found;
+    });
     console.log(`✓ ${id}@${options.device}: ${item.status}`);
 }
 
@@ -380,6 +422,12 @@ function cmdReport(runDir) {
     section('Neprošlé scénáře', ['fail']);
     section('Odchylky', ['deviation']);
     section('Blokované a přeskočené', ['blocked', 'skipped']);
+    const broken = run.layout.filter((l) => l.error || (l.console ?? []).length || (l.network ?? []).length);
+    if (broken.length) {
+        out.push('', '## Chyby stránek při průchodu', '');
+        out.push('| URL | Zařízení | Role | Navigace | Konzole | Síť | Důkaz |', '|---|---|---|---|---|---|---|');
+        for (const l of broken) out.push(`| <${l.url}> | ${l.device} | ${l.role ?? ''} | ${md(l.error ?? '')} | ${md((l.console ?? []).join('; '))} | ${md((l.network ?? []).join('; '))} | ${l.screenshot ? `[${basename(l.screenshot)}](${l.screenshot})` : ''} |`);
+    }
     const layout = run.layout.filter((l) => l.findings.length);
     if (layout.length) {
         out.push('', '## Nálezy rozložení', '');

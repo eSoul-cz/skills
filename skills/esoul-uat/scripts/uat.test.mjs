@@ -99,3 +99,43 @@ test('record refuses scenarios outside the run', () => {
     cli('init', sample, run, '--env', 'uat', '--base-url', 'https://x.cz', '--chapters', 'AUT', '--priority', 'P1');
     assert.throws(() => execFileSync(process.execPath, [join(here, 'uat.mjs'), 'record', run, 'AUT-01', '--device', 'tablet', '--status', 'pass'], { stdio: 'pipe' }));
 });
+
+test('init refuses to overwrite an existing run unless forced', () => {
+    const run = join(mkdtempSync(join(tmpdir(), 'esoul-uat-')), 'r');
+    cli('init', sample, run, '--env', 'uat', '--base-url', 'https://x.cz');
+    cli('record', run, 'AUT-01', '--device', 'desktop', '--status', 'pass');
+    assert.throws(() => execFileSync(process.execPath, [join(here, 'uat.mjs'), 'init', sample, run, '--env', 'uat', '--base-url', 'https://x.cz'], { stdio: 'pipe' }));
+    assert.equal(JSON.parse(readFileSync(join(run, 'results.json'), 'utf8')).results[0].status, 'pass');
+    cli('init', sample, run, '--env', 'uat', '--base-url', 'https://x.cz', '--force');
+    assert.equal(JSON.parse(readFileSync(join(run, 'results.json'), 'utf8')).results[0].status, 'not-run');
+});
+
+test('a malformed scenario heading is an error, not a silent skip', () => {
+    const chapter = parseChapter(['# Zvířata', '', '- **Kapitola:** ZV', '- **Část:** A', '', '## ZV-1 Chybné číslo'].join('\n'), 'zv.md');
+    assert.equal(chapter.scenarios.length, 0);
+    assert.match(chapter.errors.join('\n'), /zv\.md:6: nadpis „## ZV-1 Chybné číslo“ vypadá jako scénář/);
+    assert.equal(parseChapter('# T\n\n- **Kapitola:** ZV\n\n## Poznámky k testu\n', 'x.md').errors.length, 0);
+});
+
+test('report lists pages that failed during the sweep even without layout findings', () => {
+    const run = join(mkdtempSync(join(tmpdir(), 'esoul-uat-')), 'r');
+    cli('init', sample, run, '--env', 'uat', '--base-url', 'https://x.cz');
+    const results = JSON.parse(readFileSync(join(run, 'results.json'), 'utf8'));
+    results.layout.push({ url: 'https://x.cz/missing', device: 'mobile', role: 'A', screenshot: 'screenshots/m.png', findings: [], console: [], network: ['404 GET https://x.cz/missing'], error: null });
+    writeFileSync(join(run, 'results.json'), JSON.stringify(results));
+    cli('report', run);
+    const report = readFileSync(join(run, 'report.md'), 'utf8');
+    assert.match(report, /## Chyby stránek při průchodu/);
+    assert.match(report, /404 GET https:\/\/x\.cz\/missing/);
+});
+
+test('init accepts project devices passed with --devices', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'esoul-uat-cat-'));
+    writeFileSync(
+        join(dir, '01-x.md'),
+        ['# X', '', '- **Kapitola:** XX', '- **Část:** B', '', '## XX-01 Kiosk', '', '- **Role:** A', '- **Typ:** happy', '- **Základ:** kod', '- **Zařízení:** kiosk', '', '| # | Akce | Očekávaný výsledek |', '|---|---|---|', '| 1 | a | b |', '| 2 | c | d |'].join('\n'),
+    );
+    const run = join(dir, 'run');
+    cli('init', dir, run, '--env', 'uat', '--base-url', 'https://x.cz', '--devices', 'kiosk');
+    assert.equal(JSON.parse(readFileSync(join(run, 'results.json'), 'utf8')).results[0].device, 'kiosk');
+});

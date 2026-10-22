@@ -1,6 +1,6 @@
 ---
 name: esoul-uat
-description: Plan, verify, run, and report user acceptance testing (UAT) of eSoul applications, e-shops, and websites as an end user in an isolated Chrome, covering both functionality and design (overflow, overlaps, responsiveness, match with a .pen or Figma design). Builds the scenario catalogue for the project type recorded in the project profile, keeps it current against code and docs, renders it to Markdown and PDF, executes it across roles and devices with recorded evidence, and files found bugs as approved GitHub issue + Freelo pairs with URL, screenshot, reproduction, and proposed fix. Use for UAT, test scenarios, test plans, acceptance runs, "click through the app", responsive or design QA, or turning test findings into bugs. Depends on esoul-project-lifecycle for the project profile and on esoul-tasking (or the repository's own tasking skill) for bug writes.
+description: Plan, verify, run, and report user acceptance testing (UAT) of eSoul applications, e-shops, and websites as an end user in an isolated Chrome, covering both functionality and design (overflow, overlaps, responsiveness, match with a .pen or Figma design). Builds the scenario catalogue for the project type recorded in the project profile, keeps it current against code and docs, renders it to Markdown and PDF, executes it across roles and devices with recorded evidence, and files found bugs per the repository's tasking convention (GitHub issue + Freelo pairs, or Freelo tasks only) with URL, screenshot, reproduction, and proposed fix. Use for UAT, test scenarios, test plans, acceptance runs, "click through the app", responsive or design QA, or turning test findings into bugs. Depends on esoul-project-lifecycle for the project profile and on esoul-tasking (or the repository's own tasking skill) for bug writes.
 ---
 
 # eSoul UAT
@@ -35,7 +35,7 @@ Say which mode in one line and read only the references it names.
 | `setup` | First run on an environment, new accounts, new machine | [access](references/access.md), [chrome](references/chrome.md) |
 | `run` | Execute scenarios in the browser and record results | [execution](references/execution.md), [chrome](references/chrome.md), [design](references/design.md) |
 | `report` | Results to Markdown and PDF | [execution](references/execution.md) § Report |
-| `bugs` | Turn failed results into issue + task pairs | [bugs](references/bugs.md) |
+| `bugs` | Turn failed results into work per the repository's tasking convention (issue + Freelo task pairs, or Freelo tasks only in `freelo-only` projects) | [bugs](references/bugs.md) |
 
 A full cycle is `verify` → `run` → `report` → `bugs`. Run `verify` before every `run` that
 follows code changes: running stale scenarios produces false failures.
@@ -77,7 +77,9 @@ into missing files; never overwrite project files.
 - **Honesty.** A scenario passes only when every expected result was observed. Anything not
   executed is `blocked` or `skipped` with a reason, never `pass`. Report the counts as they are.
 - **Approval.** Every GitHub, Freelo, or label write goes through the tasking skill with an
-  approved preview. Batch all bugs from one run into one preview.
+  approved preview. Batch all bugs from one run into one preview. The repository's
+  `Tasking convention` decides the form: `github-freelo` pairs, or self-contained Freelo
+  tasks in `freelo-only` projects (then attach screenshots to the task).
 - **Stable IDs.** Scenario IDs (`ZV-11`) are never renumbered or reused.
 
 ## 5. Companion skills

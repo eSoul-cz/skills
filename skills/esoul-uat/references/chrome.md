@@ -37,10 +37,13 @@ Two drivers, each used for what it does well:
 - Native browser dialogs (`confirm`, `alert`) block the extension; when a scenario triggers
   one, note it and ask the user to confirm the dialog if needed.
 - Never type a password where it would be visible in a screenshot or GIF that is saved.
-- Screenshots for evidence: capture in the extension to judge the state, and capture the
-  file version with the sweep (`--url … --device … --shot`) or with a macOS window capture
-  (`screencapture -l <windowid> file.png`) of the UAT profile window. Pilot runs decide which
-  one is the default for a project; record it in the project `README.md`.
+- Screenshots for evidence: capture in the extension to judge the state, then save a file:
+  - a state reached by clicking (validation error, open dialog, half-filled form, toast)
+    exists only in that window: capture the UAT profile window itself
+    (`screencapture -l <windowid> file.png` on macOS);
+  - a state that a URL reopens (a list, a detail, a filtered view) can be captured with the
+    sweep (`--url … --device … --shot`), which uses its own session.
+  Pilot runs decide the defaults for a project; record them in the project `README.md`.
 
 ## Sessions in Playwright
 

@@ -60,6 +60,11 @@ When the run folder must stay local (real client data), redact the screenshot fi
 
 ## Writing
 
+The repository's `Tasking convention` (root `CONTEXT.md`, falling back to `GLOSSARY.md`)
+decides the form. In `github-freelo` projects each bug is an issue + Freelo task pair; in
+`freelo-only` projects each bug is one self-contained Freelo task with the same content and
+the screenshot attached to the task.
+
 Hand the approved list to the tasking skill. Show **one preview for the whole run**,
 numbered, so the user can approve all or some. After writing, add the issue and task links
 to `results.json` (`uat.mjs record … --bug <issue>#<freelo-id>`) and regenerate the report.

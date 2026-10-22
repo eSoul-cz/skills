@@ -6,15 +6,18 @@
  *   sweep.mjs --config docs/testing/uat/uat.config.json --secrets ~/.config/esoul-uat/<repo>.<env>.env \
  *             --run docs/testing/uat/runs/<id> [--devices tablet,mobile] [--roles A,B]
  *   sweep.mjs --config … --secrets … --run … --role B --device mobile --url /animals/sheep --shot name
+ *   --reset  discard the manual triage of findings on revisited routes
  *
  * Logs in per role through the configured form, visits routes, saves full-page screenshots,
  * runs layout-audit.js, and appends findings to <run>/results.json under "layout".
  */
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { updateRun } from './uat.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const cacheRoot = join(homedir(), '.cache', 'esoul-uat');
@@ -88,6 +91,9 @@ async function main() {
     const resultsFile = join(runDir, 'results.json');
     if (!existsSync(resultsFile)) die(`${resultsFile} neexistuje, spusť uat.mjs init.`);
     const results = JSON.parse(readFileSync(resultsFile, 'utf8'));
+    if (new URL(results.run.base_url).origin !== new URL(base).origin) {
+        die(`UAT_BASE_URL ${base} neodpovídá běhu ${results.run.id} (${results.run.base_url}). Použij přístupy ke stejnému prostředí.`);
+    }
     const shotsDir = join(runDir, 'screenshots');
     mkdirSync(shotsDir, { recursive: true });
     const project = config.project || 'project';
@@ -155,8 +161,7 @@ async function main() {
                         .catch((e) => ({ findings: [], error: e.message }));
                     page.off('console', onConsole);
                     page.off('response', onResponse);
-                    results.layout = results.layout.filter((l) => !(l.url === url && l.device === deviceId && l.role === role));
-                    results.layout.push({
+                    const entry = {
                         url,
                         final_url: page.url(),
                         role,
@@ -167,16 +172,29 @@ async function main() {
                         network: failed,
                         error: error ?? audit.error ?? null,
                         at: new Date().toISOString(),
+                    };
+                    // Merge into the current results.json under the shared lock and keep the manual
+                    // triage (confirmed true/false) of findings that are still present.
+                    updateRun(runDir, (current) => {
+                        const same = (l) => l.url === url && l.device === deviceId && l.role === role;
+                        const previous = current.layout.find(same);
+                        const key = (f) => `${f.check}\u0000${f.element}\u0000${f.detail}`;
+                        const triage = new Map((previous?.findings ?? []).filter((f) => f.confirmed !== null && f.confirmed !== undefined).map((f) => [key(f), f.confirmed]));
+                        if (!o.reset) entry.findings = entry.findings.map((f) => (triage.has(key(f)) ? { ...f, confirmed: triage.get(key(f)) } : f));
+                        current.layout = current.layout.filter((l) => !same(l));
+                        current.layout.push(entry);
                     });
-                    writeFileSync(resultsFile, `${JSON.stringify(results, null, 2)}\n`);
                     console.log(`${role} ${deviceId} ${route}: ${(audit.findings ?? []).length} nálezů, ${consoleErrors.length} chyb konzole, ${failed.length} chybných požadavků${error ? `, ${error}` : ''}`);
                 }
                 await context.close();
             }
         }
     } finally {
-        await browser.close();
+        // Closing Chrome occasionally stalls after the last page; results are already written.
+        await Promise.race([browser.close(), new Promise((done) => setTimeout(done, 5000))]);
     }
 }
 
-main().catch((e) => die(e.stack || e.message));
+main()
+    .then(() => process.exit(0))
+    .catch((e) => die(e.stack || e.message));
