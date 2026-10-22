@@ -1,13 +1,13 @@
 // Self-test of conformance.mjs: node --test scripts/conformance.test.mjs
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { makeGh, runConformance } from './conformance.mjs';
+import { fencedLines, makeGh, runConformance, sections } from './conformance.mjs';
 
 const SCRIPT = fileURLToPath(new URL('./conformance.mjs', import.meta.url));
 const temp = mkdtempSync(path.join(tmpdir(), 'esoul-conformance-'));
@@ -365,4 +365,26 @@ test('CODEOWNERS placeholders are errors and HTML comments are not link-checked'
     const result = runConformance(root);
     assert.ok(find(result, 'placeholder').some((f) => f.file === 'CODEOWNERS'));
     assert.equal(find(result, 'broken-link').length, 0);
+});
+
+test('code fences follow CommonMark: same character, at least the opener length, nothing after', () => {
+    const doc = ['## A', '````md', '```bash', '## Not a section', '```', '````', '## B', '~~~', '[x](gone.md)', '~~~', 'end'];
+    assert.deepEqual([...sections(doc.join('\n')).keys()], ['A', 'B']);
+    assert.deepEqual(fencedLines(doc), [false, true, true, true, true, true, false, true, true, true, false]);
+});
+
+test('a malformed percent escape in a link does not abort the run', () => {
+    const root = project(lightFiles({ 'AGENTS.md': '[sale](sleva-50%.md) [tilde]\n\n~~~\n[x](gone.md)\n~~~\n' }));
+    const warnings = find(runConformance(root), 'broken-link');
+    assert.equal(warnings.length, 1);
+    assert.match(warnings[0].message, /^1 relative link.*sleva-50%\.md/);
+});
+
+test('the CLI runs when invoked through a symlinked skill directory', () => {
+    const linkDir = path.join(temp, 'linked-skill');
+    symlinkSync(path.dirname(SCRIPT), linkDir);
+    const root = project(lightFiles());
+    const run = spawnSync(process.execPath, [path.join(linkDir, 'conformance.mjs'), root, '--json'], { encoding: 'utf8' });
+    assert.equal(run.status, 0, run.stderr);
+    assert.equal(JSON.parse(run.stdout).profile.tier, 'light');
 });

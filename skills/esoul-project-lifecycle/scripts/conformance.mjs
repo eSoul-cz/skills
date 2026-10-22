@@ -10,7 +10,7 @@
 // any error is found, 2 on invalid usage, 0 otherwise.
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
@@ -129,24 +129,54 @@ function stripMarkdown(cell) {
         .trim();
 }
 
+/**
+ * Marks which lines are inside fenced code blocks, following CommonMark: a fence opens with three
+ * or more backticks or tildes (indented at most three spaces) and closes only with the same
+ * character, at least the same length, and nothing but whitespace after it. Fence lines count as
+ * inside. An unclosed fence runs to the end of the document.
+ */
+export function fencedLines(lines) {
+    const inside = new Array(lines.length).fill(false);
+    let open = null;
+    lines.forEach((line, index) => {
+        const match = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+        if (open === null) {
+            // A backtick fence's info string may not contain backticks.
+            if (match && !(match[1][0] === '`' && match[2].includes('`'))) {
+                open = { char: match[1][0], length: match[1].length };
+                inside[index] = true;
+            }
+            return;
+        }
+        inside[index] = true;
+        if (match && match[1][0] === open.char && match[1].length >= open.length && match[2].trim() === '') {
+            open = null;
+        }
+    });
+    return inside;
+}
+
+/** Removes fenced code blocks from a Markdown document, keeping line count. */
+export function stripFences(markdown) {
+    const lines = markdown.split(/\r?\n/);
+    const inside = fencedLines(lines);
+    return lines.map((line, index) => (inside[index] ? '' : line)).join('\n');
+}
+
 /** Splits a Markdown document into `## ` sections, ignoring headings inside code fences. */
 export function sections(markdown) {
     const result = new Map();
     let current = null;
-    let fence = null;
-    for (const line of markdown.split(/\r?\n/)) {
-        const fenceMatch = line.match(/^\s*(```|~~~)/);
-        if (fenceMatch) {
-            if (fence === null) fence = fenceMatch[1];
-            else if (fence === fenceMatch[1]) fence = null;
-        }
-        const heading = fence === null ? line.match(/^##\s+(.+?)\s*#*\s*$/) : null;
+    const lines = markdown.split(/\r?\n/);
+    const inside = fencedLines(lines);
+    for (const [index, line] of lines.entries()) {
+        const heading = inside[index] ? null : line.match(/^##\s+(.+?)\s*#*\s*$/);
         if (heading && !line.startsWith('###')) {
             current = heading[1].trim();
             if (!result.has(current)) result.set(current, []);
             continue;
         }
-        if (/^#\s/.test(line) && fence === null) {
+        if (/^#\s/.test(line) && !inside[index]) {
             current = null;
             continue;
         }
@@ -368,11 +398,17 @@ export function checkLinks(root, files, findings) {
     for (const rel of files) {
         if (!/\.md$/i.test(rel) || isSkipped(rel) || LINK_TEMPLATE_FILE.test(rel)) continue;
         if (rel.includes('/') && !rel.startsWith('docs/')) continue;
-        const text = (readText(root, rel) ?? '').replace(/```[\s\S]*?```/g, '').replace(/<!--[\s\S]*?-->/g, '');
+        const text = stripFences(readText(root, rel) ?? '').replace(/<!--[\s\S]*?-->/g, '');
         for (const match of text.matchAll(MARKDOWN_LINK)) {
             const target = match[1].split('#')[0];
             if (!target || /^[a-z][a-z0-9+.-]*:/i.test(target) || target.includes('{{')) continue;
-            const resolved = path.normalize(path.join(path.dirname(rel), decodeURI(target)));
+            let decoded = target;
+            try {
+                decoded = decodeURI(target);
+            } catch {
+                // A literal `%` that is not an escape sequence: check the path as written.
+            }
+            const resolved = path.normalize(path.join(path.dirname(rel), decoded));
             if (!existsSync(path.join(root, resolved))) broken.push(`${rel} → ${target}`);
         }
     }
@@ -794,7 +830,19 @@ export function main(argv = process.argv.slice(2)) {
     return result.counts.error > 0 ? 1 : 0;
 }
 
-const invokedPath = process.argv[1] ? pathToFileURL(path.resolve(process.argv[1])).href : null;
+// Node resolves symlinks for the main module, so compare real paths: skills are often installed
+// through symlinks (`.claude/skills`, plugin caches).
+function invokedUrl() {
+    if (!process.argv[1]) return null;
+    const invoked = path.resolve(process.argv[1]);
+    try {
+        return pathToFileURL(realpathSync(invoked)).href;
+    } catch {
+        return pathToFileURL(invoked).href;
+    }
+}
+
+const invokedPath = invokedUrl();
 if (import.meta.url === invokedPath) {
     process.exitCode = main();
 }
