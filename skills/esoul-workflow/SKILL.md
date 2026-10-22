@@ -1,6 +1,6 @@
 ---
 name: esoul-workflow
-description: Default operating workflow for eSoul work on web applications (PHP/Laravel/Symfony, frontend), WordPress sites, and data analyses. Use at the start of any non-trivial eSoul task (build, change, fix, debug, review, analyse, or plan work) to size the task, load repository context, pick the right companion skill, and finish with verified, committed, reviewed output. Routes to esoul-project-lifecycle for project-level preparation, gitmoji-commit, final-pr-review, esoul-tasking, esoul-mockup-authoring, esoul-maintain-application-documentation, and the Matt Pocock engineering skills (grilling, tdd, diagnosing-bugs, code-review, prototype, handoff) when installed.
+description: Default operating workflow for eSoul work on web applications (PHP/Laravel/Symfony, frontend), WordPress sites, and data analyses. Use at the start of any non-trivial eSoul task (build, change, fix, debug, review, analyse, or plan work) to size the task, load repository context, pick the right companion skill, and finish with verified, committed, reviewed output. Routes to esoul-project-lifecycle for project-level preparation, gitmoji-commit, final-pr-review, esoul-tasking, esoul-mockup-authoring, esoul-maintain-application-documentation, esoul-uat, and the Matt Pocock engineering skills (grilling, tdd, diagnosing-bugs, code-review, prototype, handoff) when installed.
 ---
 
 # eSoul workflow
@@ -80,6 +80,7 @@ Do not claim done without evidence. Run what applies and report the actual resul
 - Type checks, linters, and formatters the repository defines.
 - The single affected test file while iterating; the full suite once at the end.
 - For UI: load the page in a browser (Playwright or the available browser tool) at desktop 1440px and mobile 390px, check the console for errors, and look at the result.
+- For acceptance of a whole module or release, use `esoul-uat`: it runs the project's UAT scenarios across roles and devices, checks layout and design, and files approved bugs.
 - For data: the checks in references/data-analysis.md.
 
 If something could not be verified, say what and why.

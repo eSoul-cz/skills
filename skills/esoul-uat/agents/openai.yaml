@@ -1,0 +1,4 @@
+interface:
+  display_name: "eSoul UAT"
+  short_description: "Plan, run, and report end-user acceptance tests with design checks"
+  default_prompt: "Use $esoul-uat to verify this project's UAT scenarios, run them in the dedicated Chrome profile across devices, and propose bugs for approval."
