@@ -100,8 +100,10 @@ sources point at the latest run) and run `docs/documentation render`. Without th
 offer to install it through `esoul-maintain-application-documentation`; the Markdown report
 remains the deliverable meanwhile.
 
-Commit the run folder through a PR (`docs/testing/uat/runs/…`, screenshots via Git LFS),
-except on environments with real client data, where `runs/` stays local unless redacted.
+Commit the run folder through a PR (`docs/testing/uat/runs/…`). Store screenshots the way
+the repository stores images (plain Git objects render in issues; use Git LFS only when the
+repository requires it). On environments with real client data, `runs/` stays local unless
+redacted.
 
 ## Handing over to a human tester
 

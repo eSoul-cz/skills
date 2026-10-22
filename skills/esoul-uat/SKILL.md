@@ -52,7 +52,7 @@ repository already uses another location (then keep it and record it in `README.
 | `scenarios/NN-slug.md` | One chapter per module or page group, format in [scenario-format](references/scenario-format.md) |
 | `uat.config.json` | Device matrix, login form for the automated sweep, routes per role |
 | `design-map.md` | Screen + state + device → design frame, when a design exists |
-| `runs/<YYYY-MM-DD>-<env>[-<n>]/` | `results.json`, `report.md`, `screenshots/` (Git LFS) |
+| `runs/<YYYY-MM-DD>-<env>[-<n>]/` | `results.json`, `report.md`, `screenshots/` (stored like the repository's other images) |
 
 A project may generate `scenarios/*.md` from another source (SCHOK generates them from
 `content/*.mjs`). The Markdown is then a build output that is committed, and the generator

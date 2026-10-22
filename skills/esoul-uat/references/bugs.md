@@ -50,7 +50,8 @@ GitHub cannot attach images to an issue through `gh`. Use the run branch:
 1. Push the run folder on a branch `uat/<run-id>` before creating bugs.
 2. Embed `![popis](https://github.com/<owner>/<repo>/blob/uat/<run-id>/docs/testing/uat/runs/<run-id>/screenshots/<file>.png?raw=true)`.
    It renders for people with access to the repository. Verify one image renders before
-   creating the batch (LFS-tracked files must resolve through `?raw=true`).
+   creating the batch. Prefer plain Git objects for screenshots: LFS-tracked images often do
+   not render in issues. Follow the repository's `.gitattributes` convention for images.
 3. In Freelo, upload the screenshot (`freelo files upload`) and attach it to the task
    description (`freelo tasks description <id> --file <uuid>`), or link the GitHub image.
 
