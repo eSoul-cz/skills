@@ -5,13 +5,16 @@ This file holds the project conventions. The domain language lives in [GLOSSARY.
 ## Project profile
 
 <!-- Stack: laravel | medusa-nuxt | astro | other:<name>. Archetype (astro only): A-static |
-     B-admin | C-headless, otherwise `—`. Process tier: full | light. -->
+     B-admin | C-headless, otherwise `—`. Product type: application | eshop | website-admin |
+     website. Process tier: full | light. Design: .pen path, Figma URL, or `—`. -->
 - Stack: `{{STACK}}`
 - Archetype: `{{ARCHETYPE}}`
+- Product type: `{{PRODUCT_TYPE}}`
 - Process tier: `{{PROCESS_TIER}}`
 - Stack profile: `{{STACK_PROFILE}}`
 - Environments: staging {{STAGING_URL}}, production {{PRODUCTION_URL}}
 - UAT dimensions: Role, Předpoklad{{UAT_EXTRA_DIMENSIONS}}
+- Design: {{DESIGN_SOURCE}}
 
 ## Freelo
 

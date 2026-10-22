@@ -10,10 +10,12 @@ read it.
 
 - Stack: `laravel`                  # laravel | medusa-nuxt | astro | other:<name>
 - Archetype: `—`                    # astro: A-static | B-admin | C-headless
+- Product type: `application`       # application | eshop | website-admin | website (UAT packs, esoul-uat)
 - Process tier: `full`              # full | light
 - Stack profile: `esoul-project-lifecycle/references/stacks/laravel.md`
 - Environments: staging https://…, production https://…
 - UAT dimensions: Role, Předpoklad, Prodejní kanál, Jazyk, Měna
+- Design: `docs/design/projekt.pen` or Figma URL, or `—`
 ```
 
 Infer the stack from the repository (`composer.json`, `package.json`, `astro.config.*`,
