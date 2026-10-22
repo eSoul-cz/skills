@@ -96,7 +96,7 @@ bugs are created so links appear.
 
 PDF: when the project has the documentation tooling (`docs/documentation`), add a guide
 entry for the run report in `docs/documentation.toml` (or reuse a `uat-report` entry whose
-sources point at the latest run) and run `docs/documentation render`. Without the tooling,
+sources point at the latest run) and run `docs/documentation build`. Without the tooling,
 offer to install it through `esoul-maintain-application-documentation`; the Markdown report
 remains the deliverable meanwhile.
 

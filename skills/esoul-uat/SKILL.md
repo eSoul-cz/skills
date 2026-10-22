@@ -88,7 +88,7 @@ into missing files; never overwrite project files.
 |---|---|
 | Project profile, product type, UAT dimensions | `esoul-project-lifecycle` |
 | Bug issues and Freelo tasks | repository tasking skill, else `esoul-tasking` |
-| PDF rendering | `esoul-maintain-application-documentation` (`docs/documentation render`) |
+| PDF rendering | `esoul-maintain-application-documentation` (`docs/documentation build`) |
 | Fix of a found bug | `esoul-workflow` (Bug flow) |
 | Mockup bundles as design source | `esoul-mockup-authoring` |
 | Accessibility depth, Lighthouse, SEO | `accessibility-compliance-accessibility-audit`, `frontend-lighthouse`, `seo-audit` when installed |
