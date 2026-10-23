@@ -13,9 +13,12 @@ preparation and its upkeep. It ends when a slice exists as a ready issue with UA
 
 ## 1. Load context
 
-1. Read applicable `AGENTS.md`, `CLAUDE.md`, root `CONTEXT.md`, `GLOSSARY.md`, `docs/adr/index.md`
-   and `docs/plan/README.md` (or `docs/plan.md`) when present. Repository rules override this
-   skill unless they contradict an approved company rule in section 4; report such conflicts.
+1. Use repository instructions already in context (`CLAUDE.md`, `AGENTS.md`, earlier reads);
+   do not read them again. Read the root `CONTEXT.md` conventions you need by section,
+   `docs/adr/index.md` and `docs/plan/README.md` (or `docs/plan.md`) when present. Read
+   `GLOSSARY.md` in full only in `glossary`, `audit` and `retrofit` modes; otherwise look up
+   terms on demand. Repository rules override this skill unless they contradict an approved
+   company rule in section 4; report such conflicts.
 2. Resolve the **project profile** from `CONTEXT.md › ## Project profile`: stack, archetype,
    process tier (`full` or `light`), environments, UAT dimensions. When it is missing, propose
    one (see [tiers.md](references/tiers.md)), get confirmation, and write it.

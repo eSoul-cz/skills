@@ -11,7 +11,7 @@ Create implementation-ready eSoul tasks without taking over their later lifecycl
 
 Load and follow the `freelo` skill before using Freelo. Prefer the available Freelo MCP tools; use the authenticated `freelo` CLI with `--agent` only when MCP lacks the required read or write. Never call the Freelo API directly with `curl`.
 
-Read all applicable `AGENTS.md` files and the active repository's `CONTEXT.md` and `GLOSSARY.md` before analyzing the task. Treat repository instructions as authoritative for implementation and verification conventions. `CONTEXT.md` holds repository conventions such as the Freelo mapping; `GLOSSARY.md` holds domain vocabulary. Repositories that renamed `CONTEXT.md` while migrating to `GLOSSARY.md` may still keep conventions in `GLOSSARY.md`, so read it as the fallback for conventions missing from `CONTEXT.md`.
+Use applicable `AGENTS.md` content already in context; do not read it again. Treat repository instructions as authoritative for implementation and verification conventions. `CONTEXT.md` holds repository conventions such as the Freelo mapping; `GLOSSARY.md` holds domain vocabulary. Read only the convention sections you need (for example `## Freelo`, `## Tasking convention`) from `CONTEXT.md`, falling back to `GLOSSARY.md` for repositories that still keep conventions there, by section rather than whole files. Look up domain terms in `GLOSSARY.md` when the task uses them; do not read the whole glossary up front.
 
 ## 1. Confirm the project first
 

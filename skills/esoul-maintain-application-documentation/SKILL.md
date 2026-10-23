@@ -12,7 +12,7 @@ Produce evidence-backed application documentation through a stable project comma
 1. Read [workflow.md](references/workflow.md) completely.
 2. Select `create`, `refresh`, or `verify`. Ask only when the request truly does not imply a mode.
 3. Inspect the repository before asking questions that the codebase can answer.
-4. Read existing `GLOSSARY.md` or `GLOSSARY-MAP.md` (falling back to legacy `CONTEXT.md` or `CONTEXT-MAP.md`), documentation configuration, specification, decision log, guides, and project instructions.
+4. Read the documentation configuration, specification, decision log, and the guides in scope. Project instructions already in context are not read again. Look up domain terms in `GLOSSARY.md` or `GLOSSARY-MAP.md` (falling back to legacy `CONTEXT.md` or `CONTEXT-MAP.md`) as you need them; read the glossary in full only when authoring or reviewing terminology.
 5. Announce this skill and every other skill activated by the repository or task.
 
 ## Use Specification-First Authoring

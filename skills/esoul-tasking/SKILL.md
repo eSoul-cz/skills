@@ -28,7 +28,7 @@ Use the available authenticated Freelo tools according to the companion. In `git
 
 ## 1. Resolve and persist the repository convention
 
-Read applicable `AGENTS.md` files and the repository-root `CONTEXT.md` before planning work. If `CONTEXT.md` has no tasking convention, check the root `GLOSSARY.md` as a fallback for repositories that renamed `CONTEXT.md` while migrating to `GLOSSARY.md`. Resolve the stored convention in this order:
+Use applicable `AGENTS.md` content already in context; the harness loads it, so do not read it again. Read only the `## Tasking convention` section of the repository-root `CONTEXT.md`, falling back to the root `GLOSSARY.md` for repositories that renamed `CONTEXT.md` while migrating (`grep -n -A8 '^## Tasking convention' CONTEXT.md GLOSSARY.md`); do not read either file in full. Resolve the stored convention in this order:
 
 1. Use an applicable tasking convention in `AGENTS.md` as authoritative. Synchronize only that convention into root `CONTEXT.md` under `## Tasking convention`, replacing a conflicting tasking section while preserving unrelated content.
 2. Otherwise respect the tasking convention already in root `CONTEXT.md` or its `GLOSSARY.md` fallback; do not overwrite it with a default.

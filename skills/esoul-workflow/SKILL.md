@@ -9,7 +9,11 @@ The single entry point for eSoul work. It decides *how much process* a task need
 
 ## 1. Load context before touching anything
 
-1. Read, in this order and only if present: applicable `AGENTS.md`, `CLAUDE.md`, root `CONTEXT.md` for repository conventions (falling back to root `GLOSSARY.md` for conventions it lacks), `GLOSSARY.md` or `GLOSSARY-MAP.md` for domain vocabulary (falling back to legacy `CONTEXT.md` or `CONTEXT-MAP.md`), then ADRs in the area being touched. Repository conventions always override this skill.
+1. Use the repository context that is already loaded; do not read it again. The harness loads `CLAUDE.md` (and the `AGENTS.md` and memory files it imports or injects) at session start and after every compaction, and files you already read in this session are still in context. Read only what is missing, and only the part you need:
+   - a convention (tasking, commits, Freelo, project profile): the section, not the file, e.g. `grep -n -A15 '^## Tasking convention' CONTEXT.md GLOSSARY.md` (root `CONTEXT.md` first, `GLOSSARY.md` as the fallback for conventions it lacks);
+   - domain vocabulary: look up the specific term in `GLOSSARY.md` or the context named in `GLOSSARY-MAP.md` (legacy `CONTEXT.md` or `CONTEXT-MAP.md`) when the task uses it, never the whole glossary up front;
+   - decisions: `docs/adr/index.md`, then only the ADRs for the area being touched.
+   Repository conventions always override this skill. Every skill below follows the same context budget.
 2. Identify the work type and read exactly one reference:
    - Web application or frontend: [references/web.md](references/web.md)
    - WordPress site: [references/wordpress.md](references/wordpress.md)
@@ -19,6 +23,7 @@ The single entry point for eSoul work. It decides *how much process* a task need
    - `codegraph explore "<query>"` CLI when a `.codegraph/` directory exists but the MCP tool is absent (typical for sub-agents).
    - Otherwise Grep/Glob, then Read only the files that matter.
    CodeGraph results stay resident in context. In long sessions, ask narrow questions rather than surveying whole areas repeatedly.
+   For broad parallel searches or audits, start fresh sub-agents (Explore or general-purpose) with a self-contained brief. Never fork the current conversation for them: a fork inherits the whole context and multiplies the cost.
 4. Find facts yourself. Ask the user only for decisions, never for things the repository, tools, or logs can answer.
 
 ## 2. Size the task
