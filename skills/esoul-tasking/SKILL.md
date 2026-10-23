@@ -33,7 +33,9 @@ credentials in chat.
 
 Use applicable `AGENTS.md` content already in context; do not read it again. Read only the
 `## Tasking convention` section of root `CONTEXT.md`, falling back to `GLOSSARY.md`
-(`grep -n -A8 '^## Tasking convention' CONTEXT.md GLOSSARY.md`). Order:
+(
+`awk '/^## Tasking convention/{f=1;print;next} /^## /{f=0} f' CONTEXT.md`, the whole section up to the next `##`
+heading; run it on `GLOSSARY.md` only when `CONTEXT.md` lacks the section). Order:
 
 1. A tasking convention in `AGENTS.md` is authoritative; synchronize it into `CONTEXT.md`.
 2. Otherwise respect the convention in `CONTEXT.md` or its `GLOSSARY.md` fallback.
