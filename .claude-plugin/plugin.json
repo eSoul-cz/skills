@@ -1,6 +1,6 @@
 {
   "name": "esoul-skills",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "eSoul's own agent skills: esoul-workflow (entry point), esoul-project-lifecycle, esoul-model-routing, gitmoji-commit, final-pr-review, freelo, esoul-freelo-task-authoring, esoul-tasking, esoul-maintain-application-documentation, esoul-mockup-authoring, esoul-uat.",
   "author": { "name": "eSoul", "email": "info@esoul.cz", "url": "https://esoul.cz" },
   "homepage": "https://github.com/eSoul-cz/skills",

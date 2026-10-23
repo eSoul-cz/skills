@@ -64,7 +64,8 @@ something irreversible that the scenario does not describe, stop and ask.
 
 ### Keeping context small
 
-Run each chapter as its own session or sub-agent when the run is long; pass it the chapter
+Run each chapter as its own session or fresh sub-agent (not a fork of this conversation) when
+the run is long; pass it the chapter
 file, the run directory, and the role accounts (by role code, not passwords). The parent
 only reads `uat.mjs stats <run-dir>` between chapters. Use `esoul-model-routing` to choose a
 cheaper model for mechanical chapters and a stronger one for analysing failures.

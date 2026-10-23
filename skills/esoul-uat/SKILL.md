@@ -11,9 +11,15 @@ The scenario catalogue lives in the project repository; credentials never do.
 
 ## 1. Load context
 
-1. Read applicable `AGENTS.md`, `CLAUDE.md`, root `CONTEXT.md` (falling back to `GLOSSARY.md`),
-   `GLOSSARY.md`, `docs/adr/index.md`, `docs/plan/` or `docs/plan.md`, and `docs/testing/`.
-   Repository rules override this skill.
+1. Use repository instructions already in context (`CLAUDE.md`, `AGENTS.md`, earlier reads);
+   do not read them again. Read by section: `## Project profile` and `## Tasking convention`
+   from root `CONTEXT.md`, falling back to `GLOSSARY.md`
+   (
+   `awk '/^## Project profile/{f=1;print;next} /^## /{f=0} f' CONTEXT.md`; the same on `GLOSSARY.md` only when
+   `CONTEXT.md` lacks it), plus
+   `docs/testing/uat/README.md` and `environment.md`. ADRs, the plan, and glossary terms are
+   read only in `plan` and `verify` modes, and only for the area in scope. Repository rules
+   override this skill.
 2. Resolve the **product type** from `CONTEXT.md › ## Project profile`
    ([project-types.md](references/project-types.md)). When the profile is missing, stop and
    route to `esoul-project-lifecycle` (`retrofit`) to write it. Do not classify the project
