@@ -1,0 +1,7 @@
+interface:
+  display_name: "Test Queue"
+  short_description: "Queue test runs across parallel agent sessions and watch machine load"
+  default_prompt: "Use $test-queue to install or tune the shared test queue and its menu bar widget on this machine."
+
+policy:
+  allow_implicit_invocation: true

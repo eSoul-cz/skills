@@ -1,0 +1,1029 @@
+#!/usr/bin/env python3
+"""testq: one shared queue for test runs across all agent sessions on this machine.
+
+Usage:
+  testq run [-c light|medium|heavy] [-l LABEL] -- CMD [ARGS...]
+  testq status [--json]        what runs and waits right now, plus memory/load
+  testq history [N]            last finished jobs
+  testq pause | resume         stop / allow starting new jobs (running ones continue)
+  testq enable | disable       turn the whole queue (and the Claude hook) on / off
+  testq config [KEY [VALUE]]   show or change limits, e.g. `testq config max.heavy 2`
+  testq init [--force]         write limits tuned to this machine's RAM and cores
+  testq doctor                 check the setup and suggest what to tune
+  testq stop ID                terminate a running or waiting job (ID prefix is enough)
+  testq rewrite 'CMD'          show how the Claude hook would rewrite a shell command
+  testq hook                   Claude Code PreToolUse hook (JSON on stdin)
+
+State lives in ~/.local/state/testq (override with TESTQ_HOME). The macOS menu bar
+app TestQ.app reads the same files.
+"""
+import ctypes
+import ctypes.util
+import fcntl
+import json
+import os
+import re
+import shlex
+import signal
+import subprocess
+import sys
+import threading
+import time
+from collections import namedtuple
+from contextlib import contextmanager, suppress
+
+STATE_DIR = os.path.expanduser(os.environ.get("TESTQ_HOME", "~/.local/state/testq"))
+JOBS_DIR = os.path.join(STATE_DIR, "jobs")
+CONFIG_PATH = os.path.join(STATE_DIR, "config.json")
+HISTORY_PATH = os.path.join(STATE_DIR, "history.jsonl")
+MUTEX_PATH = os.path.join(STATE_DIR, "mutex.lock")
+TESTQ_CMD = "~/.local/bin/testq"  # how the hook spells the wrapper in rewritten commands
+
+CLASSES = ("light", "medium", "heavy")
+RANK = {c: i for i, c in enumerate(CLASSES)}
+POLL_SECONDS = 1.5
+REPORT_SECONDS = 60
+
+DEFAULTS = {
+    "enabled": True,
+    "paused": False,
+    # medium + heavy jobs share this budget; light jobs only obey max.light.
+    # budget, max and workers are replaced by tuned_limits() for the machine.
+    "budget": 8,
+    "weights": {"light": 1, "medium": 3, "heavy": 5},
+    "max": {"light": 4, "medium": 2, "heavy": 1},
+    # kern.memorystatus_level = % of RAM still available; below this no further job starts
+    "mem_min_level": 20,
+    # load average gate, 0 = off (on macOS load also counts threads stuck on swap)
+    "max_load": 0,
+    # minimum gap between two medium/heavy starts, so memory readings catch up
+    "settle_seconds": 15,
+    # injected as --workers / --threads / --maxWorkers / --processes
+    "workers": 2,
+    # niceness of queued commands, keeps the desktop and agents responsive
+    "nice": 5,
+}
+
+
+def log(msg):
+    print(f"[testq] {msg}", file=sys.stderr, flush=True)
+
+
+def fmt_secs(s):
+    s = int(max(s, 0))
+    if s < 60:
+        return f"{s}s"
+    if s < 3600:
+        return f"{s // 60}m{s % 60:02d}s"
+    return f"{s // 3600}h{s % 3600 // 60:02d}m"
+
+
+# --- config & state files -------------------------------------------------------
+
+def ensure_dirs():
+    os.makedirs(JOBS_DIR, exist_ok=True)
+
+
+def read_json(path, default=None):
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return default
+
+
+def write_json(path, data):
+    tmp = f"{path}.{os.getpid()}.tmp"
+    with open(tmp, "w") as f:
+        json.dump(data, f, indent=2)
+    os.replace(tmp, path)
+
+
+def merge_config(cfg, override):
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(cfg.get(key), dict):
+            cfg[key].update(value)
+        else:
+            cfg[key] = value
+    return cfg
+
+
+def load_config():
+    cfg = merge_config(json.loads(json.dumps(DEFAULTS)), tuned_limits(*hardware()))
+    return merge_config(cfg, read_json(CONFIG_PATH, {}) or {})
+
+
+def set_config(key, value):
+    ensure_dirs()
+    with mutex():
+        raw = read_json(CONFIG_PATH, {}) or {}
+        node = raw
+        parts = key.split(".")
+        for part in parts[:-1]:
+            node = node.setdefault(part, {})
+        node[parts[-1]] = value
+        write_json(CONFIG_PATH, raw)
+
+
+@contextmanager
+def mutex():
+    fd = os.open(MUTEX_PATH, os.O_CREAT | os.O_RDWR, 0o644)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        os.close(fd)
+
+
+# --- system metrics ---------------------------------------------------------------
+
+IS_MAC = sys.platform == "darwin"
+_libc = ctypes.CDLL(ctypes.util.find_library("c")) if IS_MAC else None
+
+
+class _XswUsage(ctypes.Structure):
+    _fields_ = [("total", ctypes.c_uint64), ("avail", ctypes.c_uint64), ("used", ctypes.c_uint64),
+                ("pagesize", ctypes.c_uint32), ("encrypted", ctypes.c_bool)]
+
+
+def _sysctl(name, obj):
+    size = ctypes.c_size_t(ctypes.sizeof(obj))
+    return _libc.sysctlbyname(name.encode(), ctypes.byref(obj), ctypes.byref(size), None, ctypes.c_size_t(0)) == 0
+
+
+def _meminfo():
+    """/proc/meminfo values in kB (Linux)."""
+    try:
+        with open("/proc/meminfo") as f:
+            return {k: int(v.split()[0]) for k, v in (line.split(":", 1) for line in f if ":" in line)}
+    except (OSError, ValueError):
+        return {}
+
+
+def hardware():
+    """(RAM in GiB, logical CPUs)."""
+    if IS_MAC:
+        mem = ctypes.c_uint64(0)
+        total = mem.value if _sysctl("hw.memsize", mem) else 0
+    else:
+        total = _meminfo().get("MemTotal", 0) * 1024
+    return total / 2**30, os.cpu_count() or 4
+
+
+def tuned_limits(mem_gb, ncpu):
+    """Concurrency that fits the machine: RAM sets the job limits, cores the per-run workers."""
+    if mem_gb < 12:
+        heavy, medium, budget = 1, 1, 5
+    elif mem_gb < 24:
+        heavy, medium, budget = 1, 2, 8
+    elif mem_gb < 48:
+        heavy, medium, budget = 2, 3, 12
+    else:
+        heavy, medium, budget = 2, 4, 16
+    return {
+        "budget": budget,
+        "max": {"light": max(2, min(6, ncpu // 2)), "medium": medium, "heavy": heavy},
+        "workers": max(1, min(4, ncpu // 4)),
+    }
+
+
+def system_stats():
+    stats = {"mem_level": None, "swap_used_mb": None, "swap_total_mb": None,
+             "load": list(os.getloadavg()), "ncpu": os.cpu_count()}
+    if IS_MAC:
+        level, swap = ctypes.c_int(0), _XswUsage()
+        if _sysctl("kern.memorystatus_level", level):
+            stats["mem_level"] = level.value
+        if _sysctl("vm.swapusage", swap):
+            stats.update(swap_used_mb=swap.used // 2**20, swap_total_mb=swap.total // 2**20)
+    else:
+        info = _meminfo()
+        if info.get("MemTotal"):
+            stats["mem_level"] = info.get("MemAvailable", 0) * 100 // info["MemTotal"]
+            stats.update(swap_total_mb=info.get("SwapTotal", 0) // 1024,
+                         swap_used_mb=(info.get("SwapTotal", 0) - info.get("SwapFree", 0)) // 1024)
+    return stats
+
+
+# --- jobs -------------------------------------------------------------------------
+
+def pid_alive(pid):
+    if not pid:
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def job_alive(job):
+    return pid_alive(job.get("pid")) or (job.get("state") == "running" and pid_alive(job.get("child_pid")))
+
+
+def live_jobs():
+    """All live jobs, oldest first; files of dead jobs are removed. Call under mutex()."""
+    jobs = []
+    for name in os.listdir(JOBS_DIR):
+        if not name.endswith(".json"):
+            continue
+        path = os.path.join(JOBS_DIR, name)
+        job = read_json(path)
+        if job is None:
+            continue
+        if job_alive(job):
+            jobs.append(job)
+        else:
+            with suppress(OSError):
+                os.remove(path)
+    jobs.sort(key=lambda j: (j.get("queued_at", 0), j["id"]))
+    return jobs
+
+
+def weight(cfg, cls):
+    return cfg["weights"].get(cls, 3)
+
+
+def admission(me, jobs, cfg, stats, now):
+    """None when `me` may start now, otherwise the reason it has to wait."""
+    if not cfg["enabled"]:
+        return None
+    if cfg["paused"]:
+        return "queue is paused (testq resume)"
+    cls = me["class"]
+    running = [j for j in jobs if j["state"] == "running"]
+    if sum(1 for j in running if j["class"] == cls) >= cfg["max"][cls]:
+        return f"limit of {cfg['max'][cls]} concurrent {cls} job(s) reached"
+    if cls == "light":
+        return None
+
+    gated = [j for j in running if j["class"] != "light"]
+    used, w = sum(weight(cfg, j["class"]) for j in gated), weight(cfg, cls)
+    if gated and used + w > cfg["budget"]:
+        return f"budget full ({used}+{w} > {cfg['budget']})"
+
+    # FIFO, except that a job may overtake an earlier job of another class that is blocked
+    # by its own class limit: that job can only start once a job of its class ends, which
+    # frees exactly its weight, so overtaking never starves it.
+    for job in jobs:
+        if job["id"] == me["id"]:
+            break
+        if job["state"] != "waiting" or job["class"] == "light":
+            continue
+        other = job["class"]
+        other_full = sum(1 for r in running if r["class"] == other) >= cfg["max"][other]
+        if other == cls or not other_full:
+            return f"behind an earlier {other} job ({job.get('project', '?')})"
+
+    if gated:
+        level = stats["mem_level"]
+        if level is not None and level < cfg["mem_min_level"]:
+            return f"low free memory ({level}% < {cfg['mem_min_level']}%)"
+        if cfg["max_load"] and stats["load"][0] > cfg["max_load"]:
+            return f"high load ({stats['load'][0]:.0f} > {cfg['max_load']})"
+        last_start = max(j.get("started_at") or 0 for j in gated)
+        if now - last_start < cfg["settle_seconds"]:
+            return "letting the previous job settle"
+    return None
+
+
+def project_name(path):
+    probe = path
+    while probe and probe != "/":
+        if os.path.exists(os.path.join(probe, ".git")):
+            return os.path.basename(probe)
+        probe = os.path.dirname(probe)
+    return os.path.basename(path) or path
+
+
+def running_summary(jobs, now):
+    parts = [f"{j['class']} {j.get('project', '?')} {fmt_secs(now - (j.get('started_at') or now))}"
+             for j in jobs if j["state"] == "running"]
+    return ", ".join(parts) or "nothing"
+
+
+def descendants(pid):
+    out = subprocess.run(["ps", "-Ao", "pid=,ppid="], capture_output=True, text=True).stdout
+    children = {}
+    for line in out.splitlines():
+        with suppress(ValueError):
+            p, pp = map(int, line.split())
+            children.setdefault(pp, []).append(p)
+    result, stack = [], [pid]
+    while stack:
+        for child in children.get(stack.pop(), []):
+            result.append(child)
+            stack.append(child)
+    return result
+
+
+def terminate_tree(pid, grace=8.0):
+    pids = [pid] + descendants(pid)
+    for p in pids:
+        with suppress(OSError):
+            os.kill(p, signal.SIGTERM)
+
+    def force():
+        for p in pids:
+            with suppress(OSError):
+                os.kill(p, signal.SIGKILL)
+
+    timer = threading.Timer(grace, force)
+    timer.daemon = True
+    timer.start()
+
+
+def append_history(job, exit_code):
+    entry = {k: job.get(k) for k in ("id", "class", "project", "label", "cwd", "queued_at", "started_at")}
+    entry.update(ended_at=time.time(), exit=exit_code)
+    with mutex():
+        with open(HISTORY_PATH, "a") as f:
+            f.write(json.dumps(entry) + "\n")
+        with suppress(OSError):
+            if os.path.getsize(HISTORY_PATH) > 256 * 1024:
+                with open(HISTORY_PATH) as f:
+                    lines = f.readlines()[-500:]
+                with open(HISTORY_PATH, "w") as f:
+                    f.writelines(lines)
+
+
+def child_env(cfg, job):
+    env = dict(os.environ, TESTQ_JOB=job["id"], TESTQ_CLASS=job["class"])
+    workers = str(cfg["workers"])
+    # Vitest reads these as pool defaults; unknown variables are harmless elsewhere.
+    for key in ("VITEST_MAX_THREADS", "VITEST_MAX_FORKS"):
+        env.setdefault(key, workers)
+    for key in ("VITEST_MIN_THREADS", "VITEST_MIN_FORKS"):
+        env.setdefault(key, "1")
+    return env
+
+
+def cmd_run(args):
+    cls, label = None, None
+    while args and args[0] != "--":
+        opt = args.pop(0)
+        if opt in ("-c", "--class") and args:
+            cls = args.pop(0)
+        elif opt in ("-l", "--label") and args:
+            label = args.pop(0)
+        else:
+            args.insert(0, opt)
+            break
+    if args and args[0] == "--":
+        args.pop(0)
+    if not args:
+        log("usage: testq run [-c light|medium|heavy] [-l LABEL] -- CMD [ARGS...]")
+        return 2
+    if os.environ.get("TESTQ_JOB"):
+        # nested call (e.g. a composer script running pnpm test): the parent already holds a slot
+        os.execvp(args[0], args)
+
+    ensure_dirs()
+    cfg = load_config()
+    if cls not in CLASSES:
+        found = classify(args, cfg["workers"])
+        cls = found[0] if found else "medium"
+    cwd = os.getcwd()
+    command = " ".join(shlex.quote(a) for a in args).replace(os.path.expanduser("~"), "~")
+    job = {
+        "id": f"{int(time.time() * 1000):x}{os.getpid():x}",
+        "pid": os.getpid(),
+        "class": cls,
+        "state": "waiting",
+        "project": project_name(cwd),
+        "label": label or command[:120],
+        "cmd": command[:1000],
+        "cwd": cwd,
+        "queued_at": time.time(),
+    }
+    path = os.path.join(JOBS_DIR, job["id"] + ".json")
+    state = {"child": None, "signal": None}
+
+    def on_signal(signum, _frame):
+        state["signal"] = signum
+        if state["child"] is None:
+            with suppress(OSError):
+                os.remove(path)
+            log(f"cancelled while waiting (signal {signum})")
+            os._exit(128 + signum)
+        terminate_tree(state["child"].pid)
+
+    for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+        signal.signal(sig, on_signal)
+
+    with mutex():
+        write_json(path, job)
+
+    last_reason, last_report = None, 0.0
+    while True:
+        cfg, stats, now = load_config(), system_stats(), time.time()
+        with mutex():
+            jobs = live_jobs()
+            reason = admission(job, jobs, cfg, stats, now)
+            if reason is None:
+                job.update(state="running", started_at=now)
+                write_json(path, job)
+                break
+        if reason != last_reason or now - last_report >= REPORT_SECONDS:
+            log(f"waiting ({cls}, {fmt_secs(now - job['queued_at'])}): {reason}; running: {running_summary(jobs, now)}")
+            last_reason, last_report = reason, now
+        time.sleep(POLL_SECONDS)
+
+    waited = job["started_at"] - job["queued_at"]
+    if waited >= 2:
+        log(f"started after waiting {fmt_secs(waited)}")
+
+    nice = int(cfg.get("nice") or 0)
+    try:
+        child = subprocess.Popen(args, env=child_env(cfg, job),
+                                 preexec_fn=(lambda: os.nice(nice)) if nice else None)
+    except FileNotFoundError:
+        log(f"command not found: {args[0]}")
+        rc = 127
+    except PermissionError:
+        log(f"permission denied: {args[0]}")
+        rc = 126
+    else:
+        state["child"] = child
+        job["child_pid"] = child.pid
+        write_json(path, job)
+        rc = child.wait()
+        if rc < 0:
+            rc = 128 - rc
+        if state["signal"]:
+            log(f"stopped (signal {state['signal']})")
+    with suppress(OSError):
+        os.remove(path)
+    append_history(job, rc)
+    return rc
+
+
+# --- shell rewriting for the Claude hook ---------------------------------------------
+
+Word = namedtuple("Word", "start end text")
+
+
+def shell_segments(s):
+    """Split a shell command into simple commands (lists of Words with source offsets).
+
+    Quote-, comment- and heredoc-aware enough for agent-written commands; redirection
+    targets are dropped from the word lists.
+    """
+    segs, cur = [], []
+    n, i = len(s), 0
+    start, buf = None, []
+    heredocs = []
+    redir_target = False
+
+    def flush_word(end):
+        nonlocal start, buf, redir_target
+        if start is not None:
+            if redir_target:
+                redir_target = False
+            else:
+                cur.append(Word(start, end, "".join(buf)))
+        start, buf = None, []
+
+    def flush_seg():
+        nonlocal cur, redir_target
+        if cur:
+            segs.append(cur)
+        cur, redir_target = [], False
+
+    while i < n:
+        c = s[i]
+        if c == "\\":
+            if start is None:
+                start = i
+            if i + 1 < n and s[i + 1] != "\n":
+                buf.append(s[i + 1])
+            i += 2
+        elif c == "'":
+            if start is None:
+                start = i
+            j = s.find("'", i + 1)
+            j = n if j < 0 else j
+            buf.append(s[i + 1:j])
+            i = j + 1
+        elif c == '"':
+            if start is None:
+                start = i
+            i += 1
+            while i < n and s[i] != '"':
+                if s[i] == "\\" and i + 1 < n:
+                    buf.append(s[i + 1])
+                    i += 2
+                else:
+                    buf.append(s[i])
+                    i += 1
+            i += 1
+        elif c == "#" and start is None:
+            j = s.find("\n", i)
+            i = n if j < 0 else j
+        elif c in " \t":
+            flush_word(i)
+            i += 1
+        elif c == "\n":
+            flush_word(i)
+            flush_seg()
+            i += 1
+            for delim, strip_tabs in heredocs:
+                while i < n:
+                    j = s.find("\n", i)
+                    end = n if j < 0 else j
+                    line = s[i:end]
+                    i = end + 1
+                    if (line.lstrip("\t") if strip_tabs else line) == delim:
+                        break
+            heredocs = []
+        elif c == "$" and s.startswith("$(", i) and not s.startswith("$((", i):
+            flush_word(i)
+            flush_seg()
+            i += 2
+        elif c in ";()`":
+            flush_word(i)
+            flush_seg()
+            i += 1
+        elif c in "<>":
+            if s.startswith("<<", i) and not s.startswith("<<<", i):
+                flush_word(i)
+                i += 2
+                strip_tabs = i < n and s[i] == "-"
+                i += int(strip_tabs)
+                while i < n and s[i] in " \t":
+                    i += 1
+                m = re.match(r"""(['"]?)([^\s'";|&<>()]+)\1""", s[i:])
+                if m:
+                    heredocs.append((m.group(2), strip_tabs))
+                    i += m.end()
+                continue
+            if start is not None and "".join(buf).isdigit():
+                start, buf = None, []  # fd number glued to the operator, e.g. 2>
+            else:
+                flush_word(i)
+            i += 1
+            while i < n and s[i] in "<>&|":
+                i += 1
+            if s[i - 1] == "&" and i < n and (s[i].isdigit() or s[i] == "-"):
+                while i < n and (s[i].isdigit() or s[i] == "-"):
+                    i += 1
+            else:
+                redir_target = True
+        elif c == "&":
+            flush_word(i)
+            if s.startswith("&>", i):
+                i += 3 if s.startswith("&>>", i) else 2
+                redir_target = True
+            else:
+                flush_seg()
+                i += 2 if s.startswith("&&", i) else 1
+        elif c == "|":
+            flush_word(i)
+            flush_seg()
+            i += 2 if i + 1 < n and s[i + 1] in "|&" else 1
+        else:
+            if start is None:
+                start = i
+            buf.append(c)
+            i += 1
+    flush_word(n)
+    flush_seg()
+    return segs
+
+
+TARGET_RE = re.compile(r"\.php$|\.(spec|test)\.[cm]?[jt]sx?$|^--filter")
+HEAVY_SCRIPT_RE = re.compile(r"e2e|playwright|cypress|infection|mutat|stryker|dusk", re.I)
+LIGHT_SCRIPT_RE = re.compile(r"^(check|lint|typecheck|type-check|types|tsc|stan|phpstan|analyse|analyze|psalm)([:_-]|$)")
+MEDIUM_SCRIPT_RE = re.compile(
+    r"^(test|tests|t|build|generate|ci|qa|coverage|unit|integration|feature|vitest|jest|phpunit|pest)([:_.-]|$)"
+    r"|[:_-](test|tests|build)([:_-]|$)")
+PM_VALUE_OPTS = {"-C", "--dir", "--filter", "-F", "--prefix", "--cwd", "--workspace", "-w", "-d", "--working-dir"}
+PM_PASSTHROUGH = {"exec", "dlx", "x"}
+ASSIGN_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+PREFIX_WORDS = {"time", "nohup", "exec", "command", "builtin", "noglob", "!", "{",
+                "if", "then", "elif", "else", "while", "until", "do"}
+# a simple command is only considered when its command word is one of these
+ENTRY_COMMANDS = {
+    "docker", "podman", "sail", "ddev", "lando", "npx", "bunx", "pnpm", "npm", "yarn", "bun", "php",
+    "node", "composer", "make", "timeout", "gtimeout", "caffeinate", "nice", "xvfb-run", "uv", "poetry",
+    "python", "python3", "go", "cargo", "pytest", "phpunit", "pest", "paratest", "infection", "playwright",
+    "cypress", "vitest", "jest", "stryker", "astro", "vite", "nuxt", "nuxi", "next", "tsc", "vue-tsc",
+    "svelte-check", "phpstan", "psalm", "eslint", "artisan", "sh", "bash", "zsh",
+}
+
+
+def script_class(name):
+    if HEAVY_SCRIPT_RE.search(name):
+        return "heavy"
+    if LIGHT_SCRIPT_RE.match(name):
+        return "light"
+    if MEDIUM_SCRIPT_RE.search(name):
+        return "medium"
+    return None
+
+
+def _skip_opts(words, j):
+    while j < len(words) and words[j].startswith("-"):
+        j += 2 if words[j] in PM_VALUE_OPTS else 1
+    return j
+
+
+def _has(words, *opts):
+    return any(w == o or w.startswith(o + "=") for w in words for o in opts)
+
+
+def _has_short(words, letter):
+    return any(re.match(rf"^-{letter}\d*$", w) for w in words)
+
+
+def classify(words, workers):
+    """(class, [(word_index, flag_to_insert_after_it)]) for a test/build command, else None."""
+    n = len(words)
+    for i, word in enumerate(words):
+        b = os.path.basename(word)
+        nxt = words[i + 1] if i + 1 < n else ""
+        rest = words[i + 1:]
+
+        if b in ("npm", "pnpm", "yarn", "bun", "composer"):
+            j = _skip_opts(words, i + 1)
+            if j >= n:
+                return None
+            sub = words[j]
+            if sub in PM_PASSTHROUGH:
+                continue  # pnpm exec playwright test ... -> keep scanning
+            if sub in ("run", "run-script"):
+                j = _skip_opts(words, j + 1)
+                if j >= n:
+                    return None
+                sub = words[j]
+            elif b == "npm" and sub not in ("test", "t", "tst"):
+                return None
+            found = script_class(sub)
+            return (found, []) if found else None
+
+        if b == "make":
+            found = [script_class(w) for w in rest if not w.startswith("-") and "=" not in w]
+            found = [c for c in found if c]
+            return (max(found, key=RANK.get), []) if found else None
+
+        if b in ("sh", "bash", "zsh") and nxt == "-c" and i + 2 < n:
+            inner = [classify([w.text for w in seg], workers) for seg in shell_segments(words[i + 2])]
+            inner = [r[0] for r in inner if r]
+            return (max(inner, key=RANK.get), []) if inner else None
+
+        if b == "playwright" and nxt == "test":
+            if _has(rest, "--ui", "--list", "--help", "-h", "--debug"):
+                return None
+            flags = [] if _has(rest, "--workers") or _has_short(rest, "j") else [(i + 1, f"--workers={workers}")]
+            return "heavy", flags
+        if (b == "cypress" and nxt == "run") or (b == "stryker" and nxt == "run") or (b == "artisan" and nxt == "dusk"):
+            return "heavy", []
+        if b in ("infection", "infection.phar"):
+            if _has(rest, "--version", "--help", "-h", "-V"):
+                return None
+            flags = [] if _has(rest, "--threads") or _has_short(rest, "j") else [(i, f"--threads={workers}")]
+            return "heavy", flags
+
+        if (b == "artisan" and nxt == "test") or b in ("phpunit", "pest", "paratest", "phpunit.phar"):
+            first = i + 2 if b == "artisan" else i + 1
+            targs = words[first:]
+            if _has(targs, "--version", "--help", "-h", "--list-tests", "--list-suites", "--list-groups"):
+                return None
+            flags = []
+            if not _has(targs, "--processes") and not _has_short(targs, "p"):
+                if "--parallel" in targs:
+                    flags = [(first + targs.index("--parallel"), f"--processes={workers}")]
+                elif b == "paratest":
+                    flags = [(i, f"--processes={workers}")]
+            targeted = "--parallel" not in targs and any(TARGET_RE.search(w) for w in targs)
+            return ("light" if targeted else "medium"), flags
+
+        if b == "vitest":
+            if nxt in ("--version", "-v", "--help", "-h", "init", "list", "dev", "watch") or _has(rest, "--watch", "--ui"):
+                return None
+            targeted = any(TARGET_RE.search(w) for w in rest) or _has(rest, "-t", "--testNamePattern")
+            return ("light" if targeted else "medium"), []
+        if b == "jest":
+            if _has(rest, "--version", "--help", "--watch", "--watchAll", "--listTests"):
+                return None
+            limited = _has(rest, "--maxWorkers", "--runInBand", "-i") or _has_short(rest, "w")
+            flags = [] if limited else [(i, f"--maxWorkers={workers}")]
+            targeted = any(TARGET_RE.search(w) for w in rest) or _has(rest, "-t", "--testNamePattern")
+            return ("light" if targeted else "medium"), flags
+        if b == "pytest" or (b.startswith("python") and nxt == "-m" and i + 2 < n and words[i + 2] == "pytest"):
+            targeted = any(w.endswith(".py") or "::" in w for w in rest)
+            return ("light" if targeted else "medium"), []
+        if b in ("go", "cargo") and nxt == "test":
+            return "medium", []
+
+        if b in ("astro", "vite", "nuxt", "nuxi", "next", "ng", "vue-cli-service") and nxt in ("build", "generate"):
+            return "medium", []
+        if (b == "astro" and nxt == "check") or b in ("svelte-check", "vue-tsc", "tsc"):
+            if _has(rest, "--watch", "-w", "--version", "-v", "--help", "--init"):
+                return None
+            return "light", []
+        if b in ("phpstan", "phpstan.phar", "psalm", "eslint"):
+            if _has(rest, "--version", "--help", "-h", "-V", "--init"):
+                return None
+            return "light", []
+    return None
+
+
+def command_start(seg):
+    i = 0
+    while i < len(seg):
+        word = seg[i].text
+        if ASSIGN_RE.match(word) or word in PREFIX_WORDS:
+            i += 1
+        elif word == "env":
+            i += 1
+            while i < len(seg) and (ASSIGN_RE.match(seg[i].text) or seg[i].text.startswith("-")):
+                i += 1
+        else:
+            return i
+    return None
+
+
+def rewrite(command, workers):
+    if "testq" in command or "TESTQ_BYPASS" in command:
+        return command
+    edits = []
+    for seg in shell_segments(command):
+        k = command_start(seg)
+        if k is None or os.path.basename(seg[k].text) not in ENTRY_COMMANDS:
+            continue
+        found = classify([w.text for w in seg[k:]], workers)
+        if not found:
+            continue
+        cls, flags = found
+        edits.append((seg[k].start, f"{TESTQ_CMD} run -c {cls} -- "))
+        edits.extend((seg[k + idx].end, f" {flag}") for idx, flag in flags)
+    for pos, text in sorted(edits, key=lambda e: e[0], reverse=True):
+        command = command[:pos] + text + command[pos:]
+    return command
+
+
+def cmd_hook():
+    try:
+        data = json.load(sys.stdin)
+        if data.get("tool_name") != "Bash":
+            return 0
+        cfg = load_config()
+        if not cfg["enabled"]:
+            return 0
+        tool_input = dict(data.get("tool_input") or {})
+        original = tool_input.get("command") or ""
+        updated = rewrite(original, cfg["workers"])
+        if updated == original:
+            return 0
+        tool_input["command"] = updated
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "updatedInput": tool_input}}))
+    except Exception:  # the hook must never break a command
+        pass
+    return 0
+
+
+# --- inspection & control ------------------------------------------------------------
+
+def snapshot():
+    ensure_dirs()
+    with mutex():
+        jobs = live_jobs()
+    return {"config": load_config(), "system": system_stats(), "jobs": jobs, "now": time.time()}
+
+
+def cmd_status(args):
+    snap = snapshot()
+    if "--json" in args:
+        print(json.dumps(snap, indent=2))
+        return 0
+    cfg, sysm, now = snap["config"], snap["system"], snap["now"]
+    state = "DISABLED" if not cfg["enabled"] else "PAUSED" if cfg["paused"] else "on"
+    swap = f"{sysm['swap_used_mb'] / 1024:.1f}/{sysm['swap_total_mb'] / 1024:.1f} GB" if sysm["swap_total_mb"] else "-"
+    print(f"queue {state} | free memory {sysm['mem_level']}% (min {cfg['mem_min_level']}%) | swap {swap} | "
+          f"load {sysm['load'][0]:.0f} on {sysm['ncpu']} cores")
+    print(f"limits: heavy {cfg['max']['heavy']}, medium {cfg['max']['medium']}, light {cfg['max']['light']}, "
+          f"budget {cfg['budget']}, workers {cfg['workers']}")
+    for title, st, ts in (("RUNNING", "running", "started_at"), ("WAITING", "waiting", "queued_at")):
+        rows = [j for j in snap["jobs"] if j["state"] == st]
+        print(f"\n{title} ({len(rows)})")
+        for j in rows:
+            print(f"  {j['id'][-8:]}  {j['class']:<6} {fmt_secs(now - j[ts]):>7}  {j.get('project', '?'):<24} {j.get('label', '')[:70]}")
+    return 0
+
+
+def cmd_history(args):
+    for h in read_history(int(args[0]) if args else 15):
+        with suppress(KeyError, TypeError):
+            wait = (h.get("started_at") or h["queued_at"]) - h["queued_at"]
+            run = h["ended_at"] - (h.get("started_at") or h["ended_at"])
+            when = time.strftime("%H:%M", time.localtime(h["ended_at"]))
+            print(f"{when}  exit {h['exit']:<3} {h['class']:<6} wait {fmt_secs(wait):>7} run {fmt_secs(run):>7}  "
+                  f"{h.get('project', '?'):<24} {(h.get('label') or '')[:60]}")
+    return 0
+
+
+def cmd_stop(args):
+    if not args:
+        log("usage: testq stop ID")
+        return 2
+    matches = [j for j in snapshot()["jobs"] if j["id"].endswith(args[0]) or j["id"].startswith(args[0])]
+    if len(matches) != 1:
+        log(f"{len(matches)} jobs match {args[0]!r}")
+        return 1
+    job = matches[0]
+    if pid_alive(job["pid"]):
+        os.kill(job["pid"], signal.SIGTERM)  # testq forwards it to the whole command tree
+    elif job.get("child_pid"):
+        terminate_tree(job["child_pid"], grace=5)
+        time.sleep(5.5)
+    print(f"stopped {job['id']}")
+    return 0
+
+
+def parse_value(raw):
+    try:
+        return json.loads(raw)
+    except ValueError:
+        return raw
+
+
+def cmd_config(args):
+    if not args:
+        print(json.dumps(load_config(), indent=2))
+    elif len(args) == 1:
+        node = load_config()
+        for part in args[0].split("."):
+            node = node[part]
+        print(json.dumps(node))
+    else:
+        set_config(args[0], parse_value(args[1]))
+        print(f"{args[0]} = {json.dumps(parse_value(args[1]))}")
+    return 0
+
+
+def cmd_init(args):
+    """Write the tuned limits into config.json so the widget and the CLI show the same values."""
+    ensure_dirs()
+    tuned = tuned_limits(*hardware())
+    with mutex():
+        raw = {} if "--force" in args else (read_json(CONFIG_PATH, {}) or {})
+        for key in ("budget", "max", "workers", "weights", "mem_min_level", "settle_seconds", "nice", "max_load"):
+            default = tuned.get(key, DEFAULTS[key])
+            if isinstance(default, dict):
+                node = raw.setdefault(key, {})
+                for sub, value in default.items():
+                    node.setdefault(sub, value)
+            else:
+                raw.setdefault(key, default)
+        write_json(CONFIG_PATH, raw)
+    print(json.dumps(raw, indent=2))
+    return 0
+
+
+def _run_quiet(args, timeout=5):
+    try:
+        return subprocess.run(args, capture_output=True, text=True, timeout=timeout)
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def docker_vm_memory():
+    """(name, GB) of memory reserved by Colima or Docker Desktop, if configured."""
+    with suppress(OSError):
+        with open(os.path.expanduser("~/.colima/default/colima.yaml")) as f:
+            m = re.search(r"^memory:\s*(\d+)", f.read(), re.M)
+            if m:
+                return "Colima", float(m.group(1))
+    for path in ("settings-store.json", "settings.json"):
+        data = read_json(os.path.expanduser(f"~/Library/Group Containers/group.com.docker/{path}"), {}) or {}
+        mib = data.get("MemoryMiB") or data.get("memoryMiB")
+        if mib:
+            return "Docker Desktop", mib / 1024
+    return None, None
+
+
+def read_history(limit=300):
+    try:
+        with open(HISTORY_PATH) as f:
+            lines = f.readlines()[-limit:]
+    except OSError:
+        return []
+    entries = []
+    for line in lines:
+        with suppress(ValueError):
+            entries.append(json.loads(line))
+    return entries
+
+
+def cmd_doctor():
+    mem_gb, ncpu = hardware()
+    tuned, cfg, stats = tuned_limits(mem_gb, ncpu), load_config(), system_stats()
+    tips = []
+
+    def limits(c):
+        return (f"heavy {c['max']['heavy']}, medium {c['max']['medium']}, light {c['max']['light']}, "
+                f"budget {c['budget']}, workers {c['workers']}")
+
+    print(f"machine        {mem_gb:.0f} GB RAM, {ncpu} cores ({sys.platform})")
+    print(f"limits         {limits(cfg)}")
+    print(f"tuned for RAM  {limits(tuned)}")
+    print(f"queue          {'disabled' if not cfg['enabled'] else 'paused' if cfg['paused'] else 'on'}")
+    if not cfg["enabled"]:
+        tips.append("The queue is disabled and the hook rewrites nothing: `testq enable`.")
+    elif cfg["paused"]:
+        tips.append("The queue is paused, nothing new starts: `testq resume`.")
+
+    settings = read_json(os.path.expanduser("~/.claude/settings.json"), {}) or {}
+    hook = "testq hook" in json.dumps(settings.get("hooks", {}))
+    print(f"claude hook    {'installed' if hook else 'missing'}")
+    if not hook:
+        tips.append("Claude sessions do not queue tests yet: run the skill's install.sh (adds the PreToolUse hook).")
+    if IS_MAC:
+        widget = _run_quiet(["launchctl", "print", f"gui/{os.getuid()}/cz.esoul.testq"])
+        print(f"menu bar app   {'running' if widget and widget.returncode == 0 else 'not running'}")
+
+    if stats["mem_level"] is not None:
+        print(f"memory         {stats['mem_level']}% available (new jobs need {cfg['mem_min_level']}%)")
+    if stats["swap_total_mb"]:
+        swap_gb = stats["swap_used_mb"] / 1024
+        print(f"swap           {swap_gb:.1f} GB used")
+        if swap_gb > mem_gb * 0.25:
+            tips.append(f"{swap_gb:.1f} GB is swapped out: the machine is short of RAM. Close idle agent "
+                        "sessions, browser profiles and Docker stacks before raising any limit.")
+    print(f"load           {stats['load'][0]:.0f} (healthy is up to about {ncpu * 1.5:.0f})")
+
+    vm_name, vm_gb = docker_vm_memory()
+    if vm_gb:
+        print(f"docker VM      {vm_name} reserves {vm_gb:.0f} GB")
+        if vm_gb > mem_gb * 0.3:
+            target = max(2, round(mem_gb * 0.25))
+            how = "colima stop && colima start --memory %d" % target if vm_name == "Colima" else "Docker Desktop > Settings > Resources"
+            tips.append(f"{vm_name} keeps {vm_gb:.0f} of {mem_gb:.0f} GB for itself; try {target} GB ({how}).")
+    containers = _run_quiet(["docker", "ps", "-q"])
+    if containers and containers.returncode == 0:
+        count = len(containers.stdout.split())
+        print(f"containers     {count} running")
+        if count > 8:
+            tips.append(f"{count} containers run at once: stop the stacks of projects you are not working on "
+                        "(`docker compose stop` in their directory).")
+
+    history = read_history()
+    for cls in ("heavy", "medium", "light"):
+        rows = [h for h in history if h.get("class") == cls and h.get("started_at")]
+        if not rows:
+            continue
+        waits = sorted(h["started_at"] - h["queued_at"] for h in rows)
+        stopped = sum(1 for h in rows if h.get("exit") in (130, 143))
+        median = waits[len(waits) // 2]
+        print(f"history {cls:<6} {len(rows)} runs, median wait {fmt_secs(median)}, longest {fmt_secs(waits[-1])}"
+              + (f", {stopped} stopped" if stopped else ""))
+        swap_ok = not stats["swap_total_mb"] or stats["swap_used_mb"] / 1024 < mem_gb * 0.1
+        if cls != "light" and median > 300 and (stats["mem_level"] or 0) >= 40 and swap_ok:
+            tips.append(f"{cls} jobs wait {fmt_secs(median)} on median while memory is free: "
+                        f"raise `testq config max.{cls} {cfg['max'][cls] + 1}` (and `budget` if needed).")
+
+    print("\n" + ("\n".join(f"- {t}" for t in tips) if tips else "No issues found."))
+    return 0
+
+
+def main(argv):
+    if not argv or argv[0] in ("-h", "--help", "help"):
+        print(__doc__.strip())
+        return 0
+    cmd, args = argv[0], argv[1:]
+    if cmd == "run":
+        return cmd_run(args)
+    if cmd == "hook":
+        return cmd_hook()
+    if cmd == "status":
+        return cmd_status(args)
+    if cmd == "history":
+        return cmd_history(args)
+    if cmd == "stop":
+        return cmd_stop(args)
+    if cmd == "config":
+        return cmd_config(args)
+    if cmd == "init":
+        return cmd_init(args)
+    if cmd == "doctor":
+        return cmd_doctor()
+    if cmd in ("pause", "resume"):
+        set_config("paused", cmd == "pause")
+        print(f"queue {'paused' if cmd == 'pause' else 'resumed'}")
+        return 0
+    if cmd in ("enable", "disable"):
+        set_config("enabled", cmd == "enable")
+        print(f"queue {cmd}d")
+        return 0
+    if cmd == "rewrite":
+        print(rewrite(" ".join(args), load_config()["workers"]))
+        return 0
+    log(f"unknown command {cmd!r}; see testq --help")
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
