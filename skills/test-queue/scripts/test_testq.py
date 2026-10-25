@@ -143,6 +143,71 @@ class AdmissionTest(unittest.TestCase):
         self.assertIsNone(self.admit(me, [me], paused=True, enabled=False))
 
 
+class ColimaTest(unittest.TestCase):
+    YAML = "# Number of CPUs\ncpu: 4\n\ndisk: 60\n# Size of the VM in GiB\nmemory: 6\nprovision:\n  - mode: system\n    memory: 1\n"
+
+    def setUp(self):
+        self.home = tempfile.mkdtemp()
+        os.environ["COLIMA_HOME"] = self.home
+        os.makedirs(os.path.join(self.home, "default"))
+        with open(testq.colima_config_path("default"), "w") as f:
+            f.write(self.YAML)
+
+    def tearDown(self):
+        del os.environ["COLIMA_HOME"]
+
+    def test_reads_and_rewrites_only_top_level_keys(self):
+        self.assertEqual(testq.colima_settings("default"), {"cpu": 4, "memory": 6})
+        updated = testq.set_yaml_scalar(self.YAML, "memory", 5)
+        self.assertEqual(updated, self.YAML.replace("\nmemory: 6\n", "\nmemory: 5\n"))
+        self.assertIn("    memory: 1", updated)
+        with self.assertRaises(ValueError):
+            testq.set_yaml_scalar("cpu: 2\n", "memory", 4)
+
+    def test_restart_validates_before_touching_the_vm(self):
+        env = dict(os.environ, PATH="/nonexistent")  # colima and docker must not be reached
+
+        def run(*args):
+            return subprocess.run([sys.executable, TESTQ, "vm", *args], capture_output=True, text=True, env=env)
+
+        self.assertEqual(run("restart", "--memory", "999").returncode, 2)
+        self.assertEqual(run("restart", "--profile", "missing").returncode, 1)
+        status = json.loads(run("status").stdout)
+        self.assertEqual((status["provider"], status["memory_gb"], status["cpus"]), ("colima", 6, 4))
+
+    def test_restart_resizes_and_restarts_containers_that_fail_first(self):
+        bin_dir = os.path.join(self.home, "bin")
+        os.makedirs(bin_dir)
+        log = os.path.join(self.home, "calls.log")
+        # nginx (bbb) exits on its first start because its upstream is not up yet
+        scripts = {
+            "colima": 'echo "colima $*" >> "$LOG"',
+            "docker": '''echo "docker $*" >> "$LOG"
+case "$*" in
+  "ps -q") echo aaa; echo bbb ;;
+  "ps -q --no-trunc") echo aaa111; [ "$(grep -c '^docker start' "$LOG")" -ge 2 ] && echo bbb222 ;;
+esac
+exit 0''',
+        }
+        for name, body in scripts.items():
+            path = os.path.join(bin_dir, name)
+            with open(path, "w") as f:
+                f.write("#!/bin/sh\n" + body + "\n")
+            os.chmod(path, 0o755)
+        env = dict(os.environ, PATH=bin_dir + os.pathsep + os.environ["PATH"], LOG=log)
+        result = subprocess.run([sys.executable, TESTQ, "vm", "restart", "--memory", "5"],
+                                capture_output=True, text=True, env=env, timeout=60)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        with open(log) as f:
+            calls = f.read().splitlines()
+        self.assertEqual([c for c in calls if c.startswith("colima")], ["colima stop -p default", "colima start -p default"])
+        self.assertEqual([c for c in calls if c.startswith("docker start")], ["docker start aaa bbb", "docker start bbb"])
+        self.assertEqual(testq.colima_settings("default"), {"cpu": 4, "memory": 5})
+        state = testq.read_json(testq.VM_STATE_PATH)
+        self.assertEqual((state["phase"], state["memory_gb"], state["containers"]), ("done", 5, 2))
+        self.assertFalse(testq.load_config()["paused"])
+
+
 class RunTest(unittest.TestCase):
     def setUp(self):
         with open(os.path.join(HOME, "config.json"), "w") as f:
