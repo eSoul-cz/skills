@@ -316,7 +316,7 @@ Replace `/path/to/project` and `eSoul-cz/example-repo` with the project checkout
 
 One shared queue for test runs across all agent sessions on a machine. Parallel sessions that each start a test suite, Playwright, Infection or a build push a laptop into swap and their tests time out. `testq` runs cheap checks at once, admits suites and builds in a limited number, runs E2E and mutation testing one at a time, and starts nothing new while memory is short. Limits are tuned to the machine's RAM and cores and can be changed at any time.
 
-A Claude Code PreToolUse hook prefixes test and build commands with `testq run` and caps their worker counts automatically. On macOS a menu bar widget shows CPU, memory, swap and load, lists running and waiting jobs with stop buttons, and pauses the queue or changes its limits. `testq doctor` checks the setup and suggests what to tune, including Docker VM memory and idle stacks.
+A Claude Code PreToolUse hook prefixes test and build commands with `testq run` and caps their worker counts automatically. On macOS a menu bar widget shows CPU, memory, swap and load, lists running and waiting jobs with stop buttons, pauses the queue or changes its limits, and resizes the Colima VM with a restart that brings its containers back. `testq doctor` checks the setup and suggests what to tune, including Docker VM memory and idle stacks.
 
 Requires Python 3.8+. The widget needs macOS and Xcode Command Line Tools (`swiftc`). Installing changes `~/.claude/settings.json` (with a backup) and adds a login item, so run it on request. Resolve `SKILL_DIR` to the installed skill's directory:
 
