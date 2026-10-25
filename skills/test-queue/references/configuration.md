@@ -45,6 +45,10 @@ queue is paused.
   whole process tree (exit 143 for the agent).
 - **Controls**: Pause/Resume, the queue on/off switch, and steppers for `max.heavy`,
   `max.medium`, `budget`, `mem_min_level` and `workers`. They write `config.json`.
+- **Docker VM (Colima)**, shown only when a Colima profile exists: the VM memory with a
+  stepper (2 GB up to RAM − 2 GB) and a **Restart** button. After a confirmation it runs
+  `testq vm restart --memory N` (see below) and shows each phase; the last result or error
+  stays visible.
 - **Recently finished**: exit status, wait and run time of the last jobs.
 - **Open data** opens `~/.local/state/testq`; **Quit widget** stops the app until the next
   login (`launchctl kickstart gui/$(id -u)/cz.esoul.testq` starts it again).
@@ -64,13 +68,37 @@ lists suggestions:
 - medium/heavy median wait over 5 minutes while memory is free: raise that class's limit;
 - missing hook, paused or disabled queue.
 
+## Resizing Colima: `testq vm`
+
+`testq vm` prints the Colima profile's memory and CPUs and the result of the last resize.
+`testq vm restart [--memory GB] [--cpus N] [--profile P]` then:
+
+1. refuses while queued jobs run, unless `--force` (they would lose their containers);
+2. pauses the queue, so no test starts against a stopping VM;
+3. records the running containers (`docker ps -q`);
+4. runs `colima stop`, sets `memory`/`cpu` in `~/.colima/<profile>/colima.yaml` (other
+   settings stay), and runs `colima start`;
+5. starts the recorded containers again. Containers that exit right away, for example an
+   nginx started before its upstream, get two more attempts. `docker start` does not follow
+   compose dependencies.
+6. restores the queue's previous paused state and writes the outcome to `vm.json`.
+
+Expect about a minute without containers. Dev servers and database connections of running
+sessions drop, while data in containers and volumes is kept. Only Colima is supported;
+Docker Desktop has no CLI for its memory setting.
+
 ## Optimizing the machine
 
 The queue keeps sessions from hurting each other. These steps add capacity:
 
-1. **Docker VM memory.** Colima and Docker Desktop reserve their memory up front. On 16 GB,
-   4 GB is usually enough for a few PHP/MySQL stacks:
-   `colima stop && colima start --memory 4` or Docker Desktop › Settings › Resources.
+1. **Docker VM memory.** Colima and Docker Desktop reserve their memory up front, and the
+   host gets it back only when the VM restarts, not when containers stop. Size it from what
+   the containers really use: `docker stats --no-stream` plus about 0.6 GB for the VM's
+   kernel and Docker, plus headroom for tests. The VM has no swap, so when it runs out,
+   Linux kills a process inside (often Elasticsearch or MySQL). On 16 GB, 4–5 GB fits a few
+   PHP/MySQL stacks; an Elasticsearch + Kibana stack alone needs about 2 GB.
+   For Colima use the widget or `testq vm restart --memory N`; for Docker Desktop use
+   Settings › Resources.
 2. **Idle stacks.** Each running project stack (database, Redis, queue workers, Node dev
    server) holds memory even when idle. `docker compose stop` the ones you are not using.
 3. **Idle sessions and browsers.** Every agent session, MCP server and Chrome profile costs

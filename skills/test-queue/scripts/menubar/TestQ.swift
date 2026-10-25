@@ -10,6 +10,11 @@ let jobsDir = stateDir + "/jobs"
 let configPath = stateDir + "/config.json"
 let historyPath = stateDir + "/history.jsonl"
 let mutexPath = stateDir + "/mutex.lock"
+let vmStatePath = stateDir + "/vm.json"
+let colimaConfigPath = (ProcessInfo.processInfo.environment["COLIMA_HOME"]
+    ?? NSString(string: "~/.colima").expandingTildeInPath) + "/default/colima.yaml"
+let testqPath = NSString(string: "~/.local/bin/testq").expandingTildeInPath
+let vmBusyPhases: Set<String> = ["inventory", "stopping", "starting", "containers"]
 
 // Fallback only: `testq init` writes the limits tuned for the machine into config.json.
 let defaultConfig: [String: Any] = [
@@ -83,7 +88,12 @@ final class Model: ObservableObject {
     @Published var swapTotal = 0.0
     @Published var load = 0.0
     @Published var now = Date().timeIntervalSince1970
+    @Published var vmMemory: Int?
+    @Published var vmTarget = 0
+    @Published var vmState: [String: Any] = [:]
     let ncpu = ProcessInfo.processInfo.activeProcessorCount
+    let ramGB = Int(ProcessInfo.processInfo.physicalMemory / 1_073_741_824)
+    private var vmTargetEdited = false
     private var prevTicks: (busy: UInt64, total: UInt64)?
     private var timer: Timer?
 
@@ -115,6 +125,69 @@ final class Model: ObservableObject {
         readConfig()
         readJobs()
         readHistory()
+        readVM()
+    }
+
+    var vmPhase: String { vmState["phase"] as? String ?? "" }
+    var vmBusy: Bool {
+        // a phase older than 20 minutes belongs to a resize that died without finishing
+        vmBusyPhases.contains(vmPhase) && now - ((vmState["updated_at"] as? Double) ?? now) < 1200
+    }
+
+    func setVMTarget(_ value: Int) {
+        vmTarget = value
+        vmTargetEdited = true
+    }
+
+    private func readVM() {
+        let text = (try? String(contentsOfFile: colimaConfigPath, encoding: .utf8)) ?? ""
+        vmMemory = text.split(separator: "\n")
+            .first { $0.hasPrefix("memory:") }
+            .flatMap { Int($0.dropFirst("memory:".count).trimmingCharacters(in: .whitespaces)) }
+        if let vmMemory, !vmTargetEdited || vmBusy { vmTarget = vmMemory }
+        if let data = FileManager.default.contents(atPath: vmStatePath),
+           let state = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            vmState = state
+        }
+    }
+
+    func restartVM() {
+        let busyJobs = running.count
+        let alert = NSAlert()
+        alert.messageText = vmTarget == vmMemory ? "Restartovat Colimu?" : "Restartovat Colimu s \(vmTarget) GB?"
+        alert.informativeText = "Všechny Docker kontejnery se asi na minutu zastaví a pak se samy znovu spustí. "
+            + "Fronta testů se mezitím pozastaví. Dev servery a připojení k databázím na tu dobu spadnou."
+            + (busyJobs > 0 ? "\n\nPrávě běží \(busyJobs) test(ů) – přijdou o kontejnery a spadnou." : "")
+        alert.addButton(withTitle: "Restartovat")
+        alert.addButton(withTitle: "Zrušit")
+        NSApp.activate(ignoringOtherApps: true)
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: testqPath)
+        process.arguments = ["vm", "restart", "--memory", String(vmTarget)] + (busyJobs > 0 ? ["--force"] : [])
+        var env = ProcessInfo.processInfo.environment
+        env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+        process.environment = env
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        process.terminationHandler = { [weak self] finished in
+            let status = finished.terminationStatus
+            Task { @MainActor in
+                guard let self else { return }
+                self.refresh()
+                if status != 0 && !["done", "error"].contains(self.vmPhase) {
+                    self.vmState = ["phase": "error", "message": "testq vm restart skončil s kódem \(status)"]
+                }
+            }
+        }
+        do {
+            try process.run()
+            vmTargetEdited = false
+            vmState = ["phase": "inventory", "updated_at": now, "memory_gb": vmTarget]
+        } catch {
+            vmState = ["phase": "error", "message": "Nelze spustit \(testqPath): \(error.localizedDescription)"]
+        }
     }
 
     private func readStats() {
@@ -307,6 +380,66 @@ struct LimitStepper: View {
     }
 }
 
+struct VMSection: View {
+    @EnvironmentObject var model: Model
+
+    var body: some View {
+        if let current = model.vmMemory {
+            Divider()
+            Text("Docker VM (Colima)").font(.caption).foregroundStyle(.secondary)
+            HStack {
+                Text("Paměť VM").font(.callout)
+                Spacer()
+                Text(model.vmTarget == current ? "\(current) GB" : "\(current) → \(model.vmTarget) GB")
+                    .font(.callout.monospacedDigit())
+                    .foregroundStyle(model.vmTarget == current ? Color.primary : Color.orange)
+                Stepper("", value: Binding(get: { model.vmTarget }, set: { model.setVMTarget($0) }),
+                        in: 2...max(2, model.ramGB - 2))
+                    .labelsHidden()
+                    .disabled(model.vmBusy)
+            }
+            HStack(spacing: 6) {
+                if model.vmBusy {
+                    ProgressView().controlSize(.small)
+                    Text(phaseText).font(.caption).foregroundStyle(.secondary)
+                } else {
+                    Text(lastResult).font(.caption)
+                        .foregroundStyle(model.vmPhase == "error" ? Color.red : Color.secondary)
+                        .lineLimit(2)
+                    Spacer()
+                    Button(model.vmTarget == current ? "Restartovat" : "Restartovat s \(model.vmTarget) GB") {
+                        model.restartVM()
+                    }
+                    .controlSize(.small)
+                }
+            }
+        }
+    }
+
+    private var memory: Int { (model.vmState["memory_gb"] as? NSNumber)?.intValue ?? model.vmTarget }
+
+    private var phaseText: String {
+        switch model.vmPhase {
+        case "inventory": "Zjišťuji běžící kontejnery…"
+        case "stopping": "Zastavuji Colimu…"
+        case "starting": "Startuji Colimu s \(memory) GB…"
+        default: "Spouštím kontejnery…"
+        }
+    }
+
+    private var lastResult: String {
+        switch model.vmPhase {
+        case "done":
+            let containers = (model.vmState["containers"] as? NSNumber)?.intValue ?? 0
+            return "Naposledy: \(memory) GB, znovu spuštěno \(containers) kontejnerů"
+        case "error":
+            return "Chyba: \(model.vmState["message"] as? String ?? "neznámá")"
+        default:
+            return "Restart zastaví kontejnery asi na minutu"
+        }
+    }
+}
+
 struct ContentView: View {
     @EnvironmentObject var model: Model
 
@@ -355,6 +488,8 @@ struct ContentView: View {
                 LimitStepper(title: "Min. volná paměť", key: "mem_min_level", range: 0...50, step: 5, suffix: " %")
                 LimitStepper(title: "Workerů na jeden běh", key: "workers", range: 1...8)
             }
+
+            VMSection()
 
             if !model.history.isEmpty {
                 Divider()

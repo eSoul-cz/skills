@@ -10,6 +10,9 @@ Usage:
   testq config [KEY [VALUE]]   show or change limits, e.g. `testq config max.heavy 2`
   testq init [--force]         write limits tuned to this machine's RAM and cores
   testq doctor                 check the setup and suggest what to tune
+  testq vm [status]            Docker VM (Colima) memory and the last resize
+  testq vm restart [--memory GB] [--cpus N] [--force]
+                               resize and restart Colima, then restart its containers
   testq stop ID                terminate a running or waiting job (ID prefix is enough)
   testq rewrite 'CMD'          show how the Claude hook would rewrite a shell command
   testq hook                   Claude Code PreToolUse hook (JSON on stdin)
@@ -892,17 +895,152 @@ def _run_quiet(args, timeout=5):
 
 def docker_vm_memory():
     """(name, GB) of memory reserved by Colima or Docker Desktop, if configured."""
-    with suppress(OSError):
-        with open(os.path.expanduser("~/.colima/default/colima.yaml")) as f:
-            m = re.search(r"^memory:\s*(\d+)", f.read(), re.M)
-            if m:
-                return "Colima", float(m.group(1))
+    memory = colima_settings("default").get("memory")
+    if memory:
+        return "Colima", float(memory)
     for path in ("settings-store.json", "settings.json"):
         data = read_json(os.path.expanduser(f"~/Library/Group Containers/group.com.docker/{path}"), {}) or {}
         mib = data.get("MemoryMiB") or data.get("memoryMiB")
         if mib:
             return "Docker Desktop", mib / 1024
     return None, None
+
+
+# --- Colima VM resizing --------------------------------------------------------------
+
+VM_STATE_PATH = os.path.join(STATE_DIR, "vm.json")
+# launchd starts the widget with a bare PATH; colima and docker usually live here
+TOOL_PATHS = ("/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin")
+
+
+def colima_config_path(profile):
+    home = os.path.expanduser(os.environ.get("COLIMA_HOME", "~/.colima"))
+    return os.path.join(home, profile, "colima.yaml")
+
+
+def colima_settings(profile):
+    """Top-level `cpu` and `memory` (GB) of a Colima profile, {} when there is none."""
+    try:
+        with open(colima_config_path(profile)) as f:
+            text = f.read()
+    except OSError:
+        return {}
+    found = {}
+    for key in ("cpu", "memory"):
+        m = re.search(rf"^{key}:\s*(\d+)\s*$", text, re.M)
+        if m:
+            found[key] = int(m.group(1))
+    return found
+
+
+def set_yaml_scalar(text, key, value):
+    """Replace a top-level `key: value` line, keeping the rest of the file untouched."""
+    updated, count = re.subn(rf"^{key}:[^\n]*", f"{key}: {value}", text, count=1, flags=re.M)
+    if not count:
+        raise ValueError(f"no top-level `{key}:` in colima.yaml")
+    return updated
+
+
+def write_vm_state(phase, **extra):
+    ensure_dirs()
+    write_json(VM_STATE_PATH, dict(extra, phase=phase, updated_at=time.time()))
+
+
+def tool_env():
+    paths = os.environ.get("PATH", "").split(os.pathsep)
+    return dict(os.environ, PATH=os.pathsep.join(paths + [p for p in TOOL_PATHS if p not in paths]))
+
+
+def cmd_vm(args):
+    """testq vm [status] | testq vm restart [--memory GB] [--cpus N] [--profile P] [--force]"""
+    sub = args.pop(0) if args and not args[0].startswith("-") else "status"
+    opts = {"--profile": "default", "--memory": None, "--cpus": None}
+    force = "--force" in args
+    for i, arg in enumerate(args):
+        if arg in opts and i + 1 < len(args):
+            opts[arg] = args[i + 1]
+    profile = opts["--profile"]
+    settings = colima_settings(profile)
+
+    if sub == "status":
+        print(json.dumps({"provider": "colima" if settings else None, "profile": profile,
+                          "memory_gb": settings.get("memory"), "cpus": settings.get("cpu"),
+                          "last": read_json(VM_STATE_PATH)}, indent=2))
+        return 0
+    if sub != "restart":
+        log("usage: testq vm [status] | testq vm restart [--memory GB] [--cpus N] [--profile P] [--force]")
+        return 2
+    if not settings:
+        log(f"no Colima profile {profile!r} ({colima_config_path(profile)}); only Colima can be resized")
+        return 1
+    memory = int(opts["--memory"]) if opts["--memory"] else None
+    cpus = int(opts["--cpus"]) if opts["--cpus"] else None
+    ram_gb, ncpu = hardware()
+    if memory is not None and not 1 <= memory <= ram_gb - 2:
+        log(f"memory must be between 1 and {int(ram_gb) - 2} GB on this machine")
+        return 2
+    if cpus is not None and not 1 <= cpus <= ncpu:
+        log(f"cpus must be between 1 and {ncpu}")
+        return 2
+
+    ensure_dirs()
+    with mutex():
+        running = [j for j in live_jobs() if j["state"] == "running"]
+    if running and not force:
+        log(f"{len(running)} queued job(s) are running and would lose their containers; "
+            "wait, stop them, or pass --force")
+        return 1
+
+    was_paused = load_config()["paused"]
+    set_config("paused", True)  # no new test may start against a stopping VM
+    env = tool_env()
+    target = memory or settings.get("memory")
+
+    def step(phase, command, timeout):
+        write_vm_state(phase, memory_gb=target)
+        log(f"{phase}: {' '.join(command)}")
+        result = subprocess.run(command, env=env, capture_output=True, text=True, timeout=timeout)
+        if result.returncode != 0:
+            raise RuntimeError(f"`{' '.join(command)}` failed: {(result.stderr or result.stdout).strip()[-400:]}")
+        return result.stdout
+
+    try:
+        ids = step("inventory", ["docker", "ps", "-q"], 60).split()
+        step("stopping", ["colima", "stop", "-p", profile], 300)
+        path = colima_config_path(profile)
+        with open(path) as f:
+            text = f.read()
+        if memory is not None:
+            text = set_yaml_scalar(text, "memory", memory)
+        if cpus is not None:
+            text = set_yaml_scalar(text, "cpu", cpus)
+        with open(path, "w") as f:
+            f.write(text)
+        step("starting", ["colima", "start", "-p", profile], 900)
+        # `docker start` ignores compose dependencies: a proxy started before its upstream
+        # exits at once, so start whatever is down again once the rest is up
+        down = ids
+        for attempt in range(3):
+            if not down:
+                break
+            if attempt:
+                time.sleep(5)
+            subprocess.run(["docker", "start", *down], env=env, capture_output=True, timeout=300)
+            time.sleep(3)
+            up = set(step("containers", ["docker", "ps", "-q", "--no-trunc"], 60).split())
+            down = [i for i in down if not any(full.startswith(i) for full in up)]
+        if down:
+            raise RuntimeError(f"{len(down)} of {len(ids)} container(s) did not start: {' '.join(down)}")
+        write_vm_state("done", memory_gb=target, containers=len(ids))
+        log(f"Colima runs with {target} GB; restarted {len(ids)} container(s)")
+        return 0
+    except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as e:
+        write_vm_state("error", memory_gb=target, message=str(e))
+        log(f"error: {e}")
+        return 1
+    finally:
+        if not was_paused:
+            set_config("paused", False)
 
 
 def read_history(limit=300):
@@ -960,7 +1098,8 @@ def cmd_doctor():
         print(f"docker VM      {vm_name} reserves {vm_gb:.0f} GB")
         if vm_gb > mem_gb * 0.3:
             target = max(2, round(mem_gb * 0.25))
-            how = "colima stop && colima start --memory %d" % target if vm_name == "Colima" else "Docker Desktop > Settings > Resources"
+            how = (f"`testq vm restart --memory {target}` or the widget" if vm_name == "Colima"
+                   else "Docker Desktop > Settings > Resources")
             tips.append(f"{vm_name} keeps {vm_gb:.0f} of {mem_gb:.0f} GB for itself; try {target} GB ({how}).")
     containers = _run_quiet(["docker", "ps", "-q"])
     if containers and containers.returncode == 0:
@@ -1010,6 +1149,8 @@ def main(argv):
         return cmd_init(args)
     if cmd == "doctor":
         return cmd_doctor()
+    if cmd == "vm":
+        return cmd_vm(args)
     if cmd in ("pause", "resume"):
         set_config("paused", cmd == "pause")
         print(f"queue {'paused' if cmd == 'pause' else 'resumed'}")

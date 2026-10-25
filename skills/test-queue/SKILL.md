@@ -18,7 +18,7 @@ short.
 |---|---|---|
 | `testq` CLI (Python 3.8+, no dependencies) | `~/.local/bin/testq` | Queue, limits, status, history, `doctor` |
 | Claude Code hook | `~/.claude/settings.json`, PreToolUse `Bash` | Prefixes test and build commands with `testq run -c <class> --` and caps their worker count |
-| TestQ menu bar widget (macOS) | `~/Applications/TestQ.app`, LaunchAgent `cz.esoul.testq` | Rings for CPU, memory, swap and load; running and waiting jobs with stop buttons; pause, on/off and limits |
+| TestQ menu bar widget (macOS) | `~/Applications/TestQ.app`, LaunchAgent `cz.esoul.testq` | Rings for CPU, memory, swap and load; running and waiting jobs with stop buttons; pause, on/off and limits; Colima memory with a restart button |
 | State | `~/.local/state/testq/` | `config.json`, `jobs/`, `history.jsonl`, shared by all of the above |
 
 ## Install, update, remove
@@ -88,6 +88,7 @@ testq pause | resume      # stop / allow new starts; running jobs continue
 testq enable | disable    # turn the queue and the hook on or off
 testq stop <id>           # stop a running job or cancel a waiting one
 testq rewrite '<cmd>'     # show how the hook would rewrite a command
+testq vm restart --memory 5  # resize Colima, restart its containers (also in the widget)
 ```
 
 ## Limits
