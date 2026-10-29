@@ -114,7 +114,13 @@ To work from a local checkout, replace `eSoul-cz/skills` with `.`.
 
 ### Keep one copy of each skill up to date
 
-`npx skills add` installs a snapshot; it does not follow later releases. After every release run `npx skills update --global --yes` (and re-run `add` for agents that hold a copied rather than a linked skill, such as `~/.codex/skills/<name>`), or the agent keeps reading the old rules and an older, larger file. Claude Code users who installed the `esoul-skills` plugin do not need `npx` copies of the same skills for Claude Code: remove them with `npx skills remove` so the descriptions are not loaded twice. Project-local skills that repeat an eSoul skill for one project (targets, label UUIDs) should become sections of that project's `CONTEXT.md` instead: `## Freelo` (project, tasklist IDs, label UUIDs) and `## Tasking convention`.
+`npx skills add` installs a snapshot; it does not follow later releases. After every release, re-run the same `add` command with `--agent` for each non-Claude agent, or the agent keeps reading the old rules and an older, larger file:
+
+```bash
+npx skills add eSoul-cz/skills --skill <skill-name>... --agent codex --global --yes
+```
+
+Avoid `npx skills update --global`: it links the updated skills into every detected agent, Claude Code included, so plugin users load each description twice (`esoul-skills:<name>` and `<name>`). If that happened, delete the symlinks it created in `~/.claude/skills`; they point to `~/.agents/skills`, which Codex keeps using. Copies an older installer placed in `~/.codex/skills/<name>` shadow the shared ones; move them out. Claude Code users who installed the `esoul-skills` plugin need no `npx` copies for Claude Code at all. Project-local skills that repeat an eSoul skill for one project (targets, label UUIDs) should become sections of that project's `CONTEXT.md` instead: `## Freelo` (project, tasklist IDs, label UUIDs) and `## Tasking convention`.
 
 Check the skills themselves (frontmatter, description budget, links, manifest, README) before a release:
 
