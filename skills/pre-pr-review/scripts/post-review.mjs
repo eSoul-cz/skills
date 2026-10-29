@@ -204,6 +204,8 @@ export function findingId(finding) {
     return createHash('sha256').update(`${finding.path}\n${title}`).digest('hex').slice(0, 12);
 }
 
+const ID_PATTERN = /^[\w-]{1,64}$/;
+
 function markerOf(body) {
     return (body ?? '').match(new RegExp(`<!-- ${MARKER}:finding:([\\w-]+) -->`))?.[1] ?? null;
 }
@@ -231,6 +233,7 @@ function validateInput(input) {
             throw new UsageError(`findings[${index}].startLine must be a positive integer not after line.`);
         }
         if (finding.suggestion !== undefined && typeof finding.suggestion !== 'string') throw new UsageError(`findings[${index}].suggestion must be a string.`);
+        if (finding.id !== undefined && !ID_PATTERN.test(String(finding.id))) throw new UsageError(`findings[${index}].id may contain only letters, digits, _ and - (at most 64).`);
     }
     if (input.language && !TEXT[input.language]) throw new UsageError(`language must be one of: ${Object.keys(TEXT).join(', ')}.`);
 }
