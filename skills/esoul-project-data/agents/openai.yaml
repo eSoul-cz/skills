@@ -1,0 +1,7 @@
+interface:
+  display_name: "eSoul Project Data"
+  short_description: "Keep client data and dumps in tracked assets/ through Git LFS"
+  default_prompt: "Use $esoul-project-data to store these project files in the repository."
+
+policy:
+  allow_implicit_invocation: true

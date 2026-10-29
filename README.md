@@ -353,6 +353,26 @@ node "$SKILL_DIR/scripts/conformance.mjs" /path/to/project --github eSoul-cz/exa
 
 Replace `/path/to/project` and `eSoul-cz/example-repo` with the project checkout and its repository.
 
+### `esoul-data-task-guard`
+
+On data tasks (label `data-migration`, legacy imports, data fixes, reports, analyses) the agent does not change application code or the data model beyond what the issue specifies. It finishes the independent data work, writes the needed change down as a proposal (finding, cause, fix as an example diff or SQL, impact on existing data) and creates a new issue/task pair through `esoul-tasking`. An explicit instruction from the user overrides it.
+
+Usage:
+
+```text
+$esoul-data-task-guard the import found duplicate breeders; propose the fix
+```
+
+### `esoul-project-data`
+
+Client files, photos, admin media, SQL dumps, backups and import files go to the tracked `assets/` folder through Git LFS, and guides to `docs/`, never to `storage/`, `*.nosync`, `tmp/` or Downloads, where only one computer has them. Secrets never go to Git; throwaway intermediates stay in the session scratchpad.
+
+Usage:
+
+```text
+$esoul-project-data back up the media before the import
+```
+
 ### `test-queue`
 
 One shared queue for test runs across all agent sessions on a machine. Parallel sessions that each start a test suite, Playwright, Infection or a build push a laptop into swap and their tests time out. `testq` runs cheap checks at once, admits suites and builds in a limited number, runs E2E and mutation testing one at a time, and starts nothing new while memory is short. Limits are tuned to the machine's RAM and cores and can be changed at any time.

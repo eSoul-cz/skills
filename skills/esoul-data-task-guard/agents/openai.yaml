@@ -1,0 +1,7 @@
+interface:
+  display_name: "eSoul Data Task Guard"
+  short_description: "Propose code or schema fixes found during data work instead of patching them"
+  default_prompt: "Use $esoul-data-task-guard while working on this data task."
+
+policy:
+  allow_implicit_invocation: true

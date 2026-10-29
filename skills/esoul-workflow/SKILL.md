@@ -108,6 +108,8 @@ If something could not be verified, say what and why.
 - Every write to Freelo, GitHub issues, or other shared systems needs an approved preview first.
 - Destructive commands (reset, drop, force-push, bulk delete, search-replace on a database) need a backup or a dry run and explicit confirmation.
 - Prefer the repository's own scripts (Makefile, composer/npm scripts, `scripts/`) over ad-hoc commands.
+- Project data (client files, dumps, media, backups) goes to tracked `assets/` via Git LFS, never to `storage/` or other ignored folders: `esoul-project-data`.
+- On a data task (label `data-migration`, imports, data fixes, reports), never change application code or the data model beyond what the issue specifies; propose the change as new work instead: `esoul-data-task-guard`.
 
 ## 5. Definition of done
 
