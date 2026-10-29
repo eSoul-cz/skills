@@ -124,7 +124,9 @@ Gate B4 is green only when all of these hold on `main`:
 - Money representation, currencies, VAT, rounding; exchange rates.
 - Admin approach (Filament vs custom Inertia); frontend framework (Vue vs React).
 - System of record and integration transport (ERP, idempotence, outbox), queue broker and
-  process topology (queue workers, scheduler).
+  process topology (queue workers, scheduler). Each external integration sits behind a port with
+  two adapters, the real driver and a fake driver for tests (`esoul-workflow` ›
+  references/design-principles.md).
 - Authentication, roles and authorization; legal entity or tenant scope.
 - Search (Scout, engine), URLs and redirects, SEO head and SSR, page cache.
 - Imports and legacy migration (one-off vs repeatable), exports and file formats.

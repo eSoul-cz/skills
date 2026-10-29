@@ -28,6 +28,6 @@ _Avoid_: `projekt`, `job`, `úkol`.
   an issue. Mention it in the PR description.
 - When the client's word and the code's word differ, record both. Never rename silently.
 - A term disputed between documents is a conflict to report, not to resolve by choice.
-- Use the `domain-modeling` or `grilling` skill when installed to stress-test new terms.
+- Stress-test new terms as in [domain-modeling.md](domain-modeling.md): challenge conflicts, sharpen fuzzy words, probe edge cases with scenarios, check the code.
 - For multi-context systems (for example an Astro frontend with a Laravel admin in submodules),
   keep a root `GLOSSARY-MAP.md` that names each context's glossary.

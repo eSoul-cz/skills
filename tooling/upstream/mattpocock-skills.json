@@ -1,0 +1,77 @@
+{
+  "repository": "https://github.com/mattpocock/skills",
+  "version": "1.3.2",
+  "note": "Upstream files the eSoul skills adapt. check_upstream.mjs compares them with a newer upstream checkout; port the changes by hand, then run it with --accept.",
+  "files": [
+    {
+      "vendored": "skills/esoul-workflow/references/design-principles.md",
+      "upstream": "skills/engineering/codebase-design/DEEPENING.md",
+      "sha256": "f3dd099ce99289bd213914d8ee3e2429b78309c3957ca4583f7659551b1d53c1"
+    },
+    {
+      "vendored": "skills/esoul-workflow/references/design-principles.md",
+      "upstream": "skills/engineering/codebase-design/DESIGN-IT-TWICE.md",
+      "sha256": "c222ab5a82e0405672eb9062d62496139a08828e45d07fc5f18e4952c10fac1a"
+    },
+    {
+      "vendored": "skills/esoul-workflow/references/design-principles.md",
+      "upstream": "skills/engineering/codebase-design/SKILL.md",
+      "sha256": "2c20617f87ec8af6a434859f381b2f061a69b530444e74eb39e78bb016a6d1e2"
+    },
+    {
+      "vendored": "skills/esoul-workflow/references/diagnosing-bugs.md",
+      "upstream": "skills/engineering/diagnosing-bugs/SKILL.md",
+      "sha256": "849198df88cdb65fd0d97236604c1fca7ff2f22d2f705f9724a800d0266b118d"
+    },
+    {
+      "vendored": "skills/esoul-workflow/scripts/hitl-loop.template.sh",
+      "upstream": "skills/engineering/diagnosing-bugs/scripts/hitl-loop.template.sh",
+      "sha256": "35103539fc36873eea36074769ad454f9379d6fc8b2dc0e26ce987fd3bfe5503"
+    },
+    {
+      "vendored": "skills/esoul-project-lifecycle/references/domain-modeling.md",
+      "upstream": "skills/engineering/domain-modeling/SKILL.md",
+      "sha256": "7b925d7b1e341a2eeae33ad68a8a8c0ab889a38ddd22a7598e4c240e5a7556a3"
+    },
+    {
+      "vendored": "skills/esoul-workflow/references/prototype-logic.md",
+      "upstream": "skills/engineering/prototype/LOGIC.md",
+      "sha256": "f61c7d249e786a79ef289018901c348271e1798dd0b0bc5607b5c6f4d4a01ab9"
+    },
+    {
+      "vendored": "skills/esoul-workflow/references/prototype.md",
+      "upstream": "skills/engineering/prototype/SKILL.md",
+      "sha256": "714de632d116bb73f65cdb5a882db15b9369a6713b9a47c0fad827848f0bfbe3"
+    },
+    {
+      "vendored": "skills/esoul-workflow/references/prototype-ui.md",
+      "upstream": "skills/engineering/prototype/UI.md",
+      "sha256": "723211e878acbc7b6ff09755263f3295cde724ba902ff0064da41eed51d45ad3"
+    },
+    {
+      "vendored": "skills/esoul-workflow/references/tdd.md",
+      "upstream": "skills/engineering/tdd/SKILL.md",
+      "sha256": "5505d25bbaa8fc14a79e4d20163936958992a2995b7f1dd1d6197edc9ed722e0"
+    },
+    {
+      "vendored": "skills/esoul-workflow/references/tdd-mocking.md",
+      "upstream": "skills/engineering/tdd/mocking.md",
+      "sha256": "3ceb807fdf4a47d6a93d4d9a891e5ba6d362a6247bd08adc451feebfc17361ef"
+    },
+    {
+      "vendored": "skills/esoul-workflow/references/tdd-tests.md",
+      "upstream": "skills/engineering/tdd/tests.md",
+      "sha256": "859f9e592c188fda4fc7277dd180e4ce9c7a2e13f6efe1f6f29eccc9d28c106a"
+    },
+    {
+      "vendored": "skills/esoul-workflow/references/grilling.md",
+      "upstream": "skills/productivity/grilling/SKILL.md",
+      "sha256": "a146842ed93ca43d833550fa9adf02e58cb63c83fea9d4b4522995b82242d4e2"
+    },
+    {
+      "vendored": "skills/esoul-workflow/references/handoff.md",
+      "upstream": "skills/productivity/handoff/SKILL.md",
+      "sha256": "4cbb043950dad2ffd3662ff1a5a0b51ae676004b5cae10e3787e8ee7a4ee69d3"
+    }
+  ]
+}

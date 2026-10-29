@@ -20,7 +20,7 @@
       "name": "mattpocock-skills",
       "source": { "source": "github", "repo": "mattpocock/skills" },
       "category": "engineering",
-      "description": "Matt Pocock's engineering skills (grilling, tdd, diagnosing-bugs, code-review, and more). Upstream, updates from the author."
+      "description": "Optional: Matt Pocock's full skill set. The parts the eSoul workflow uses are already adapted into esoul-skills. Upstream, updates from the author."
     },
     {
       "name": "frontend-design",

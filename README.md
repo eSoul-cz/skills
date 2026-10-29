@@ -17,16 +17,38 @@ claude plugin marketplace add eSoul-cz/skills
 # install the workflow set
 claude plugin install esoul-skills@esoul          # esoul-workflow + all eSoul skills
 claude plugin install esoul-awesome-picks@esoul   # WordPress, Laravel, SEO, data, ...
-claude plugin install mattpocock-skills@esoul      # tdd, code-review, diagnosing-bugs, grilling
 claude plugin install frontend-design@esoul        # distinctive, non-templated UI
 ```
 
 The same install works in the terminal and in Claude in VS Code: both read the
 same `~/.claude` configuration, so a plugin installed once is available in both.
 
-`mattpocock-skills` and `frontend-design` are referenced from their upstream
-repositories, so their updates come from the original authors. `esoul-skills`
-and `esoul-awesome-picks` are maintained here.
+`frontend-design` is referenced from its upstream repository, so its updates come
+from Anthropic. `esoul-skills` and `esoul-awesome-picks` are maintained here.
+
+The parts of Matt Pocock's skills that the eSoul workflow uses (grilling, TDD,
+bug diagnosis, prototypes, handoff, design principles, domain modeling) are
+adapted into `esoul-workflow` and `esoul-project-lifecycle` as references, under
+their MIT license. They cost nothing per session until a step needs them, and
+they follow eSoul's rules (Freelo, `CONTEXT.md`, verification receipts). The full
+upstream plugin stays available but is optional:
+
+```bash
+claude plugin install mattpocock-skills@esoul      # optional: the rest of Matt Pocock's skills
+```
+
+Do not use its tracker skills (`to-spec`, `to-tickets`, `triage`, `wayfinder`) or
+`setup-matt-pocock-skills` in eSoul repositories: they publish to GitHub instead
+of Freelo, and the setup skill renames `CONTEXT.md`.
+
+To pick up upstream improvements, compare the adapted files with a newer checkout,
+port the changes by hand, then record the new version:
+
+```bash
+git clone https://github.com/mattpocock/skills /path/to/mattpocock-skills
+node tooling/scripts/check_upstream.mjs /path/to/mattpocock-skills            # lists changed files
+node tooling/scripts/check_upstream.mjs /path/to/mattpocock-skills --accept   # after porting
+```
 
 Start any real task with the router:
 
@@ -311,7 +333,7 @@ $esoul-uat run chapters AUT and NAV on the UAT instance, desktop and mobile, wit
 
 ### `esoul-workflow`
 
-Default entry point for eSoul work on web applications, WordPress sites, and data analyses. Loads repository context, sizes the task (S, M, L, bug, analysis), and routes each step to the owning skill instead of repeating it: `esoul-tasking` for tracked work, `esoul-mockup-authoring` and `frontend-design` for UI, `gitmoji-commit` for commits, `pre-pr-review` and `final-pr-review` for PRs. Uses the Matt Pocock skills (`grilling`, `tdd`, `diagnosing-bugs`, `code-review`) and CodeGraph when installed, and degrades gracefully without them. Includes short references for the eSoul web stack, the WP-template WordPress deployment model, and reproducible data analysis.
+Default entry point for eSoul work on web applications, WordPress sites, and data analyses. Loads repository context, sizes the task (S, M, L, bug, analysis), and routes each step to the owning skill instead of repeating it: `esoul-tasking` for tracked work, `esoul-mockup-authoring` and `frontend-design` for UI, `gitmoji-commit` for commits, `pre-pr-review` and `final-pr-review` for PRs. Carries adapted references for grilling, test-driven development, bug diagnosis, prototypes, handoffs and design principles (deep modules, real seams, fake drivers for integrations), and uses CodeGraph when installed. Includes short references for the eSoul web stack, the WP-template WordPress deployment model, and reproducible data analysis.
 
 Every check runs once per state of the code: after a check the agent records a verification receipt keyed on the worktree's Git tree, which stays the same when the verified files are committed, and `gitmoji-commit`, `pre-pr-review` and `final-pr-review` reuse it instead of running the suite again. A PR gets one local review (the `final-pr-review` pre-push pass), not an extra `code-review` on top, and subagents are always started with an explicit, cheaper model.
 

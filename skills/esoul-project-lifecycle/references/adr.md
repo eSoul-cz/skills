@@ -19,7 +19,11 @@ Start from `assets/templates/docs/adr/0000-template.md`.
 - Frontmatter `status`, `date` (when the status last changed), `deciders` (who decided: people
   with their organisation where known, e.g. `Jan Novák (Client), eSoul`).
 - **Context**: the problem, the source (podklad note, legacy document, question `Q-nn`, issue)
-  and how the client or the previous system handles it today.
+  and how the client or the previous system handles it today. Technical facts (library or API
+  behaviour, limits, pricing, legal rules) come from primary sources: official documentation,
+  source code, specifications, first-party APIs. Cite the source next to each claim. Delegate
+  long reading to a background subagent on `sonnet` with a fresh context; its findings go into
+  this section or the issue, never into a separate report file.
 - **Decision**: present tense, no "should". Link open questions instead of inventing answers.
 - **Consequences**: including the unpleasant ones.
 - **Alternatives considered**: at least two rejected options with the reason.
