@@ -10,7 +10,8 @@ The single entry point for eSoul work. It decides *how much process* a task need
 ## 1. Load context before touching anything
 
 1. Use the repository context that is already loaded; do not read it again. The harness loads `CLAUDE.md` (and the `AGENTS.md` and memory files it imports or injects) at session start and after every compaction, and files you already read in this session are still in context. Read only what is missing, and only the part you need:
-   - a convention (tasking, commits, Freelo, project profile): the section, not the file, e.g. `awk '/^## Tasking convention/{f=1;print;next} /^## /{f=0} f' CONTEXT.md` prints the whole section up to the next `##` heading; run it on `GLOSSARY.md` only when `CONTEXT.md` lacks the section;
+   - a convention (tasking, commits, Freelo, project profile): the section, not the file. This line prints the whole section from `CONTEXT.md`, or from `GLOSSARY.md` when `CONTEXT.md` lacks it; every eSoul skill uses the same line:
+     `for f in CONTEXT.md GLOSSARY.md; do awk -v h='## Tasking convention' '$0==h{p=1;print;next} /^## /{p=0} p' "$f" 2>/dev/null | grep . && break; done`;
    - domain vocabulary: look up the specific term in `GLOSSARY.md` or the context named in `GLOSSARY-MAP.md` (legacy `CONTEXT.md` or `CONTEXT-MAP.md`) when the task uses it, never the whole glossary up front;
    - decisions: `docs/adr/index.md`, then only the ADRs for the area being touched.
    Repository conventions always override this skill. Every skill below follows the same context budget.

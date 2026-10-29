@@ -9,7 +9,7 @@ Create a readable history by separating work according to intention and assignin
 
 ## Resolve the repository convention
 
-Before planning commits, use the applicable `AGENTS.md` content already in context and any convention read earlier in the session. Otherwise read only the `## Commit convention` section of the repository-root `CONTEXT.md`, falling back to the root `GLOSSARY.md` for repositories that renamed `CONTEXT.md` while migrating (`awk '/^## Commit convention/{f=1;print;next} /^## /{f=0} f' CONTEXT.md`, the whole section up to the next `##` heading; run it on `GLOSSARY.md` only when `CONTEXT.md` lacks the section); do not read either file in full. Write conventions only to `CONTEXT.md`, never to `GLOSSARY.md`.
+Before planning commits, use the applicable `AGENTS.md` content already in context and any convention read earlier in the session. Otherwise read only the `## Commit convention` section of the repository-root `CONTEXT.md`, falling back to the root `GLOSSARY.md` for repositories that renamed `CONTEXT.md` while migrating (`for f in CONTEXT.md GLOSSARY.md; do awk -v h='## Commit convention' '$0==h{p=1;print;next} /^## /{p=0} p' "$f" 2>/dev/null | grep . && break; done`); do not read either file in full. Write conventions only to `CONTEXT.md`, never to `GLOSSARY.md`.
 
 1. Treat an applicable commit convention in `AGENTS.md` as authoritative.
 2. Otherwise use the commit convention in the root `CONTEXT.md` or its `GLOSSARY.md` fallback.
