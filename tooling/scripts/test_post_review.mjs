@@ -222,6 +222,31 @@ test('approves a head only when nothing was found and no fallback thread is open
     assert.equal(alreadyApproved.upToDate, true);
 });
 
+test('a body-only finding blocks approval until a later review records its resolution', () => {
+    const files = [{ filename: 'src/a.php', patch: PATCH }];
+    const id = findingId(finding({ title: 'Outside', path: 'src/z.php' }));
+    const earlier = `<!-- pre-pr-review:review head=${'c'.repeat(40)} -->\n<!-- pre-pr-review:finding:${id} -->`;
+
+    const blocked = planReview({ input: { head: HEAD, findings: [] }, files, threads: [], reviewBodies: [earlier] });
+    assert.equal(blocked.approved, false);
+    assert.deepEqual(blocked.openInBodies, [id]);
+    assert.equal(blocked.openFindings, 1);
+
+    const resolving = planReview({ input: { head: HEAD, language: 'cs', findings: [], resolved: [{ id, note: 'Opraveno v abc1234, ověřeno testem; ping @someone' }] }, files, threads: [], reviewBodies: [earlier] });
+    assert.equal(resolving.approved, true);
+    assert.match(resolving.payload.body, /<summary>Vyřešené nálezy mimo diff \(1\)<\/summary>/);
+    assert.match(resolving.payload.body, new RegExp(`- \`${id}\`: Opraveno v abc1234, ověřeno testem; ping @​someone <!-- pre-pr-review:resolved:${id} -->`));
+
+    const later = planReview({ input: { head: HEAD, findings: [] }, files, threads: [], reviewBodies: [earlier, resolving.payload.body] });
+    assert.deepEqual(later.openInBodies, [], 'a recorded resolution persists across reviews');
+    assert.equal(later.upToDate, true);
+
+    const reappears = planReview({ input: { head: HEAD, findings: [finding({ title: 'Outside', path: 'src/z.php' })] }, files, threads: [], reviewBodies: [earlier, resolving.payload.body] });
+    assert.deepEqual(reappears.outside, [id], 'a resolved body finding found again is reported again');
+
+    assert.deepEqual(planReview({ input: { head: HEAD, findings: [], resolved: [{ id: 'nope', note: 'x' }] }, files, threads: [], reviewBodies: [] }).unknownResolved, ['nope']);
+});
+
 test('defangs mentions in published text but not in code or suggestions', () => {
     const plan = planReview({
         input: {
@@ -306,7 +331,7 @@ test('refuses a stale head, a closed PR, and invalid input', async (t) => {
     assert.equal(invalid.status, 2);
     assert.match(invalid.stderr, /findings\[0\]\.severity/);
 
-    for (const bad of [{ findings: [finding({ id: 'a b' })] }]) {
+    for (const bad of [{ findings: [finding({ id: 'a b' })] }, { findings: [], resolved: [{ id: 'x' }] }, { findings: [], resolved: [{ id: '<x>', note: 'y' }] }]) {
         await writeFile(file, JSON.stringify({ head: HEAD, ...bad }));
         assert.equal(stale.run('post', PR_URL, '--findings', file).status, 2, JSON.stringify(bad));
     }
