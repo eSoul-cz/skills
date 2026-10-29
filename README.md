@@ -90,6 +90,16 @@ npx skills add eSoul-cz/skills \
 
 To work from a local checkout, replace `eSoul-cz/skills` with `.`.
 
+### Keep one copy of each skill up to date
+
+`npx skills add` installs a snapshot; it does not follow later releases. After every release run `npx skills update --global --yes` (and re-run `add` for agents that hold a copied rather than a linked skill, such as `~/.codex/skills/<name>`), or the agent keeps reading the old rules and an older, larger file. Claude Code users who installed the `esoul-skills` plugin do not need `npx` copies of the same skills for Claude Code: remove them with `npx skills remove` so the descriptions are not loaded twice. Project-local skills that repeat an eSoul skill for one project (targets, label UUIDs) should become sections of that project's `CONTEXT.md` instead: `## Freelo` (project, tasklist IDs, label UUIDs) and `## Tasking convention`.
+
+Check the skills themselves (frontmatter, description budget, links, manifest, README) before a release:
+
+```bash
+node --test tooling/scripts/test_skills.mjs
+```
+
 ## Skills
 
 ### `gitmoji-commit`
