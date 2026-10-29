@@ -262,6 +262,9 @@ function validateInput(input) {
         if (!ID_PATTERN.test(String(entry?.id ?? ''))) throw new UsageError(`resolved[${index}].id must be an id of an earlier finding.`);
         if (typeof entry.note !== 'string' || !entry.note.trim()) throw new UsageError(`resolved[${index}].note must explain the resolution (fix commit or evidence).`);
     }
+    const reported = new Set(input.findings.map(findingId));
+    const contradictory = (input.resolved ?? []).map((entry) => String(entry.id)).filter((id) => reported.has(id));
+    if (contradictory.length) throw new UsageError(`ids both reported and resolved: ${contradictory.join(', ')}`);
     if (input.language && !TEXT[input.language]) throw new UsageError(`language must be one of: ${Object.keys(TEXT).join(', ')}.`);
 }
 
