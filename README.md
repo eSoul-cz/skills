@@ -186,7 +186,7 @@ $esoul-maintain-application-documentation verify the documentation in this repos
 
 ### `freelo`
 
-Operates Freelo projects, tasks, comments, time records, and related entities through the authenticated `freelo` CLI.
+Operates Freelo projects, tasks, comments, time records, and related entities through the authenticated `freelo` CLI. Work reports record active work only, never waiting for tests, builds, CI or the test queue; `references/work-reports.md` computes the minutes from the session transcript.
 
 Usage:
 
