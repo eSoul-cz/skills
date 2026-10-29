@@ -86,7 +86,7 @@ Report only problems you can point to in the code. For each candidate return:
 Return "no findings" when there are none. Do not pad the list with style preferences.
 ```
 
-Pick a model with `esoul-model-routing` when available; the security and correctness lenses deserve the stronger model on risky changes.
+Always pass a model when starting a lens subagent; without one it inherits the parent's model and effort. Use `sonnet` for the maintainability and tests-and-contract lenses. Use the parent model for correctness and security when the change touches authorization, money, migrations, or personal data, otherwise `sonnet`. Verification of the returned candidates (SKILL.md step 5) stays on the parent model.
 
 ## Report template
 

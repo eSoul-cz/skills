@@ -89,7 +89,7 @@ Useful aliases: `opusplan` (Opus while planning, Sonnet to execute), `sonnet[1m]
 
 ## Model for a subagent
 
-A subagent runs on its own model, set in its frontmatter. This is the one place a skill genuinely picks the model for work it launches.
+A subagent runs on its own model. This is the one place a skill genuinely picks the model for work it launches: pass `model` when starting the subagent (the Agent tool's `model` parameter), or set it in the agent definition's frontmatter.
 
 ```markdown
 ---
@@ -97,8 +97,16 @@ model: haiku      # or sonnet / opus / fable / best / inherit
 ---
 ```
 
-- `inherit` (the default) uses the parent session's model.
-- Put cheap, parallel, mechanical fan-out work (search, extraction, first-pass review) on `haiku` or `sonnet`; keep synthesis and final judgement on the parent model.
+- Without a model the subagent inherits the parent's model and effort, so an Opus `xhigh` session spawns Opus `xhigh` searches. Always choose one.
+- Defaults for eSoul skills that fan out:
+
+| Subagent work | Model |
+|---|---|
+| Codebase search, file inventory, log or transcript extraction (Explore) | `haiku` |
+| Review lenses for maintainability and tests, UAT sweeps, documentation checks | `sonnet` |
+| Review lenses for correctness and security on risky changes, design or architecture | parent model (`opus`) |
+
+- Keep synthesis, verification of findings and the final judgement on the parent model.
 
 ## When the model is not available
 

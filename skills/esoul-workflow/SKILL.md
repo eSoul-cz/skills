@@ -23,7 +23,7 @@ The single entry point for eSoul work. It decides *how much process* a task need
    - `codegraph explore "<query>"` CLI when a `.codegraph/` directory exists but the MCP tool is absent (typical for sub-agents).
    - Otherwise Grep/Glob, then Read only the files that matter.
    CodeGraph results stay resident in context. In long sessions, ask narrow questions rather than surveying whole areas repeatedly.
-   For broad parallel searches or audits, start fresh sub-agents (Explore or general-purpose) with a self-contained brief. Never fork the current conversation for them: a fork inherits the whole context and multiplies the cost.
+   For broad parallel searches or audits, start fresh sub-agents (Explore or general-purpose) with a self-contained brief and an explicit model: `haiku` for search and extraction, `sonnet` for audits, as in `esoul-model-routing`. Without one they inherit this session's model and effort. Never fork the current conversation for them: a fork inherits the whole context and multiplies the cost.
 4. Find facts yourself. Ask the user only for decisions, never for things the repository, tools, or logs can answer.
 
 ## 2. Size the task

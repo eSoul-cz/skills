@@ -64,7 +64,7 @@ Size decides how the passes run:
 | Reviewed scope | How |
 | --- | --- |
 | Up to 15 files and 400 changed lines | Apply all four lenses yourself. |
-| Larger | One fresh subagent per lens, in parallel, each with the self-contained brief from the reference. Never fork the conversation: a fork copies the whole context. |
+| Larger | One fresh subagent per lens, in parallel, each with the self-contained brief and the model the reference names (never inherited). Never fork the conversation: a fork copies the whole context. |
 | Script warns `Large change` (over 30 files or 1500 lines) | As above, per file group (module or layer), and suggest splitting the PR. |
 
 Without subagents, or when they are not allowed, run the lenses one after another and note it under **Passes** in the report. Every pass reads each hunk with enough surrounding code to understand it. Reviewing diff hunks in isolation is what produces false positives.
