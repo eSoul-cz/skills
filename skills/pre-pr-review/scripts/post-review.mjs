@@ -212,8 +212,18 @@ function markerOf(body) {
     return (body ?? '').match(new RegExp(`<!-- ${MARKER}:finding:([\\w-]+) -->`))?.[1] ?? null;
 }
 
-function markedIds(bodies, kind) {
-    return new Set(bodies.flatMap((body) => [...(body ?? '').matchAll(new RegExp(`<!-- ${MARKER}:${kind}:([\\w-]+) -->`, 'g'))].map((match) => match[1])));
+/**
+ * Replays finding and resolution markers of earlier review bodies in chronological order:
+ * the latest marker decides, so a finding reported again after its resolution is open again.
+ */
+function bodyFindingStates(bodies) {
+    const states = new Map();
+    for (const body of bodies) {
+        for (const [, kind, id] of (body ?? '').matchAll(new RegExp(`<!-- ${MARKER}:(finding|resolved):([\\w-]+) -->`, 'g'))) {
+            states.set(id, kind === 'finding' ? 'open' : 'resolved');
+        }
+    }
+    return states;
 }
 
 /**
@@ -293,12 +303,12 @@ export function planReview({ input, files, threads, reviewBodies }) {
         if (!thread.isResolved) openThreads.set(id, first.url);
     }
     // Body-only findings have no thread to resolve, so a later review records their resolution.
-    const reportedInBodies = markedIds(reviewBodies, 'finding');
-    const resolvedInBodies = markedIds(reviewBodies, 'resolved');
+    // reviewBodies must be in chronological order.
+    const bodyStates = bodyFindingStates(reviewBodies);
     const resolvedNow = (input.resolved ?? []).map((entry) => String(entry.id));
-    const unknownResolved = resolvedNow.filter((id) => !reportedInBodies.has(id));
-    const newlyResolved = resolvedNow.filter((id) => reportedInBodies.has(id) && !resolvedInBodies.has(id));
-    const openInBodies = [...reportedInBodies].filter((id) => !resolvedInBodies.has(id) && !resolvedNow.includes(id));
+    const unknownResolved = resolvedNow.filter((id) => !bodyStates.has(id));
+    const newlyResolved = resolvedNow.filter((id) => bodyStates.get(id) === 'open');
+    const openInBodies = [...bodyStates].filter(([id, state]) => state === 'open' && !resolvedNow.includes(id)).map(([id]) => id);
     const headsMarked = (kind) => new Set(reviewBodies.flatMap((body) => [...(body ?? '').matchAll(new RegExp(`<!-- ${MARKER}:${kind} head=([0-9a-f]{40}) -->`, 'g'))].map((match) => match[1])));
     const reviewedHeads = headsMarked('review');
     const approvedHeads = headsMarked('approved');
@@ -384,7 +394,9 @@ function post(target, findingsPath, publish) {
     }
     const files = restPages(target, `repos/${target.owner}/${target.repo}/pulls/${target.number}/files`);
     const threads = reviewThreads(target);
-    const reviewBodies = restPages(target, `repos/${target.owner}/${target.repo}/pulls/${target.number}/reviews`).map((review) => review.body);
+    const reviewBodies = restPages(target, `repos/${target.owner}/${target.repo}/pulls/${target.number}/reviews`)
+        .sort((a, b) => (a.submitted_at ?? '').localeCompare(b.submitted_at ?? ''))
+        .map((review) => review.body);
     const plan = planReview({ input, files, threads, reviewBodies });
     if (plan.unknownResolved.length) throw new UsageError(`resolved ids not found in earlier fallback reviews: ${plan.unknownResolved.join(', ')}`);
     const summary = { pr: pr.html_url, head: pr.head.sha, approved: plan.approved, openFindings: plan.openFindings, openInBodies: plan.openInBodies, inline: plan.inline, outside: plan.outside, duplicates: plan.duplicates, existing: plan.existing };
