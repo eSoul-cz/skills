@@ -41,6 +41,9 @@ Write it outside the repository (the scratchpad or a temp directory):
       "suggestion": "<exact replacement text for lines startLine..line>",
       "id": "<optional: reuse an existing id>"
     }
+  ],
+  "resolved": [
+    { "id": "<id of an earlier finding outside the diff>", "note": "Fixed in abc1234; covered by TotalTest::testDiscount." }
   ]
 }
 ```
@@ -48,7 +51,9 @@ Write it outside the repository (the scratchpad or a temp directory):
 - `language`: `cs` or `en` for the fixed texts. Take it from `.coderabbit.yaml` `language` (`cs-CZ` → `cs`); otherwise match the PR description. Write `reason`, `summary`, `verdict`, titles, and bodies in the same language.
 - `line` and `startLine` are line numbers in the head version of the file. A finding becomes an inline comment only when its whole range lies in one hunk of the PR diff; otherwise it goes to the review body under "Outside the diff range", with its location.
 - `suggestion` is optional and only for a fix that replaces exactly those lines; GitHub then offers it as a one-click commit. Leave it out for anything larger, and describe the fix in `body` as a short diff instead.
-- `id` defaults to a hash of path and normalized title. Reuse an id from the dry run's `existing` list when a finding was already reported with different wording.
+- `id` defaults to a hash of path and normalized title; an explicit id may contain only letters, digits, `_`, and `-`. Reuse an id from the dry run's `existing` list when a finding was already reported with different wording.
+- `resolved` records findings that earlier fallback reviews listed in their body (outside the diff). They have no thread to resolve, so they stay open, and block the approval, until a later review lists them here with the fix commit or evidence. The dry run's `openInBodies` names them; an unknown id is rejected.
+- Mentions (`@name`) in titles, bodies, `reason`, `summary`, `verdict`, and resolution notes are defanged outside code, so quoted text never notifies anyone or addresses a bot. Suggestions are published unchanged.
 - Never put a credential, real client data, or anything from `.env` into a body or suggestion.
 
 ## Post
@@ -63,7 +68,7 @@ The dry run prints the exact review payload, which findings go inline or to the 
 - posts one review with event `COMMENT`, never `APPROVE` or `REQUEST_CHANGES`;
 - refuses a closed PR, and exits 3 when the PR head moved after the review (review the new head instead);
 - skips findings that already have an unresolved fallback thread, and body findings already listed in an earlier fallback review; a finding whose thread was resolved but is found again is posted again;
-- approves the head (`approved: true`, a "✅ Approved by `pre-pr-review`" section, and a `<!-- pre-pr-review:approved head=<sha> -->` marker) when the findings file is empty and no fallback thread is open; otherwise the body says how many findings are still open (`openFindings`);
+- approves the head (`approved: true`, a "✅ Approved by `pre-pr-review`" section, and a `<!-- pre-pr-review:approved head=<sha> -->` marker) when the findings file is empty, no fallback thread is open, and every body-only finding is recorded as resolved; otherwise the body says how many findings are still open (`openFindings`);
 - reports `up-to-date` and posts nothing when this head already has a fallback review, nothing is new, and the approval state has not changed; a first review with no findings is still posted once, so the PR shows it was reviewed;
 - if GitHub rejects the inline positions (HTTP 422), posts once more with every finding in the body.
 
@@ -73,5 +78,5 @@ Each comment carries a hidden `<!-- pre-pr-review:finding:<id> -->` marker and t
 
 - The threads come from the authenticated account, usually the PR author, and no bot will answer them. Handle them like any reviewer's findings. After pushing a fix, reply in the thread with the commit and verification, then resolve the thread yourself. A finding you reject gets an evidence-backed reply and is resolved with it.
 - On every new head while CodeRabbit is still limited, run `check` and the PR-mode review again; the script posts only what is new.
-- To approve, resolve every fallback thread, review the current head once more, and post a findings file that leaves out findings already answered with evidence. An empty file with no open thread produces the approval, even on a head that already has a fallback review.
+- To approve, resolve every fallback thread, review the current head once more, and post a findings file that leaves out findings already answered with evidence and lists every `openInBodies` finding under `resolved`. An empty `findings` array with nothing open produces the approval, even on a head that already has a fallback review.
 - Never post `@coderabbitai` commands from this skill. `final-pr-review` treats the fallback review as CodeRabbit's substitute for that head and does not wait for a reset or credits; if CodeRabbit reviews the head after all, its findings are handled like any other.

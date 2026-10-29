@@ -96,7 +96,7 @@ When an open PR's CodeRabbit review is blocked by its rate limit or exhausted cr
 3. Write the findings file outside the repository, in the PR's language, reusing ids of findings already on the PR.
 4. Dry-run `post`, check placement and content, then publish with `--post`: one review with event `COMMENT`, inline comments with suggestions where the lines are in the diff, the rest in the review body. Exit 3 means the head moved: review the new head.
 5. Handle the posted threads like any reviewer's: fix, reply with the commit and verification, resolve your own thread. Repeat for every new head while CodeRabbit stays limited; already open findings are not posted twice.
-6. **Approve.** Once every fallback thread is resolved, review the current head again, leave findings already answered with evidence out of the file, and post. With no finding and no open fallback thread, the review carries the approval: "✅ Approved by `pre-pr-review` (CodeRabbit substitute)". Until then it says how many findings are still open.
+6. **Approve.** Once every fallback thread is resolved, review the current head again, leave findings already answered with evidence out of the file, record body-only findings from earlier fallback reviews under `resolved` with their evidence, and post. With no finding and no open fallback thread, the review carries the approval: "✅ Approved by `pre-pr-review` (CodeRabbit substitute)". Until then it says how many findings are still open.
 
 The approval is posted as a `COMMENT` review, never as a GitHub approval: an author cannot approve their own PR, and an approval would count toward the required human review. It approves in CodeRabbit's place, never as CodeRabbit.
 
