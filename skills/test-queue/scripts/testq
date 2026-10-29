@@ -113,7 +113,9 @@ def merge_config(cfg, override):
 
 def load_config():
     cfg = merge_config(json.loads(json.dumps(DEFAULTS)), tuned_limits(*hardware()))
-    return merge_config(cfg, read_json(CONFIG_PATH, {}) or {})
+    cfg = merge_config(cfg, read_json(CONFIG_PATH, {}) or {})
+    cfg["budget"] = effective_budget(cfg)
+    return cfg
 
 
 def set_config(key, value):
@@ -249,6 +251,11 @@ def weight(cfg, cls):
     return cfg["weights"].get(cls, 3)
 
 
+def effective_budget(cfg):
+    """The budget, raised so that each class limit is reachable: max.heavy 2 needs 2 × 5."""
+    return max([cfg["budget"]] + [cfg["max"][c] * weight(cfg, c) for c in ("medium", "heavy")])
+
+
 def admission(me, jobs, cfg, stats, now):
     """None when `me` may start now, otherwise the reason it has to wait."""
     if not cfg["enabled"]:
@@ -263,9 +270,9 @@ def admission(me, jobs, cfg, stats, now):
         return None
 
     gated = [j for j in running if j["class"] != "light"]
-    used, w = sum(weight(cfg, j["class"]) for j in gated), weight(cfg, cls)
-    if gated and used + w > cfg["budget"]:
-        return f"budget full ({used}+{w} > {cfg['budget']})"
+    used, w, budget = sum(weight(cfg, j["class"]) for j in gated), weight(cfg, cls), effective_budget(cfg)
+    if gated and used + w > budget:
+        return f"budget full ({used}+{w} > {budget})"
 
     # FIFO, except that a job may overtake an earlier job of another class that is blocked
     # by its own class limit: that job can only start once a job of its class ends, which
@@ -1122,7 +1129,7 @@ def cmd_doctor():
         swap_ok = not stats["swap_total_mb"] or stats["swap_used_mb"] / 1024 < mem_gb * 0.1
         if cls != "light" and median > 300 and (stats["mem_level"] or 0) >= 40 and swap_ok:
             tips.append(f"{cls} jobs wait {fmt_secs(median)} on median while memory is free: "
-                        f"raise `testq config max.{cls} {cfg['max'][cls] + 1}` (and `budget` if needed).")
+                        f"raise `testq config max.{cls} {cfg['max'][cls] + 1}` .")
 
     print("\n" + ("\n".join(f"- {t}" for t in tips) if tips else "No issues found."))
     return 0
