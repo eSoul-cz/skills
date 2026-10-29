@@ -1,6 +1,6 @@
 ---
 name: esoul-workflow
-description: Default operating workflow for eSoul work on web applications (PHP/Laravel/Symfony, frontend), WordPress sites, and data analyses. Use at the start of any non-trivial eSoul task (build, change, fix, debug, review, analyse, or plan work) to size the task, load repository context, pick the right companion skill, and finish with verified, committed, reviewed output. Routes to esoul-project-lifecycle for project-level preparation, gitmoji-commit, final-pr-review, esoul-tasking, esoul-mockup-authoring, esoul-maintain-application-documentation, esoul-uat, and the Matt Pocock engineering skills (grilling, tdd, diagnosing-bugs, code-review, prototype, handoff) when installed.
+description: Default operating workflow for eSoul work on web applications (PHP/Laravel/Symfony, frontend), WordPress sites, and data analyses. Use at the start of any non-trivial eSoul task (build, change, fix, debug, review, analyse, or plan work) to size the task, load repository context, pick the right companion skill, and finish with verified, committed, reviewed output. Routes to esoul-project-lifecycle for project-level preparation, gitmoji-commit, pre-pr-review, final-pr-review, esoul-tasking, esoul-mockup-authoring, esoul-maintain-application-documentation, esoul-uat, and the Matt Pocock engineering skills (grilling, tdd, diagnosing-bugs, code-review, prototype, handoff) when installed.
 ---
 
 # eSoul workflow
@@ -94,6 +94,7 @@ If something could not be verified, say what and why.
 ### Review (M, L)
 
 - Run `code-review` (when installed) against the branch base: standards and spec, side by side. Fix valid findings.
+- The pre-push review belongs to `final-pr-review`, which falls back to `pre-pr-review` when local CodeRabbit is unavailable or out of quota. Run `pre-pr-review` directly only when the PR will not be finished through `final-pr-review`, or when the user asks for a local review.
 - For documentation changes, use `esoul-maintain-application-documentation` in verify mode.
 
 ### Commit and ship
