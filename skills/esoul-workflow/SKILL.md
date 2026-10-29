@@ -11,7 +11,7 @@ The single entry point for eSoul work. It decides *how much process* a task need
 
 1. Use the repository context that is already loaded; do not read it again. The harness loads `CLAUDE.md` (and the `AGENTS.md` and memory files it imports or injects) at session start and after every compaction, and files you already read in this session are still in context. Read only what is missing, and only the part you need:
    - a convention (tasking, commits, Freelo, project profile): the section, not the file. This line prints the whole section from `CONTEXT.md`, or from `GLOSSARY.md` when `CONTEXT.md` lacks it; every eSoul skill uses the same line:
-     `for f in CONTEXT.md GLOSSARY.md; do awk -v h='## Tasking convention' '$0==h{p=1;print;next} /^## /{p=0} p' "$f" 2>/dev/null | grep . && break; done`;
+     `for f in CONTEXT.md GLOSSARY.md; do awk -v h='## Tasking convention' '$0==h{p=1;s=$0 ORS;next} /^## /{p=0} p{s=s $0 ORS; if(NF)n=1} END{if(n)printf "%s",s; exit !n}' "$f" 2>/dev/null && break; done`;
    - domain vocabulary: look up the specific term in `GLOSSARY.md` or the context named in `GLOSSARY-MAP.md` (legacy `CONTEXT.md` or `CONTEXT-MAP.md`) when the task uses it, never the whole glossary up front;
    - decisions: `docs/adr/index.md`, then only the ADRs for the area being touched.
    Repository conventions always override this skill. Every skill below follows the same context budget.
@@ -101,10 +101,10 @@ receipt · tree <tree12> · <command> → <pass | fail: short result>
 `tree` is the Git tree of the whole worktree, tracked and untracked files included, computed without touching the real index:
 
 ```bash
-t=$(mktemp -u); GIT_INDEX_FILE=$t git read-tree HEAD && GIT_INDEX_FILE=$t git add -A && GIT_INDEX_FILE=$t git write-tree; rm -f "$t"
+d=$(mktemp -d); GIT_INDEX_FILE="$d/index" git read-tree HEAD && GIT_INDEX_FILE="$d/index" git add -A && GIT_INDEX_FILE="$d/index" git write-tree; rm -rf "$d"
 ```
 
-It does not change when the verified files are committed (it equals the new commit's `HEAD^{tree}`), so `gitmoji-commit`, `pre-pr-review` and `final-pr-review` reuse a receipt with the same tree instead of running the check again. Re-run only what a later change can affect, and run the full suite once on the tree that will be pushed.
+It does not change when the verified files are committed (it equals the new commit's `HEAD^{tree}`), so `gitmoji-commit`, `pre-pr-review` and `final-pr-review` reuse a receipt with the same tree instead of running the check again. Re-run only what a later change can affect, and run the full suite once on the tree that will be pushed. Receipts cover checks of file content (tests, linters, builds). Checks of the index or of staging, such as `git diff --cached --check`, are not receipted and always run.
 
 ### Review (M, L)
 

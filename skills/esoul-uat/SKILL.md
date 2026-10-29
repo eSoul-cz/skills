@@ -14,7 +14,7 @@ The scenario catalogue lives in the project repository; credentials never do.
 1. Use repository instructions already in context (`CLAUDE.md`, `AGENTS.md`, earlier reads);
    do not read them again. Read by section: `## Project profile` and `## Tasking convention`
    from root `CONTEXT.md`, falling back to `GLOSSARY.md`
-   (`for f in CONTEXT.md GLOSSARY.md; do awk -v h='## Project profile' '$0==h{p=1;print;next} /^## /{p=0} p' "$f" 2>/dev/null | grep . && break; done`), plus
+   (`for f in CONTEXT.md GLOSSARY.md; do awk -v h='## Project profile' '$0==h{p=1;s=$0 ORS;next} /^## /{p=0} p{s=s $0 ORS; if(NF)n=1} END{if(n)printf "%s",s; exit !n}' "$f" 2>/dev/null && break; done`), plus
    `docs/testing/uat/README.md` and `environment.md`. ADRs, the plan, and glossary terms are
    read only in `plan` and `verify` modes, and only for the area in scope. Repository rules
    override this skill.

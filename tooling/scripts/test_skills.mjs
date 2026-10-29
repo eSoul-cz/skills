@@ -102,8 +102,9 @@ test('skills read convention sections with the one shared command', () => {
     const offenders = [];
     for (const file of skillMarkdown()) {
         const text = readFileSync(file, 'utf8');
-        // The old form read only CONTEXT.md and left the GLOSSARY.md fallback to prose.
-        if (/awk '\/\^## /.test(text)) {
+        // The old forms read only CONTEXT.md, or stopped at an empty section because its
+        // heading alone counted as output, or raced on a predictable `mktemp -u` index path.
+        if (/awk '\/\^## /.test(text) || text.includes('grep . && break') || text.includes('mktemp -u')) {
             offenders.push(relative(root, file));
         }
     }

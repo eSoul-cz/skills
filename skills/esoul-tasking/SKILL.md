@@ -34,7 +34,7 @@ credentials in chat.
 Use applicable `AGENTS.md` content already in context; do not read it again. Read only the
 `## Tasking convention` and `## Freelo` sections of root `CONTEXT.md`, falling back to
 `GLOSSARY.md`, once per session:
-`for f in CONTEXT.md GLOSSARY.md; do awk -v h='## Tasking convention' '$0==h{p=1;print;next} /^## /{p=0} p' "$f" 2>/dev/null | grep . && break; done`
+`for f in CONTEXT.md GLOSSARY.md; do awk -v h='## Tasking convention' '$0==h{p=1;s=$0 ORS;next} /^## /{p=0} p{s=s $0 ORS; if(NF)n=1} END{if(n)printf "%s",s; exit !n}' "$f" 2>/dev/null && break; done`
 (the same with `h='## Freelo'`). Order:
 
 1. A tasking convention in `AGENTS.md` is authoritative; synchronize it into `CONTEXT.md`.
