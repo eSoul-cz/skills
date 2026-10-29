@@ -17,16 +17,18 @@ Guidance for putting the right Claude model and effort behind each eSoul task. C
 
 As of October 2026, newest to lightest. Prices are per million tokens (input / output).
 
-| Model | Claude Code alias | API id | Price in/out | Default effort | Use for |
+| Model | Claude Code alias | API id | Price in/out | API default effort | Use for |
 |---|---|---|---|---|---|
 | Fable 5.1 | `fable` | `claude-fable-5-1` | $10 / $50 | `high` | The hardest, longest, most autonomous jobs; when Opus at high effort still falls short. |
 | Opus 5.5 | `opus` | `claude-opus-5-5` | $4 / $20 | `medium` | Default for real engineering and knowledge work; long-running agentic coding. |
 | Sonnet 5.5 | `sonnet` | `claude-sonnet-5-5` | $2 / $10 | `high` | Everyday coding, writing and analysis; the versatile middle. |
-| Haiku 5.5 | `haiku` | `claude-haiku-5-5` | $0.10 / $0.50 (prompts up to 100K) | `medium` | Fast, cheap, simple: lookups, extraction, formatting, small mechanical edits, search fan-out. |
+| Haiku 5.5 | `haiku` | `claude-haiku-5-5` | $0.10 / $0.50 up to 100K prompt tokens, $0.50 / $2.50 above | `medium` | Fast, cheap, simple: lookups, extraction, formatting, small mechanical edits, search fan-out. |
+
+The effort column is the API default. Claude Code may apply its own default per model; `/effort` shows the level in use.
 
 Notes:
 - Opus 5.5 is the account default and is already strong; do not reach for Fable by reflex. Fable costs about 2.5x Opus per token.
-- Haiku 5.5 costs a fortieth of Opus per token, so mechanical subagent work (search, extraction, first-pass triage) belongs there.
+- Haiku 5.5 costs a fortieth of Opus per token for prompts up to 100K tokens and an eighth above, so mechanical subagent work (search, extraction, first-pass triage) belongs there.
 - `best` resolves to `fable` where available, otherwise `opus`. It is the safe alias for a shared team: colleagues with Fable get it, those without fall back to Opus automatically, one instruction for everyone.
 - Availability differs per person and per org. Fable is a paid model that some eSoul colleagues have and others do not. Never assume a model is available; if a set model is refused, fall back to the next one down and say so.
 
@@ -56,7 +58,7 @@ Effort tunes how much the model thinks. It is separate from the model and often 
 
 Reach for lower effort on a strong model before jumping to Fable: Opus at `high` or `xhigh` is often enough and cheaper than Fable.
 
-Do not save `xhigh` or `max` as the default in `settings.json` (`effortLevel`): it makes every turn, including commits, lookups and Freelo writes, pay for the deepest reasoning. Keep `high` (or the model default) as the saved value and raise it per session with `/effort xhigh` for workflow size L, security-sensitive work, or a bug that resisted one attempt.
+Where Claude Code keeps it: `/effort <level>` saves the level for the current model under `modelSettings.<model id>.effortLevel` in the user settings (`max` is session-only and never saved). The top-level `effortLevel` is the fallback for models without their own entry, and project or local settings files can override it. Do not save `xhigh` as a model's default: every turn on that model, including commits, lookups and Freelo writes, then pays for the deepest reasoning. Keep `high` (or the model default) saved and raise it for the session with `/effort xhigh` for workflow size L, security-sensitive work, or a bug that resisted one attempt; use `max` as a one-off.
 
 ## How to set it (Claude Code, terminal or VS Code)
 
