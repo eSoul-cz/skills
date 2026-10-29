@@ -159,6 +159,24 @@ test('a failed reviewer check is reported instead of counting the head as review
     assert.equal(output.review.settled, false);
 });
 
+test('a skipped reviewer is not awaited and its check is neither CI nor a review failure', async () => {
+    for (const coderabbit of [coderabbitPending, status('CodeRabbit', 'ERROR', 'coderabbitai')]) {
+        const { code, output } = await run([
+            snapshot({ contexts: [checkRun('build', 'COMPLETED', 'SUCCESS'), coderabbit] }),
+        ], ['--since', '2026-01-01T00:00:00Z', '--skip-reviewer', 'coderabbitai[bot]']);
+        assert.equal(code, 0);
+        assert.equal(output.reason, 'settled');
+        assert.equal(output.ci.state, 'complete');
+        assert.equal(output.review.inProgress, false);
+        assert.deepEqual(output.review.reviewers, []);
+    }
+
+    const { output } = await run([
+        snapshot({ contexts: [checkRun('build', 'COMPLETED', 'SUCCESS')], comments: [comment('coderabbitai', '2026-02-01T00:00:00Z')] }),
+    ], ['--since', '2026-01-01T00:00:00Z', '--skip-reviewer', 'coderabbitai']);
+    assert.equal(output.reason, 'activity', 'a skipped reviewer that wakes up is still reported');
+});
+
 test('without a reviewer status, only a review of the head settles review', async () => {
     const { output } = await run([
         snapshot({
