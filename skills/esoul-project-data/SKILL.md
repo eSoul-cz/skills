@@ -18,7 +18,9 @@ A colleague cannot find it, and it disappears with the disk. Therefore:
 
 Real client data stays out of code, tests, fixtures, issues and PRs; agents work with anonymized
 dumps. Unanonymized legacy evidence the project keeps for reference goes to the gitignored
-`_reference/` folder when the repository defines one.
+`_reference/` folder when the repository defines one. Repository rules (`AGENTS.md`,
+`CONTEXT.md`) override this skill, for example a project that names another approved store for
+sensitive originals.
 
 ## Steps
 

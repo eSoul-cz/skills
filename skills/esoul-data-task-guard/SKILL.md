@@ -34,8 +34,10 @@ specifies and that was approved is in scope and may be implemented.
 
 - Read code, migrations, schema and data (`SELECT`, `EXPLAIN`, `SHOW CREATE TABLE`, `describe`).
 - Analyse data, quantify the impact, prepare an anonymized sample of the faulty records.
-- Write a **proposal** with a concrete diff, SQL or migration as an example in the issue text.
-  A proposal in the issue is fine; a proposal written into a file in the repository is not.
+- Write a **proposal** with a concrete diff, SQL or migration as an example in the text of the
+  new work: the GitHub issue in `github-freelo` mode, the Freelo task description in
+  `freelo-only` mode. A proposal in that text is fine; a proposal written into a file in the
+  repository is not.
 - Finish every part of the data task that needs no such change.
 
 ## When you hit a needed change

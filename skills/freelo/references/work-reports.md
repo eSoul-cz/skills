@@ -36,7 +36,8 @@ Work done on the task while tests run (documentation, PR description) counts.
    (`ls -lT`) and Freelo moves, and sum only the active stretches.
 3. Round to 5 minutes.
 4. In the report note, say what was done and that the time is active work without waiting for
-   tests; add the PR link.
+   tests. Add the PR link when a PR exists; before that, link the issue or branch and add the PR
+   link when the report is next edited.
 5. In the final summary, tell the user the reported minutes and how long the waiting took, so
    they can adjust the report.
 

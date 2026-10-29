@@ -36,12 +36,12 @@ Record a compact work ledger in task state, not a new repository document:
 
 Run the project's appropriate checks for the actual changes. Fix real failures at their source; do not remove assertions or skip CI to achieve green status.
 
-Reuse what already ran: a check with a receipt for the current worktree tree (`t=$(mktemp -u); GIT_INDEX_FILE=$t git read-tree HEAD && GIT_INDEX_FILE=$t git add -A && GIT_INDEX_FILE=$t git write-tree; rm -f "$t"`) is not run again, here or in the local review. Committing verified files does not change the tree. After a fix, re-run only the checks the fix can affect, plus the full suite once on the tree that will be pushed.
+Reuse what already ran: a check with a receipt for the current worktree tree (`d=$(mktemp -d); GIT_INDEX_FILE="$d/index" git read-tree HEAD && GIT_INDEX_FILE="$d/index" git add -A && GIT_INDEX_FILE="$d/index" git write-tree; rm -rf "$d"`) is not run again, here or in the local review. Committing verified files does not change the tree. After a fix, re-run only the checks the fix can affect, plus the full suite once on the tree that will be pushed.
 
 Local review is a pre-push pass, never a substitute for remote review, and it is the only local review of this revision (do not also run `code-review`):
 
 1. Honor explicit local-review/skip instructions and repository policy. Otherwise run local review when CodeRabbit is installed and authenticated, following [CodeRabbit CLI](references/coderabbit-cli.md). When it is missing, unauthenticated, rate-limited, out of credits, or the user wants to save CodeRabbit quota, run the `pre-pr-review` skill as the local pass instead and record that mode; only if neither can run, disclose that the optional pass was skipped and continue the remote loop. An explicitly requested or repository-required local pass is a blocker if it cannot run; `pre-pr-review` satisfies it unless the repository requires CodeRabbit specifically.
-2. Triage every local finding using section 5, fix valid findings, and re-run relevant checks and local review until no valid actionable finding remains. Keep reasons for rejected findings in the ledger; do not post local-only findings as fake remote threads.
+2. Triage every local finding using section 5, fix valid findings, and re-run relevant checks and local review until no valid actionable finding remains. Keep reasons for rejected findings in the ledger; do not post local-only findings as fake remote threads. Stop after three local review rounds on one revision, or when one finding survives two fix attempts: record the open findings in the ledger, report the pass as blocked, and ask for a decision instead of starting another round or skipping the review.
 
 A CLI failure, limit or incomplete output is not a clean review; fall back to `pre-pr-review`. If neither CodeRabbit nor `pre-pr-review` can complete an optional local review, report the gap; never silently skip a required pass.
 
