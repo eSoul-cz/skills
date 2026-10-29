@@ -128,6 +128,7 @@ final class Model: ObservableObject {
     @Published var vmTarget = 0
     @Published var vmState: [String: Any] = [:]
     @Published var forecast: Forecast?
+    @Published var contentHeight: CGFloat = 600
     let ncpu = ProcessInfo.processInfo.activeProcessorCount
     let ramGB = Int(ProcessInfo.processInfo.physicalMemory / 1_073_741_824)
     private var vmTargetEdited = false
@@ -469,6 +470,11 @@ struct LimitStepper: View {
     }
 }
 
+struct ContentHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+
 struct VMSection: View {
     @EnvironmentObject var model: Model
 
@@ -532,7 +538,23 @@ struct VMSection: View {
 struct ContentView: View {
     @EnvironmentObject var model: Model
 
+    // A long queue would push the controls below the screen edge: cap the height and scroll.
     var body: some View {
+        ScrollView(.vertical) {
+            content
+                .background(GeometryReader { Color.clear.preference(key: ContentHeightKey.self, value: $0.size.height) })
+        }
+        .frame(width: 400, height: min(model.contentHeight, maxHeight))
+        .onPreferenceChange(ContentHeightKey.self) { height in
+            Task { @MainActor in if model.contentHeight != height { model.contentHeight = height } }
+        }
+    }
+
+    private var maxHeight: CGFloat {
+        (NSScreen.main?.visibleFrame.height ?? 800) - 24
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text("Fronta testů").font(.headline)
@@ -607,7 +629,6 @@ struct ContentView: View {
             .buttonStyle(.link).font(.caption)
         }
         .padding(16)
-        .frame(width: 400)
     }
 
     @ViewBuilder
