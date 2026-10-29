@@ -222,6 +222,21 @@ test('approves a head only when nothing was found and no fallback thread is open
     assert.equal(alreadyApproved.upToDate, true);
 });
 
+test('defangs mentions in published text but not in code or suggestions', () => {
+    const plan = planReview({
+        input: {
+            head: HEAD, reason: 'Limit hit, @coderabbitai review later', summary: 'Thanks @alice', verdict: 'cc @bob',
+            findings: [finding({ title: 'Ask @carol', body: 'See `@scope/pkg` and @dave', suggestion: '$x = "@keep";' })],
+        },
+        files: [{ filename: 'src/a.php', patch: PATCH }], threads: [], reviewBodies: [],
+    });
+    const { body, comments } = plan.payload;
+    for (const name of ['coderabbitai', 'alice', 'bob']) assert.ok(body.includes(`@​${name}`) && !body.includes(` @${name}`), name);
+    assert.match(comments[0].body, /\*\*Ask @​carol\*\*/);
+    assert.match(comments[0].body, /See `@scope\/pkg` and @​dave/);
+    assert.match(comments[0].body, /```suggestion\n\$x = "@keep";\n```/);
+});
+
 test('reports up-to-date when the head already has a fallback review and nothing is new', () => {
     const id = findingId(finding());
     const plan = planReview({
