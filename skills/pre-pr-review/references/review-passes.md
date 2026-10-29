@@ -90,7 +90,7 @@ Pick a model with `esoul-model-routing` when available; the security and correct
 
 ## Report template
 
-~~~markdown
+````markdown
 ## Pre-PR review: <branch> → <base ref>
 
 **Scope:** <type> · base `<base sha 12>` · head `<head sha 12>`<, + uncommitted changes>
@@ -130,7 +130,7 @@ Pick a model with `esoul-model-routing` when available; the security and correct
 ### Verdict
 <n> valid findings (<n> blocking) | No valid findings in the reviewed scope.
 Not covered: <excluded files, skipped checks, missing issue contract, invisible organization settings>.
-~~~
+````
 
 The verdict never says "approved". When the calling workflow is `final-pr-review`, the walkthrough and table may seed the PR description.
 
