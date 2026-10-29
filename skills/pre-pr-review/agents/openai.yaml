@@ -1,0 +1,7 @@
+interface:
+  display_name: "Pre-PR Review"
+  short_description: "Review a branch locally before opening a PR"
+  default_prompt: "Use $pre-pr-review to review my branch against its PR base and report verified findings."
+
+policy:
+  allow_implicit_invocation: true
