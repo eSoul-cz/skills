@@ -306,6 +306,11 @@ test('refuses a stale head, a closed PR, and invalid input', async (t) => {
     assert.equal(invalid.status, 2);
     assert.match(invalid.stderr, /findings\[0\]\.severity/);
 
+    for (const bad of [{ findings: [finding({ id: 'a b' })] }]) {
+        await writeFile(file, JSON.stringify({ head: HEAD, ...bad }));
+        assert.equal(stale.run('post', PR_URL, '--findings', file).status, 2, JSON.stringify(bad));
+    }
+
     assert.equal(stale.run('post', PR_URL).status, 2);
     assert.equal(stale.run('approve', PR_URL).status, 2);
 });
