@@ -234,10 +234,10 @@ function bodyFindingStates(bodies) {
 
 /**
  * Keeps quoted review text from notifying people or addressing bots: inserts a zero-width
- * space after `@` outside code, where GitHub would turn it into a mention.
+ * space after `@` outside code and URLs, where GitHub would turn it into a mention.
  */
 export function defang(text) {
-    return neutralizeMarkers((text ?? '').split(/(`{3,}[\s\S]*?`{3,}|`[^`\n]+`)/).map((part, index) => (index % 2
+    return neutralizeMarkers((text ?? '').split(/(`{3,}[\s\S]*?`{3,}|`[^`\n]+`|https?:\/\/[^\s<>()]+)/).map((part, index) => (index % 2
         ? part
         : part.replace(/(^|\W)@(?=[A-Za-z0-9])/g, '$1@\u200b'))).join(''));
 }
