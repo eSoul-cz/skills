@@ -131,7 +131,7 @@ For each planned commit:
 
 1. Stage only its files or hunks. Use partial staging when one file contains multiple intentions.
 2. Inspect the complete staged diff and confirm it contains no unrelated changes.
-3. Run `git diff --cached --check` and proportionate project checks.
+3. Run `git diff --cached --check` and proportionate project checks. When the session holds a verification receipt (`receipt · tree <tree> · <command> → pass`, see `esoul-workflow`) for the worktree being committed, the checks are already done: do not run them again just to commit. Run checks only for intermediate commits whose content was never verified on its own.
 4. Create the commit with the planned subject and optional body.
 5. Respect repository hooks. Never use `--no-verify` without explicit user authorization.
 6. Re-inspect the worktree because hooks may modify files.

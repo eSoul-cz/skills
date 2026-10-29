@@ -91,10 +91,25 @@ Do not claim done without evidence. Run what applies and report the actual resul
 
 If something could not be verified, say what and why.
 
+**Verification receipt.** Run each check once per state of the code. After every check, record one line in the conversation (never in the repository):
+
+```text
+receipt · tree <tree12> · <command> → <pass | fail: short result>
+```
+
+`tree` is the Git tree of the whole worktree, tracked and untracked files included, computed without touching the real index:
+
+```bash
+t=$(mktemp -u); GIT_INDEX_FILE=$t git read-tree HEAD && GIT_INDEX_FILE=$t git add -A && GIT_INDEX_FILE=$t git write-tree; rm -f "$t"
+```
+
+It does not change when the verified files are committed (it equals the new commit's `HEAD^{tree}`), so `gitmoji-commit`, `pre-pr-review` and `final-pr-review` reuse a receipt with the same tree instead of running the check again. Re-run only what a later change can affect, and run the full suite once on the tree that will be pushed.
+
 ### Review (M, L)
 
-- Run `code-review` (when installed) against the branch base: standards and spec, side by side. Fix valid findings.
-- The pre-push review belongs to `final-pr-review`, which falls back to `pre-pr-review` when local CodeRabbit is unavailable or out of quota. Run `pre-pr-review` directly only when the PR will not be finished through `final-pr-review`, or when the user asks for a local review.
+- One local review per revision. When the PR will be finished through `final-pr-review`, its pre-push pass (CodeRabbit CLI, or `pre-pr-review` as fallback) is the review: do not also run `code-review`. `pre-pr-review`'s tests-and-contract lens already checks the change against the issue.
+- Run `code-review` (when installed) against the branch base only when no PR follows, or when the user asks for it. Fix valid findings.
+- Run `pre-pr-review` directly only when the PR will not be finished through `final-pr-review`, or when the user asks for a local review.
 - For documentation changes, use `esoul-maintain-application-documentation` in verify mode.
 
 ### Commit and ship

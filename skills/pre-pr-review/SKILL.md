@@ -48,6 +48,8 @@ Only what is not in context yet:
 
 CodeRabbit runs linters alongside its review. Run the repository's configured equivalents instead: the commands its CI runs (Jenkinsfile, workflow files), composer or npm scripts, or the Makefile. Limit them to changed files where the tool supports it. Do not install tools or change their configuration. Where the machine runs `test-queue`, let test and build commands queue. A failure on a changed line is a finding. A pre-existing failure outside the diff is a baseline note, not a finding.
 
+Do not re-run a check that already ran on exactly this code. When the session holds a **verification receipt** for a check (`receipt · tree <tree> · <command> → <result>`, recorded by `esoul-workflow` or `final-pr-review`) and the current worktree tree still matches, report the check as `reused from receipt` with its result and skip it. Compute the tree without touching the index: `t=$(mktemp -u); GIT_INDEX_FILE=$t git read-tree HEAD && GIT_INDEX_FILE=$t git add -A && GIT_INDEX_FILE=$t git write-tree; rm -f "$t"`. Record a receipt for every check you run.
+
 ## 4. Review in focused passes
 
 Four lenses, with checklists and stack notes in [references/review-passes.md](references/review-passes.md):

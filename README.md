@@ -303,6 +303,8 @@ $esoul-uat run chapters AUT and NAV on the UAT instance, desktop and mobile, wit
 
 Default entry point for eSoul work on web applications, WordPress sites, and data analyses. Loads repository context, sizes the task (S, M, L, bug, analysis), and routes each step to the owning skill instead of repeating it: `esoul-tasking` for tracked work, `esoul-mockup-authoring` and `frontend-design` for UI, `gitmoji-commit` for commits, `pre-pr-review` and `final-pr-review` for PRs. Uses the Matt Pocock skills (`grilling`, `tdd`, `diagnosing-bugs`, `code-review`) and CodeGraph when installed, and degrades gracefully without them. Includes short references for the eSoul web stack, the WP-template WordPress deployment model, and reproducible data analysis.
 
+Every check runs once per state of the code: after a check the agent records a verification receipt keyed on the worktree's Git tree, which stays the same when the verified files are committed, and `gitmoji-commit`, `pre-pr-review` and `final-pr-review` reuse it instead of running the suite again. A PR gets one local review (the `final-pr-review` pre-push pass), not an extra `code-review` on top, and subagents are always started with an explicit, cheaper model.
+
 Usage:
 
 ```text
