@@ -1,6 +1,6 @@
 ---
 name: esoul-workflow
-description: Default operating workflow for eSoul work on web applications (PHP/Laravel/Symfony, frontend), WordPress sites, and data analyses. Use at the start of any non-trivial eSoul task (build, change, fix, debug, review, analyse, or plan work) to size the task, load repository context, route each step to the owning eSoul or Matt Pocock skill, and finish with verified, committed, reviewed output without repeating checks.
+description: Default operating workflow for eSoul work on web applications (PHP/Laravel/Symfony, frontend), WordPress sites, and data analyses. Use at the start of any non-trivial eSoul task (build, change, fix, debug, review, analyse, or plan work) to size the task, load repository context, route each step to the owning skill or reference, and finish with verified, committed, reviewed output without repeating checks.
 ---
 
 # eSoul workflow
@@ -47,14 +47,14 @@ When model or effort matters (a cheap mechanical job, or an expensive-to-get-wro
 
 ### Clarify (M, L)
 
-- Settle open decisions before writing code. When the `grilling` skill is installed, use it: ask the whole frontier of open decisions in one numbered round, each with a recommended answer. Otherwise ask the same way yourself.
+- Settle open decisions before writing code, as in [references/grilling.md](references/grilling.md): ask the whole frontier of open decisions in one numbered round, each with a recommended answer worded so that "yes" accepts it.
 - Stop when nothing is silently assumed and the user confirms. For M tasks, one round is usually enough; do not interrogate an S task.
-- For UI whose shape is unclear, build a throwaway `prototype` (skill) or an eSoul mockup (`esoul-mockup-authoring`) before production code.
+- For logic or UI whose shape is unclear, build a throwaway prototype ([references/prototype.md](references/prototype.md)) or, for a design the client reviews, an eSoul mockup (`esoul-mockup-authoring`) before production code.
 
 ### Create or update the task (M, L, when the user wants it tracked)
 
 - Use `esoul-tasking`, which resolves the repository tasking convention (`freelo-only` or `github-freelo`) and requires approval before every remote write.
-- Do not use Matt Pocock's `to-spec`, `to-tickets`, `triage`, or `wayfinder` to publish work unless the repository has been explicitly configured for them. eSoul tracks work in Freelo, which those skills do not support.
+- If the Matt Pocock plugin is installed, do not use its `to-spec`, `to-tickets`, `triage`, `wayfinder` or `setup-matt-pocock-skills` unless the repository is explicitly configured for them. eSoul tracks work in Freelo, and the setup skill renames `CONTEXT.md`, which holds eSoul conventions. The parts eSoul uses are adapted in this skill's references.
 
 ### Project-level work
 
@@ -65,18 +65,19 @@ Use `esoul-project-lifecycle` instead of this flow when the task is about the pr
 - In projects with `docs/plan/`, plan through `esoul-project-lifecycle` (`plan` mode) so slices land in the slice table.
 - Write the plan as vertical, independently shippable slices (tracer bullets), each with its own acceptance check.
 - Create one task per slice via `esoul-tasking`, then execute slices one at a time as M tasks.
-- When a session runs long or work must continue elsewhere, write a handoff (`handoff` skill if installed; otherwise a short Markdown note with goal, state, decisions, next step, and open risks).
+- When a session runs long or work must continue elsewhere, write a handoff as in [references/handoff.md](references/handoff.md).
 
 ### Build (S, M)
 
 - Work in vertical slices: one behavior end to end, verified, before the next.
-- Use `tdd` at seams agreed with the user when the project has a test suite and the logic is non-trivial (domain rules, calculations, parsers, pricing, permissions). Skip ceremony for markup, copy, and styling changes; verify those visually instead.
+- Test-first at seams agreed with the user ([references/tdd.md](references/tdd.md)) when the project has a test suite and the logic is non-trivial (domain rules, calculations, parsers, pricing, permissions). Skip ceremony for markup, copy, and styling changes; verify those visually instead.
+- When the shape of an interface is in question (where a seam goes, whether a class earns its place, how an integration is faked), use [references/design-principles.md](references/design-principles.md) after the stack profile and project guidelines.
 - Keep changes minimal and in the style of the surrounding code. No drive-by refactors; note them for later instead.
 - Never commit secrets, raw database exports, or `.env*` files. Redact secrets in anything you show.
 
 ### Diagnose (Bug)
 
-- Use `diagnosing-bugs` when installed. Its core rule applies regardless: build a fast, deterministic command that goes red on the reported symptom *before* forming hypotheses, then rank 3 to 5 falsifiable hypotheses, change one variable at a time, and tag temporary debug logs with a unique prefix so they can be removed with one grep.
+- Follow [references/diagnosing-bugs.md](references/diagnosing-bugs.md). Its core rule: build a fast, deterministic command that goes red on the reported symptom *before* forming hypotheses, then rank 3 to 5 falsifiable hypotheses, change one variable at a time, and tag temporary debug logs with a unique prefix so they can be removed with one grep.
 - Finish with a regression test at a seam that reproduces the real bug pattern, or state explicitly that no such seam exists.
 
 ### Verify (always)
