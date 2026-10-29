@@ -208,8 +208,14 @@ export function findingId(finding) {
 
 const ID_PATTERN = /^[\w-]{1,64}$/;
 
+/** The script appends its own marker last, so a quoted marker earlier in the comment never wins. */
 function markerOf(body) {
-    return (body ?? '').match(new RegExp(`<!-- ${MARKER}:finding:([\\w-]+) -->`))?.[1] ?? null;
+    return [...(body ?? '').matchAll(new RegExp(`<!-- ${MARKER}:finding:([\\w-]+) -->`, 'g'))].at(-1)?.[1] ?? null;
+}
+
+/** Breaks marker-shaped text quoted from the reviewed code, so only markers the script writes count. */
+function neutralizeMarkers(text) {
+    return text.replaceAll(`<!-- ${MARKER}:`, `<!--\u200b ${MARKER}:`);
 }
 
 /**
@@ -231,9 +237,9 @@ function bodyFindingStates(bodies) {
  * space after `@` outside code, where GitHub would turn it into a mention.
  */
 export function defang(text) {
-    return (text ?? '').split(/(`{3,}[\s\S]*?`{3,}|`[^`\n]+`)/).map((part, index) => (index % 2
+    return neutralizeMarkers((text ?? '').split(/(`{3,}[\s\S]*?`{3,}|`[^`\n]+`)/).map((part, index) => (index % 2
         ? part
-        : part.replace(/(^|[^\w`])@(?=[A-Za-z0-9])/g, '$1@\u200b'))).join('');
+        : part.replace(/(^|\W)@(?=[A-Za-z0-9])/g, '$1@\u200b'))).join(''));
 }
 
 function validateInput(input) {
@@ -267,7 +273,7 @@ function fence(content, info = '') {
 
 function heading(finding) {
     const icon = SEVERITY_ICONS[finding.severity.toLowerCase()] ?? '⚪';
-    return `${icon} **${finding.severity}** · **${defang(finding.title)}**`;
+    return `${icon} **${defang(finding.severity)}** · **${defang(finding.title)}**`;
 }
 
 function inlineBody(finding, id, text) {
@@ -279,8 +285,8 @@ function inlineBody(finding, id, text) {
 
 function outsideEntry(finding, id, text) {
     const location = finding.startLine ? `${finding.path}:${finding.startLine}-${finding.line}` : `${finding.path}:${finding.line}`;
-    const parts = [`#### ${heading(finding)}\n\`${location}\``, defang(finding.body.trim())];
-    if (finding.suggestion !== undefined) parts.push(`${text.proposed}\n\n${fence(finding.suggestion)}`);
+    const parts = [`#### ${heading(finding)}\n${defang(`\`${location}\``)}`, defang(finding.body.trim())];
+    if (finding.suggestion !== undefined) parts.push(`${text.proposed}\n\n${fence(neutralizeMarkers(finding.suggestion))}`);
     parts.push(`<!-- ${MARKER}:finding:${id} -->`);
     return parts.join('\n\n');
 }
