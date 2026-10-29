@@ -38,8 +38,8 @@ Pick one mode, say which in one line, and read only the references it names.
 | `retrofit` | Existing project brought to the standard | [retrofit](references/retrofit.md), [audit](references/audit.md) |
 | `intake` | New client files, exports, legacy dumps | [podklady-and-legacy](references/podklady-and-legacy.md), [questions-and-client](references/questions-and-client.md) |
 | `client-update` | After a meeting, written answers, design feedback | [questions-and-client](references/questions-and-client.md), then whatever it touches |
-| `glossary` | New or disputed domain term | [glossary](references/glossary.md) |
-| `adr` | A decision with real alternatives | [adr](references/adr.md) |
+| `glossary` | New or disputed domain term | [glossary](references/glossary.md), [domain-modeling](references/domain-modeling.md) |
+| `adr` | A decision with real alternatives | [adr](references/adr.md), [domain-modeling](references/domain-modeling.md) |
 | `guidelines` | Engineering rules for the stack or project | [guidelines](references/guidelines.md), stack profile |
 | `design` | Design brief, Pencil, mockup review rounds | [design](references/design.md) |
 | `plan` | Phases, gates, scope, slices, risks | [plan-and-slices](references/plan-and-slices.md) |
@@ -144,7 +144,7 @@ and does not repeat the details.
 | PR review loop | `final-pr-review` |
 | Mockup bundles and review | `esoul-mockup-authoring` |
 | Application guides and PDFs | `esoul-maintain-application-documentation` |
-| Decision interviews | `grilling`, `domain-modeling` when installed |
+| Decision interviews | [domain-modeling](references/domain-modeling.md) here; rounds of questions as in `esoul-workflow` › references/grilling.md |
 
 If a required companion is missing, stop and give the install command for the whole chain
 (the installer does not resolve dependencies), replacing `codex` with the user's agent:
