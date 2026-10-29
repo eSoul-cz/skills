@@ -196,7 +196,7 @@ $freelo show the active tasks in my project
 
 ### `esoul-freelo-task-authoring`
 
-Prepares implementation-ready eSoul tasks, checks for duplicates, presents an exact preview, and writes to Freelo only after approval. Requires the `freelo` skill.
+Prepares implementation-ready eSoul tasks, checks for duplicates once per batch, presents an exact preview, and writes to Freelo only after approval. Requires the `freelo` skill. Caches the project's tasklist IDs and task label UUIDs in the `## Freelo` section of the repository's `CONTEXT.md`, so later runs skip the slow lookups (Freelo allows about one request per 2.4 seconds).
 
 Usage:
 

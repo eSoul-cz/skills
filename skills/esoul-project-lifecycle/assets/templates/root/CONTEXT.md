@@ -21,6 +21,11 @@ This file holds the project conventions. The domain language lives in [GLOSSARY.
 - Projekt: {{FREELO_PROJECT_NAME}}
 - Project ID: {{FREELO_PROJECT_ID}}
 - URL: https://app.freelo.io/project/{{FREELO_PROJECT_ID}}
+- Tasklisty: {{FREELO_TASKLISTS}}
+
+Task labels: the category labels in *Tasking convention* below. Add any other label the project
+uses here with its UUID the first time a task needs it, so later runs need not look it up
+(`esoul-freelo-task-authoring` › project mapping). Never create labels.
 
 ## Tasking convention
 
@@ -34,7 +39,7 @@ Additional project rules:
 
 - GitHub repository: `{{GITHUB_REPO}}` (private). The issue holds the full specification and the
   UAT; the Freelo task holds the management summary, the estimate and the time reports.
-- Default Freelo task list: **Backlog**, ID `{{FREELO_BACKLOG_ID}}`. The other lists are `To Do`,
+- Default Freelo task list: **Backlog** (IDs in *Freelo* above). The other lists are `To Do`,
   `In progress`, `Code review`, `Testing`, `Done` and `LTT` for recurring work. A task goes to
   `To Do` only with a complete description, an assignee, an approved estimate and no open blocker.
 - These rules override the defaults of `esoul-freelo-task-authoring` where they differ:
