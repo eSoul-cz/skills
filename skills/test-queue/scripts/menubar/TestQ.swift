@@ -57,6 +57,42 @@ struct HistoryEntry: Identifiable, Decodable {
     }
 }
 
+struct Estimate: Decodable {
+    let run: Double
+    let basis: String
+    let start: Double?
+    let end: Double?
+}
+
+struct Forecast: Decodable {
+    let estimates: [String: Estimate]
+    let queueEnd: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case estimates
+        case queueEnd = "queue_end"
+    }
+}
+
+let toolPath = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+// Estimates come from `testq status --json`, which replays the queue with run times from the history.
+func readForecast() -> Forecast? {
+    let process = Process()
+    let pipe = Pipe()
+    process.executableURL = URL(fileURLWithPath: testqPath)
+    process.arguments = ["status", "--json"]
+    var env = ProcessInfo.processInfo.environment
+    env["PATH"] = toolPath
+    process.environment = env
+    process.standardOutput = pipe
+    process.standardError = FileHandle.nullDevice
+    guard (try? process.run()) != nil else { return nil }
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    process.waitUntilExit()
+    return process.terminationStatus == 0 ? try? JSONDecoder().decode(Forecast.self, from: data) : nil
+}
+
 func pidAlive(_ pid: Int32?) -> Bool {
     guard let pid, pid > 0 else { return false }
     return kill(pid, 0) == 0 || errno == EPERM
@@ -91,9 +127,13 @@ final class Model: ObservableObject {
     @Published var vmMemory: Int?
     @Published var vmTarget = 0
     @Published var vmState: [String: Any] = [:]
+    @Published var forecast: Forecast?
     let ncpu = ProcessInfo.processInfo.activeProcessorCount
     let ramGB = Int(ProcessInfo.processInfo.physicalMemory / 1_073_741_824)
     private var vmTargetEdited = false
+    private var forecastAt = 0.0
+    private var forecastJobs: [String] = []
+    private var forecasting = false
     private var prevTicks: (busy: UInt64, total: UInt64)?
     private var timer: Timer?
 
@@ -119,6 +159,8 @@ final class Model: ObservableObject {
         return (node as? NSNumber)?.intValue ?? 0
     }
 
+    func estimate(_ job: Job) -> Estimate? { forecast?.estimates[job.id] }
+
     func refresh() {
         now = Date().timeIntervalSince1970
         readStats()
@@ -126,6 +168,26 @@ final class Model: ObservableObject {
         readJobs()
         readHistory()
         readVM()
+        refreshForecast()
+    }
+
+    private func refreshForecast() {
+        let ids = jobs.map(\.id)
+        guard !forecasting, !ids.isEmpty, ids != forecastJobs || now - forecastAt >= 10 else {
+            if ids.isEmpty { forecast = nil }
+            return
+        }
+        forecasting = true
+        forecastAt = now
+        forecastJobs = ids
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let result = readForecast()
+            Task { @MainActor in
+                guard let self else { return }
+                self.forecasting = false
+                if let result { self.forecast = result }
+            }
+        }
     }
 
     var vmPhase: String { vmState["phase"] as? String ?? "" }
@@ -167,7 +229,7 @@ final class Model: ObservableObject {
         process.executableURL = URL(fileURLWithPath: testqPath)
         process.arguments = ["vm", "restart", "--memory", String(vmTarget)] + (busyJobs > 0 ? ["--force"] : [])
         var env = ProcessInfo.processInfo.environment
-        env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+        env["PATH"] = toolPath
         process.environment = env
         process.standardOutput = FileHandle.nullDevice
         process.standardError = FileHandle.nullDevice
@@ -349,13 +411,40 @@ struct JobRow: View {
             }
             Spacer(minLength: 6)
             if let position { Text("#\(position)").font(.caption).foregroundStyle(.secondary) }
-            Text(fmtDuration(model.now - (job.startedAt ?? job.queuedAt)))
-                .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+            VStack(alignment: .trailing, spacing: 1) {
+                Text(fmtDuration(model.now - (job.startedAt ?? job.queuedAt)))
+                    .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                if let estimate = model.estimate(job) {
+                    Text(etaText(estimate))
+                        .font(.caption2.monospacedDigit()).foregroundStyle(.tertiary)
+                        .help(basisText(estimate))
+                }
+            }
             Button { model.stop(job) } label: {
                 Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
             .help(job.state == "running" ? "Ukončit běžící testy" : "Zrušit čekající běh")
+        }
+    }
+
+    private func etaText(_ estimate: Estimate) -> String {
+        if job.state == "running" {
+            guard let end = estimate.end else { return "" }
+            let elapsed = model.now - (job.startedAt ?? model.now)
+            return elapsed > estimate.run ? "přes odhad \(fmtDuration(estimate.run))" : "zbývá ~\(fmtDuration(end - model.now))"
+        }
+        guard let start = estimate.start else { return "start ?" }
+        let run = "běh ~\(fmtDuration(estimate.run))"
+        return start - model.now < 5 ? "start teď · \(run)" : "start ~\(fmtDuration(start - model.now)) · \(run)"
+    }
+
+    private func basisText(_ estimate: Estimate) -> String {
+        switch estimate.basis {
+        case "label": "Odhad z posledních běhů stejného příkazu"
+        case "project": "Odhad z běhů téže třídy v tomto projektu"
+        case "class": "Odhad z běhů téže třídy ve všech projektech"
+        default: "Výchozí odhad, historie zatím nic podobného nemá"
         }
     }
 }
@@ -523,7 +612,15 @@ struct ContentView: View {
 
     @ViewBuilder
     private func section(_ title: String, _ jobs: [Job], numbered: Bool) -> some View {
-        Text("\(title) (\(jobs.count))").font(.caption).foregroundStyle(.secondary)
+        HStack {
+            Text("\(title) (\(jobs.count))")
+            Spacer()
+            if numbered, !jobs.isEmpty, let end = model.forecast?.queueEnd {
+                Text("vše doběhne za ~\(fmtDuration(end - model.now))").monospacedDigit()
+                    .help("Odhad z typických časů běhu v historii; nepočítá s čekáním na volnou paměť.")
+            }
+        }
+        .font(.caption).foregroundStyle(.secondary)
         if jobs.isEmpty {
             Text(numbered ? "Nic nečeká" : "Nic neběží").font(.callout).foregroundStyle(.tertiary)
         } else {
