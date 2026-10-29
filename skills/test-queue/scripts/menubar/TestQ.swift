@@ -160,6 +160,11 @@ final class Model: ObservableObject {
         return (node as? NSNumber)?.intValue ?? 0
     }
 
+    // testq raises the budget to what the class limits need; show the value it really uses
+    var minBudget: Int {
+        max(intValue("max.heavy") * intValue("weights.heavy"), intValue("max.medium") * intValue("weights.medium"))
+    }
+
     func estimate(_ job: Job) -> Estimate? { forecast?.estimates[job.id] }
 
     func refresh() {
@@ -457,16 +462,52 @@ struct LimitStepper: View {
     let range: ClosedRange<Int>
     var step = 1
     var suffix = ""
+    var minimum = Int.min
 
     var body: some View {
-        let value = model.intValue(key)
+        let lower = min(max(range.lowerBound, minimum), range.upperBound)
+        let value = max(model.intValue(key), lower)
         HStack {
             Text(title).font(.callout)
             Spacer()
             Text("\(value)\(suffix)").font(.callout.monospacedDigit()).frame(minWidth: 34, alignment: .trailing)
-            Stepper("", value: Binding(get: { value }, set: { model.setConfig(key, $0) }), in: range, step: step)
+            Stepper("", value: Binding(get: { value }, set: { model.setConfig(key, $0) }),
+                    in: lower...range.upperBound, step: step)
                 .labelsHidden()
         }
+    }
+}
+
+// What the budget holds right now and which mixes of heavy and medium jobs fit into it.
+struct BudgetUsage: View {
+    @EnvironmentObject var model: Model
+
+    var body: some View {
+        let (wHeavy, wMedium) = (model.intValue("weights.heavy"), model.intValue("weights.medium"))
+        let budget = max(model.intValue("budget"), model.minBudget)
+        let heavy = model.running.filter { $0.jobClass == "heavy" }.count
+        let medium = model.running.filter { $0.jobClass == "medium" }.count
+        let parts = (heavy > 0 ? ["\(heavy)×T \(heavy * wHeavy)"] : []) + (medium > 0 ? ["\(medium)×S \(medium * wMedium)"] : [])
+        VStack(alignment: .leading, spacing: 2) {
+            Text(parts.isEmpty ? "Využito 0 z \(budget)"
+                : "Využito \(heavy * wHeavy + medium * wMedium) z \(budget): \(parts.joined(separator: " + "))")
+            Text("Vejde se najednou: \(mixes(budget, wHeavy, wMedium).joined(separator: " · "))")
+        }
+        .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // the largest mixes within the class limits; a smaller mix that fits inside another is left out
+    private func mixes(_ budget: Int, _ wHeavy: Int, _ wMedium: Int) -> [String] {
+        let (maxHeavy, maxMedium) = (model.intValue("max.heavy"), model.intValue("max.medium"))
+        guard wHeavy > 0, wMedium > 0 else { return [] }
+        let options: [(Int, Int)] = (0...max(maxHeavy, 0)).compactMap { h in
+            let left = budget - h * wHeavy
+            return left < 0 ? nil : (h, min(maxMedium, left / wMedium))
+        }
+        return options
+            .filter { o in o != (0, 0) && !options.contains { $0 != o && $0.0 >= o.0 && $0.1 >= o.1 } }
+            .map { h, m in [h > 0 ? "\(h)T" : nil, m > 0 ? "\(m)S" : nil].compactMap { $0 }.joined(separator: "+") }
     }
 }
 
@@ -595,7 +636,16 @@ struct ContentView: View {
             VStack(spacing: 4) {
                 LimitStepper(title: "Těžké najednou (E2E, mutace)", key: "max.heavy", range: 0...4)
                 LimitStepper(title: "Střední najednou (sady, buildy)", key: "max.medium", range: 1...6)
-                LimitStepper(title: "Rozpočet (T=5, S=3)", key: "budget", range: 3...20)
+                LimitStepper(title: "Lehké najednou (lint, phpstan, 1 test)", key: "max.light", range: 1...8)
+                    .help("Lehké běhy nečekají na rozpočet ani na paměť, hlídá je jen tenhle limit.")
+                LimitStepper(title: "Váha těžkého (T)", key: "weights.heavy", range: 1...10)
+                    .help("Kolik rozpočtu zabere jeden těžký běh.")
+                LimitStepper(title: "Váha středního (S)", key: "weights.medium", range: 1...10)
+                    .help("Kolik rozpočtu zabere jeden střední běh.")
+                LimitStepper(title: "Rozpočet", key: "budget", range: 3...40, minimum: model.minBudget)
+                    .help("Těžké a střední běhy se dělí o rozpočet podle vah. Nikdy není menší, "
+                        + "než kolik potřebují limity výše, jinak by se nastavený počet nespustil.")
+                BudgetUsage()
                 LimitStepper(title: "Min. volná paměť", key: "mem_min_level", range: 0...50, step: 5, suffix: " %")
                 LimitStepper(title: "Workerů na jeden běh", key: "workers", range: 1...8)
             }
