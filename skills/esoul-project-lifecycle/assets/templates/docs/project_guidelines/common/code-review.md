@@ -12,6 +12,10 @@ fit together. The process around it (branches, checks, Definition of Done, mergi
   least **one human** with write access. A CodeRabbit approval never replaces the human review.
 - The author finishes the pull request with the `final-pr-review` skill: green `Jenkins` check,
   every CodeRabbit finding answered, local review run where the skill asks for it.
+- When CodeRabbit hits its rate limit or runs out of credits, nobody waits for it: the
+  `pre-pr-review` skill posts a fallback review of the same revision into the pull request, and
+  its findings are answered the same way. Once they are resolved, its approval stands in for
+  CodeRabbit's. It does not replace the human review.
 - A pull request merges with a **squash merge** after one human approval and a green `Jenkins`
   check. A human merges from a personal account. Agents never merge, never approve, and never
   use a ruleset bypass.

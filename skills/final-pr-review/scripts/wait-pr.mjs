@@ -16,6 +16,10 @@ Options:
                          previous run's observedAt or the time of your last full
                          inventory (default: first observation of this run).
   --reviewer LOGIN       Review account to track; repeatable (default: coderabbitai).
+  --skip-reviewer LOGIN  Stop waiting for this reviewer, for example CodeRabbit while it is
+                         rate-limited and pre-pr-review stands in. Its checks count neither
+                         as CI nor as review failures; its activity is still reported.
+                         Repeatable.
   --require-check NAME   Expected check/status context; repeatable. CI is not complete
                          until it is reported and finished.
   --ignore-check NAME    Check excluded from failure and completion; repeatable.
@@ -131,6 +135,7 @@ function parseOptions(argv) {
                 'expect-base': { type: 'string' },
                 since: { type: 'string' },
                 reviewer: { type: 'string', multiple: true },
+                'skip-reviewer': { type: 'string', multiple: true },
                 'require-check': { type: 'string', multiple: true },
                 'ignore-check': { type: 'string', multiple: true },
                 'allow-no-checks': { type: 'boolean' },
@@ -159,6 +164,7 @@ function parseOptions(argv) {
         expectBase: values['expect-base']?.toLowerCase(),
         since: parseTime('since', values.since),
         reviewers: (values.reviewer ?? ['coderabbitai']).map(normalizeLogin),
+        skipReviewers: (values['skip-reviewer'] ?? []).map(normalizeLogin),
         requireChecks: values['require-check'] ?? [],
         ignoreChecks: new Set(values['ignore-check'] ?? []),
         allowNoChecks: values['allow-no-checks'] ?? false,
@@ -342,12 +348,13 @@ function evaluate(observation, options, since) {
     const pr = observation.pullRequest;
     const head = headCommit(pr)?.oid ?? pr.headRefOid;
     const viewer = normalizeLogin(observation.viewer);
-    const reviewers = new Set(options.reviewers);
+    const skipped = new Set(options.skipReviewers);
+    const reviewers = new Set(options.reviewers.filter(login => !skipped.has(login)));
 
     const checks = observation.contexts.map(normalizeContext).map(check => ({
         ...check,
-        ignored: options.ignoreChecks.has(check.name),
-        reviewer: reviewers.has(normalizeLogin(check.actor)),
+        ignored: options.ignoreChecks.has(check.name) || skipped.has(normalizeLogin(check.actor)),
+        reviewer: reviewers.has(normalizeLogin(check.actor)) || skipped.has(normalizeLogin(check.actor)),
     }));
     const ciChecks = checks.filter(check => !check.reviewer);
     const counted = ciChecks.filter(check => !check.ignored);
@@ -360,7 +367,7 @@ function evaluate(observation, options, since) {
     else if (!counted.length && !options.allowNoChecks) ciState = 'none';
 
     const reviewerChecks = checks.filter(check => check.reviewer);
-    const inProgress = reviewerChecks.some(check => check.bucket === 'pending');
+    const inProgress = reviewerChecks.some(check => check.bucket === 'pending' && !check.ignored);
     const failedReviewerChecks = reviewerChecks.filter(check => check.bucket === 'fail' && !check.ignored);
     const reviews = pr.reviews.nodes.filter(review => review.state !== 'PENDING');
     const byTime = (left, right) => (left.submittedAt ?? '').localeCompare(right.submittedAt ?? '');
