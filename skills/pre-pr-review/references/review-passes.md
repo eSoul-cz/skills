@@ -31,7 +31,7 @@ Apply each item to the changed code and what it touches. A checklist item is a q
 
 - Each acceptance criterion and the `## UAT` scenario map to code that implements it. Unrelated refactoring or features mixed in is a finding.
 - New or changed behavior has a test at a meaningful seam. A bug fix has a regression test that fails without the fix.
-- Tests assert behavior, not implementation details or the text of an error message. No sleeping, real network, or order dependence.
+- Tests assert behavior through the module's interface, not implementation details or the text of an error message; a test that reaches past the interface (mocked internal collaborators, private methods, querying the database instead of the interface) is a finding. Expected values come from an independent source, not recomputed the way the code does. No sleeping, real network, or order dependence.
 - Accepted ADRs and `AGENTS.md` MUST rules are respected; a changed target contract comes with an ADR update.
 - New terms follow `GLOSSARY.md`; documentation made stale by the change is updated in the same PR.
 - An open client question implemented by guesswork is a finding.
@@ -41,7 +41,8 @@ Apply each item to the changed code and what it touches. A checklist item is a q
 - Search the codebase for an existing helper, scope, component, or service before accepting new code that does the same.
 - Dead code, commented-out code, debug output (`dd`, `dump`, `var_dump`, `console.log`, `ray`), leftover TODOs without an issue.
 - Names that contradict behavior or the glossary; magic numbers or strings that belong in config or an enum.
-- Overengineering: abstractions with one implementation and no planned second, options nobody passes.
+- Overengineering: abstractions with one implementation and no planned second (production plus a test fake counts as two), options nobody passes.
+- Pass-through layers (deletion test): a class whose removal would make the complexity vanish rather than reappear in its callers, such as a service that only forwards to a repository that only forwards to the model. Report it only where the project's guidelines do not prescribe the layer.
 - Performance: N+1 queries (relations used in loops without eager loading), unbounded queries or collections, work inside loops that could run once, missing indexes for new query patterns, synchronous external calls in a request path.
 - Consistency with the surrounding code's patterns, error handling, and style.
 - The file's `path_instructions` from `.coderabbit.yaml`, applied as written.
