@@ -133,12 +133,15 @@ test('detects a CodeRabbit rate-limit notice newer than its last review', () => 
         { user: { login: 'someone' }, updated_at: '2026-10-29T11:00:00Z', html_url: 'u2', body: NOTICE },
         { user: { login: 'coderabbitai[bot]' }, updated_at: '2026-10-29T12:00:00Z', html_url: 'u3', body: '## Walkthrough\nAdds API rate limit middleware (rate limit exceeded → 429).' },
     ];
-    const limited = rateLimitState({ comments, reviews: [{ user: { login: 'coderabbitai[bot]' }, submitted_at: '2026-10-29T09:00:00Z' }], reviewer: 'coderabbitai' });
+    const limited = rateLimitState({ comments, reviews: [{ user: { login: 'coderabbitai[bot]' }, submitted_at: '2026-10-29T09:00:00Z', body: 'Actionable comments posted: 3' }], reviewer: 'coderabbitai' });
     assert.equal(limited.rateLimited, true);
     assert.equal(limited.creditsExhausted, true);
     assert.deepEqual(limited.notice, { url: 'u1', updatedAt: '2026-10-29T10:00:00Z', resetAt: '2026-10-29T10:10:00.000Z', creditsExhausted: true });
 
-    const recovered = rateLimitState({ comments, reviews: [{ user: { login: 'coderabbitai[bot]' }, submitted_at: '2026-10-29T10:30:00Z' }], reviewer: 'coderabbitai' });
+    const threadReply = rateLimitState({ comments, reviews: [{ user: { login: 'coderabbitai[bot]' }, submitted_at: '2026-10-29T10:30:00Z', body: '' }], reviewer: 'coderabbitai' });
+    assert.equal(threadReply.rateLimited, true, 'a reply in a review thread is not a review and keeps the notice');
+
+    const recovered = rateLimitState({ comments, reviews: [{ user: { login: 'coderabbitai[bot]' }, submitted_at: '2026-10-29T10:30:00Z', body: '**Actionable comments posted: 0**' }], reviewer: 'coderabbitai' });
     assert.equal(recovered.rateLimited, false, 'a later review clears the notice; a walkthrough about rate limiting is not a notice');
 
     const byStatus = rateLimitState({ comments: [], reviews: [], statuses: [{ context: 'CodeRabbit', state: 'failure', description: 'Review rate limit exceeded' }], reviewer: 'coderabbitai' });
