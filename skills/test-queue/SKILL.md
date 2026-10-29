@@ -67,7 +67,8 @@ sh "$SKILL_DIR/scripts/install.sh" --uninstall   # remove everything; add --purg
 | `medium` | full `phpunit` / `artisan test` / `pest` / `vitest` / `jest` suite, `pnpm test`, `composer test`, `astro`/`vite`/`nuxt` build | 3 / 2 |
 | `heavy` | Playwright, Infection, Dusk, Cypress, Stryker, scripts named `*e2e*`, `*mutat*` | 5 / 1 |
 
-Medium and heavy jobs share a budget (8 on 16 GB): one heavy plus one medium, or two medium.
+Medium and heavy jobs share a budget (8 on 16 GB): one heavy plus one medium, or two medium. The
+budget never blocks a class limit on its own: `max.heavy 2` admits two heavy jobs.
 Within a class jobs start in arrival order. A job may overtake only an earlier job of another
 class that is blocked by its own class limit. The full detection rules and how to extend
 them are in [references/classification.md](references/classification.md).
@@ -79,7 +80,7 @@ optimizations (Docker VM memory, idle stacks, worker counts) are described in
 [references/configuration.md](references/configuration.md). Quick reference:
 
 ```sh
-testq status              # running and waiting jobs, free memory, swap, load
+testq status              # running and waiting jobs with estimates, free memory, swap, load
 testq doctor              # setup check plus concrete tuning suggestions
 testq history 20          # finished jobs with wait and run time and exit code
 testq config max.heavy 2  # change a limit (also from the widget)
