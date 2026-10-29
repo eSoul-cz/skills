@@ -8,6 +8,7 @@ import { test } from 'node:test';
 
 import {
     commentableLines,
+    defang,
     findingId,
     parseTarget,
     parseWait,
@@ -282,6 +283,8 @@ test('defangs mentions in published text but not in code or suggestions', () => 
         files: [{ filename: 'src/a.php', patch: PATCH }], threads: [], reviewBodies: [],
     }).payload.comments[0].body;
     assert.ok(links.includes('See https://www.npmjs.com/package/@scope/pkg and [pkg](https://www.npmjs.com/package/@scope/pkg), cc @\u200bbob'), 'URLs stay intact');
+    assert.equal(defang('see www.npmjs.com/package/@scope/pkg'), 'see www.npmjs.com/package/@scope/pkg', 'links without a scheme stay intact');
+    assert.equal(defang('https://@coderabbitai review'), 'https://@\u200bcoderabbitai review', 'a host is required for a URL');
 });
 
 test('quoted markers cannot open, resolve, or impersonate findings', () => {
