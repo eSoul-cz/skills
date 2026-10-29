@@ -53,7 +53,7 @@ Write it outside the repository (the scratchpad or a temp directory):
 - `suggestion` is optional and only for a fix that replaces exactly those lines; GitHub then offers it as a one-click commit. Leave it out for anything larger, and describe the fix in `body` as a short diff instead.
 - `id` defaults to a hash of path and normalized title; an explicit id may contain only letters, digits, `_`, and `-`. Reuse an id from the dry run's `existing` list when a finding was already reported with different wording.
 - `resolved` records findings that earlier fallback reviews listed in their body (outside the diff). They have no thread to resolve, so they stay open, and block the approval, until a later review lists them here with the fix commit or evidence. The dry run's `openInBodies` names them; an unknown id is rejected.
-- Mentions (`@name`) in titles, bodies, `reason`, `summary`, `verdict`, and resolution notes are defanged outside code, so quoted text never notifies anyone or addresses a bot. Suggestions are published unchanged.
+- Mentions (`@name`) in severities, titles, locations, bodies, `reason`, `summary`, `verdict`, and resolution notes are defanged outside code, so quoted text never notifies anyone or addresses a bot. Marker-shaped text (`<!-- pre-pr-review:...`) quoted anywhere in the review is broken up, so only the script's own markers decide a finding's state. Inline suggestions are published unchanged.
 - Never put a credential, real client data, or anything from `.env` into a body or suggestion.
 
 ## Post
@@ -67,7 +67,8 @@ The dry run prints the exact review payload, which findings go inline or to the 
 
 - posts one review with event `COMMENT`, never `APPROVE` or `REQUEST_CHANGES`;
 - refuses a closed PR, and exits 3 when the PR head moved after the review (review the new head instead);
-- skips findings that already have an unresolved fallback thread, and body findings already listed in an earlier fallback review; a finding whose thread was resolved but is found again is posted again;
+- skips findings that already have an unresolved fallback thread, and body findings listed in an earlier fallback review and not yet recorded under `resolved`; a finding whose thread was resolved, or whose body entry was recorded as resolved, is posted again when found again;
+- rejects an id listed both in `findings` and in `resolved`;
 - approves the head (`approved: true`, a "✅ Approved by `pre-pr-review`" section, and a `<!-- pre-pr-review:approved head=<sha> -->` marker) when the findings file is empty, no fallback thread is open, and every body-only finding is recorded as resolved; otherwise the body says how many findings are still open (`openFindings`);
 - reports `up-to-date` and posts nothing when this head already has a fallback review, nothing is new, and the approval state has not changed; a first review with no findings is still posted once, so the PR shows it was reviewed;
 - if GitHub rejects the inline positions (HTTP 422), posts once more with every finding in the body.
