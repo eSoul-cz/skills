@@ -78,16 +78,21 @@ milestones agreed with the client; `G0` (ready for development) is reached at B5
 ## 4. Company rules this skill enforces
 
 These were approved for every eSoul project. Templates in `assets/templates/` already follow them.
+Each rule has one owning skill that holds its details; this list names the rule and the owner
+and does not repeat the details.
 
 - **Titles** of issue, Freelo task and PR are identical: `Kontext: Akční výsledek`. No `[FE]`,
   `[BE]`, `[DATA]` prefix and no slice ID in the title. Category is a label on both sides.
   The slice ID goes into the issue header line and the first line of the Freelo description.
-- **Estimates** in Freelo are human time (briefing the agent, checking, review, UAT, fixes) in
-  15-minute steps. Propose a split above 4 h. Actual time is logged as Freelo work reports.
-- **CONTEXT.md** holds project conventions; **GLOSSARY.md** holds domain language only.
+  Owner: `esoul-tasking`.
+- **Estimates** in Freelo are human time in 15-minute steps; split above 4 h. Owner:
+  `esoul-freelo-task-authoring`. Actual time is logged as Freelo work reports of active work
+  only (`freelo` › work reports).
+- **CONTEXT.md** holds project conventions, including the `## Freelo` cache of tasklist IDs and
+  label UUIDs; **GLOSSARY.md** holds domain language only.
 - **ADRs** are English, `docs/adr/NNNN-english-slug.md`, with Implementation status and gaps.
-- **UAT** in the issue: `## UAT` with Role, Předpoklad and the project's UAT dimensions, then
-  `1. [ ] akce → očekávaný výsledek`. Concrete values, no SQL or shell.
+- **UAT** in the issue: the `## UAT` format owned by `esoul-tasking` (Role, Předpoklad, the
+  project's UAT dimensions, one checkbox per step).
 - **Dependencies**: GitHub native `blocked_by` is the source of truth, mirrored as a Freelo
   relation. No temporary "create this relation manually" comments.
 - **Merging**: squash merge, required `Jenkins` check and one human approval on `main`, no

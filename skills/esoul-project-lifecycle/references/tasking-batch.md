@@ -20,8 +20,8 @@ This reference only adds what a batch from the slice table needs.
 - Title = the slice's Titulek. No category prefix, no slice ID.
 - Issue header line: `**Slice:** F1-17 · **Fáze:** F1 (brána G1) · **Rozsah:** S`.
 - Sections per `.github/ISSUE_TEMPLATE/task.yml`: Kontext, Dotčené oblasti, Co je potřeba,
-  Mimo rozsah, Akceptační kritéria (technical, for the developer), `## UAT` (Role, Předpoklad,
-  UAT dimensions, `1. [ ] akce → očekávaný výsledek`), Poznámky k implementaci, Závislosti,
+  Mimo rozsah, Akceptační kritéria (technical, for the developer), `## UAT` (the format in
+  `esoul-tasking` § 3), Poznámky k implementaci, Závislosti,
   Odkazy (ADR with status, plan section, design frames, Freelo), Kontrola kontraktu.
 - Technical slices: `**Role:** vývojář eSoul` with verification through the pipeline or staging,
   or „Bez uživatelsky viditelného dopadu“ plus a concrete technical check.

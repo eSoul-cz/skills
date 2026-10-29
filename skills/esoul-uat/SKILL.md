@@ -26,8 +26,8 @@ The scenario catalogue lives in the project repository; credentials never do.
    from scratch here.
 3. Resolve the **design source**: a `.pen` file in the repository, a Figma link in the profile
    or docs, an eSoul mockup bundle, or none ([design.md](references/design.md)).
-4. Resolve the **bug tasking skill**: a repository-specific tasking skill when one exists
-   (for example `schok-plemenna-kniha-tasking`), otherwise `esoul-tasking`.
+4. Bugs are written through `esoul-tasking`, which applies the repository's
+   `## Tasking convention` (mode, category labels, prefixes if the project defines any).
 5. Find facts yourself. Ask the user only for access, decisions, and approvals.
 
 ## 2. Pick the mode
@@ -93,7 +93,7 @@ into missing files; never overwrite project files.
 | Need | Skill |
 |---|---|
 | Project profile, product type, UAT dimensions | `esoul-project-lifecycle` |
-| Bug issues and Freelo tasks | repository tasking skill, else `esoul-tasking` |
+| Bug issues and Freelo tasks | `esoul-tasking` (repository `## Tasking convention`) |
 | PDF rendering | `esoul-maintain-application-documentation` (`docs/documentation build`) |
 | Fix of a found bug | `esoul-workflow` (Bug flow) |
 | Mockup bundles as design source | `esoul-mockup-authoring` |

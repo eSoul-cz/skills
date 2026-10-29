@@ -54,20 +54,43 @@ tasks, and classify each result as a new pair, an existing pair to refine, or a 
 counterpart: [references/github-freelo.md](references/github-freelo.md). Never create labels,
 projects, repositories or tasklists as a shortcut.
 
+Search once per batch, not once per preview: keep the results and reuse them when the user
+asks for wording changes, and search again only for a task whose scope, outcome or domain
+changed. Tasklist IDs and label UUIDs come from the `## Freelo` cache in `CONTEXT.md`
+(companion's [project mapping](../esoul-freelo-task-authoring/references/project-mapping.md));
+GitHub label names come from one `gh label list` per session.
+
 ## 3. Titles, labels, specifications
 
 - Same title for both entities: `Context: Actionable result`. Categories are existing labels
-  in each system, not `[FE]`/`[BE]`/`[DATA]` prefixes, unless a repository-specific skill
-  defines prefixes. At least one existing label on each entity; real Freelo UUIDs and exact
-  GitHub label names.
+  in each system, not `[FE]`/`[BE]`/`[DATA]` prefixes, unless the repository's tasking
+  convention defines prefixes. At least one existing label on each entity; real Freelo UUIDs
+  and exact GitHub label names. The convention's category table (GitHub label ↔ Freelo label)
+  decides the pair.
 - `freelo-only`: the companion's full self-contained description, including verification.
 - `github-freelo`: the issue is the source of truth (outcome, verified areas, scope,
   acceptance criteria, verification, dependencies as native `blocked_by`, link to Freelo);
   the Freelo description is a short summary with the issue link in the first paragraph.
   Estimates live only in Freelo.
-- Verification: user-facing scenarios with role, prerequisites and numbered steps with empty
-  checkboxes (action and expected result) for observable behaviour; for purely technical work
-  say so and give a concrete technical check. No SQL or shell in user-facing steps.
+- Verification is a `## UAT` section, the one format every eSoul skill uses (lifecycle,
+  UAT bugs, freelo-only descriptions):
+
+  ```md
+  ## UAT
+
+  **Role:** chovatel (Breeder)
+  **Předpoklad:** existuje zvíře bez skutečné ušní známky
+  <one line per UAT dimension from `CONTEXT.md › ## Project profile`, e.g. kanál / jazyk / měna>
+
+  1. [ ] Otevři detail takového zvířete.
+     → V poli ušní známky je „známka neuvedena“.
+  ```
+
+  One empty checkbox per step; the expected result on the indented `→` line, not its own
+  checkbox; concrete values; a negative scenario when another role, channel or currency must
+  not see the result; amounts with currency and VAT mode for anything touching money. No SQL,
+  shell or logs in the steps; those belong to the acceptance criteria. For purely technical
+  work with no visible effect say so explicitly and give a concrete technical check.
 
 ## 4. Preview and approve
 
