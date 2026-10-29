@@ -1,6 +1,6 @@
 ---
 name: esoul-uat
-description: Plan, verify, run, and report user acceptance testing (UAT) of eSoul applications, e-shops, and websites as an end user in an isolated Chrome, covering both functionality and design (overflow, overlaps, responsiveness, match with a .pen or Figma design). Builds the scenario catalogue for the project type recorded in the project profile, keeps it current against code and docs, renders it to Markdown and PDF, executes it across roles and devices with recorded evidence, and files found bugs per the repository's tasking convention (GitHub issue + Freelo pairs, or Freelo tasks only) with URL, screenshot, reproduction, and proposed fix. Use for UAT, test scenarios, test plans, acceptance runs, "click through the app", responsive or design QA, or turning test findings into bugs. Depends on esoul-project-lifecycle for the project profile and on esoul-tasking (or the repository's own tasking skill) for bug writes.
+description: Plan, verify, run, and report user acceptance testing (UAT) of eSoul applications, e-shops, and websites as an end user in an isolated Chrome, covering functionality and design (overflow, overlaps, responsiveness, match with a .pen or Figma design). Keeps the scenario catalogue current, runs it across roles and devices with evidence, renders reports, and files found bugs through esoul-tasking. Use for UAT, test scenarios, acceptance runs, "click through the app", responsive or design QA, or turning test findings into bugs.
 ---
 
 # eSoul UAT

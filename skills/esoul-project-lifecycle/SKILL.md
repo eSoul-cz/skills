@@ -1,6 +1,6 @@
 ---
 name: esoul-project-lifecycle
-description: Run an eSoul client project from first client materials to agent-ready work. Bootstrap or retrofit the repository, ingest podklady and legacy evidence, keep the question register, glossary, ADRs, project guidelines, design brief and plan with slices, set up quality gates, batch slices into GitHub issue + Freelo pairs, audit completeness, and fold every client session back into the docs. Use when starting a new eSoul project, onboarding an existing one to the eSoul standard, after a client meeting or client answers, when writing an ADR or a plan, or when checking a project's conformance. Stack-agnostic, with profiles for common eSoul stacks (Laravel, Medusa/Nuxt, Astro) and a full or light process tier. Depends on esoul-tasking for issue and task writes and hands implementation to esoul-workflow. Does not implement features.
+description: Run an eSoul client project from first client materials to agent-ready work - bootstrap or retrofit the repository, ingest podklady and legacy evidence, keep questions, glossary, ADRs, guidelines, design brief and a sliced plan, batch slices into issue + Freelo pairs, and audit conformance. Use when starting or onboarding an eSoul project, after a client meeting or answers, when writing an ADR or a plan, or when checking a project's conformance. Does not implement features.
 ---
 
 # eSoul project lifecycle

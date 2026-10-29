@@ -1,6 +1,6 @@
 ---
 name: pre-pr-review
-description: Stand-in for CodeRabbit when it is missing, rate-limited, or out of credits. Before a push, reviews the exact diff against the real base, honoring .coderabbit.yaml path filters, path instructions and profile; scans changed files for credentials, runs the repository's own checks, reviews in focused passes (correctness, security and data boundaries, tests and contract, maintainability), verifies every finding against the code, and reports CodeRabbit-style findings with severity, evidence, and a proposed fix. When CodeRabbit hits its limit on an open PR, posts the findings to the PR as one review with inline comments and suggestions, without duplicates. Fixes and re-reviews incrementally when asked. Use for review before PR, local or pre-push review, "CodeRabbit is out of limit" locally or on a PR, or when final-pr-review cannot use CodeRabbit. Never an approval; does not replace CodeRabbit approval or the human review.
+description: Stand-in for CodeRabbit when it is missing, rate-limited, or out of credits. Reviews the exact diff against the real base with .coderabbit.yaml filters and instructions, scans for credentials, reviews in four verified passes, and reports CodeRabbit-style findings; on a rate-limited PR posts them as one inline review and approves in CodeRabbit's place once resolved. Use for local or pre-push review, "CodeRabbit is out of limit", or when final-pr-review cannot use CodeRabbit. Never a GitHub approval.
 ---
 
 # Pre-PR review

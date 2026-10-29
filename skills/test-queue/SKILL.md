@@ -1,6 +1,6 @@
 ---
 name: test-queue
-description: Shared queue (`testq`) that stops parallel agent sessions on one machine from running test suites, E2E, mutation tests and builds all at once, which drives the machine into swap and makes tests time out. Installs the CLI, a Claude Code hook that queues test commands automatically, and a macOS menu bar widget with live CPU, memory, swap and load plus queue controls. Use when installing or tuning the queue or widget, when tests are slow or time out because several sessions run them together, when command output contains `[testq]`, or when the user asks about machine load, the test queue or the TestQ widget.
+description: Shared queue (`testq`) that stops parallel agent sessions on one machine from running test suites, E2E, mutation tests and builds all at once and driving it into swap. Installs the CLI, a Claude Code hook that queues test commands, and a macOS menu bar widget. Use when installing or tuning the queue or widget, when tests time out because several sessions run them together, when output contains `[testq]`, or when the user asks about machine load or the TestQ widget.
 ---
 
 # Test queue
