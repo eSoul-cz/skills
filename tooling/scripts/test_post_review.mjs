@@ -276,6 +276,12 @@ test('defangs mentions in published text but not in code or suggestions', () => 
     assert.ok(!/(^|\W)@(?!\u200b)[A-Za-z0-9]/.test(edge.replace(/`[^`\n]+`/g, '')), 'no live mention outside code spans');
     assert.match(edge, /\*\*@\u200bcoderabbitai\*\*/);
     assert.match(edge, /`@\u200balice/);
+
+    const links = planReview({
+        input: { head: HEAD, findings: [finding({ body: 'See https://www.npmjs.com/package/@scope/pkg and [pkg](https://www.npmjs.com/package/@scope/pkg), cc @bob' })] },
+        files: [{ filename: 'src/a.php', patch: PATCH }], threads: [], reviewBodies: [],
+    }).payload.comments[0].body;
+    assert.ok(links.includes('See https://www.npmjs.com/package/@scope/pkg and [pkg](https://www.npmjs.com/package/@scope/pkg), cc @\u200bbob'), 'URLs stay intact');
 });
 
 test('quoted markers cannot open, resolve, or impersonate findings', () => {
