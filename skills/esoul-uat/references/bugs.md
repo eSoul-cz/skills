@@ -24,8 +24,8 @@ bug, marked important, and are reported to the user immediately, not only at the
 
 ## Bug content
 
-Use `assets/templates/bug-issue.md`. Title per the repository's tasking convention (the
-repository skill decides prefixes such as `[FE]`, `[BE]`). The prefix follows where the fix
+Use `assets/templates/bug-issue.md`. Title per the repository's tasking convention (it
+decides prefixes such as `[FE]`, `[BE]` when the project uses any). The category follows where the fix
 belongs, not the fact that testing found it.
 
 The issue contains:

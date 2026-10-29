@@ -1,0 +1,23 @@
+#!/bin/sh
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
+REPOSITORY_ROOT=$(CDPATH= cd "${SCRIPT_DIR}/../.." && pwd)
+NODE_IMAGE='node:22-alpine'
+
+cd "${REPOSITORY_ROOT}"
+
+if command -v node >/dev/null 2>&1; then
+    exec node --test tooling/scripts/test_skills.mjs
+fi
+
+if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
+    echo 'test_skills needs Node.js or a running Docker daemon.' >&2
+    exit 1
+fi
+
+# Stream the files into the container instead of bind-mounting them, so the check also works
+# when the Docker daemon runs on another host than this workspace.
+tar -cf - .claude-plugin README.md skills tooling/scripts/test_skills.mjs |
+    docker run --rm -i "${NODE_IMAGE}" sh -c \
+        'mkdir /work && cd /work && tar -xf - && node --test tooling/scripts/test_skills.mjs'

@@ -1,6 +1,6 @@
 ---
 name: final-pr-review
-description: Finish work by creating or updating a GitHub PR, optionally running local CodeRabbit review before pushing, waiting for CI and remote CodeRabbit review (substituting a pre-pr-review fallback review instead of waiting when CodeRabbit is rate-limited or out of credits), fixing every valid finding, replying with evidence to invalid findings, and repeating until the current revision is approved. Use for final PR review, finish the PR, make CI green, address CodeRabbit feedback, or review-fix-until-approved requests. Supports individual PRs and GitHub native stacked pull requests. Does not merge unless separately requested.
+description: Finish work by creating or updating a GitHub PR (single or native stacked), running one local review before pushing, waiting for CI and CodeRabbit (or a pre-pr-review substitute when CodeRabbit is limited), fixing every valid finding, replying with evidence to invalid ones, and repeating until the current revision is approved. Use for final PR review, finish the PR, make CI green, or address CodeRabbit feedback. Does not merge unless separately requested.
 ---
 
 # Final PR review
@@ -22,40 +22,34 @@ Use applicable `AGENTS.md` and conventions already in context; read only missing
 
 Resolve an explicit PR/branch first; otherwise discover the open PR for the current branch, including its head repository. Reuse it rather than creating duplicates. Ask only if multiple candidates or ownership remain ambiguous after inspection. If no PR exists, derive its base from repository/task/stack evidence before creation. Do not push a default or protected branch as a feature branch.
 
-Determine whether the work is standalone, an ordinary chain of dependent PRs, or a **native GitHub stack**. Native stack membership is server metadata, not a PR-body label or merely a non-default base branch. Check host support and installed `gh stack` capabilities rather than assuming a preview API exists everywhere. Absence of the extension does not prove absence of a remote stack.
+Determine whether the work is standalone, an ordinary chain of dependent PRs, or a **native GitHub stack**. For a chain or a stack, read [stacks](references/stacks.md) before any remote operation; it holds discovery, ledger additions, publishing, restacking and completion for layers. A standalone PR does not need it.
 
 Record a compact work ledger in task state, not a new repository document:
 
-- each in-scope PR URL/number, head repository/ref/SHA, direct base ref/SHA, draft state, stack membership/order and trunk ref/SHA;
-- owned layers and affected descendants, with scope/permission for each branch;
+- each in-scope PR URL/number, head repository/ref/SHA, direct base ref/SHA, draft state;
 - expected CI checks, required review policy, verified CodeRabbit service-account identity, and local-review mode;
+- verification receipts (`receipt · tree <tree> · <command> → <result>`, as in `esoul-workflow`) for every local check;
 - each finding's stable ID/URL, reviewer, severity, disposition, fix commit, reply, and resolution state;
 - current review/check run identifiers and the revision they cover.
-
-For a native stack, preserve the immediate predecessor as each layer's base and the stack's existing order. Do not recreate native stacks as ordinary PR chains. For an ordinary chain, preserve its topology; do not silently convert it to a native stack. An entire-stack request covers its owned unmerged layers. A single-layer request does not authorize rewriting collaborator-owned descendants: identify affected branches and ask for that permission if necessary.
-
-For native stacks, derive protection requirements from the stack trunk, not only the immediate predecessor. Include the trunk in revision snapshots and invalidate integration evidence when it changes. The direct predecessor remains the local incremental-review base.
 
 ## 2. Verify locally, optionally review before every push
 
 Run the project's appropriate checks for the actual changes. Fix real failures at their source; do not remove assertions or skip CI to achieve green status.
 
-Local CodeRabbit review is a pre-push pass, never a substitute for remote review:
+Reuse what already ran: a check with a receipt for the current worktree tree (`d=$(mktemp -d); GIT_INDEX_FILE="$d/index" git read-tree HEAD && GIT_INDEX_FILE="$d/index" git add -A && GIT_INDEX_FILE="$d/index" git write-tree; rm -rf "$d"`) is not run again, here or in the local review. Committing verified files does not change the tree. After a fix, re-run only the checks the fix can affect, plus the full suite once on the tree that will be pushed.
 
-1. Honor explicit local-review/skip instructions and repository policy. Otherwise run local review when CodeRabbit is installed and authenticated. When it is missing, unauthenticated, rate-limited, out of credits, or the user wants to save CodeRabbit quota, run the `pre-pr-review` skill as the local pass instead and record that mode; only if neither can run, disclose that the optional pass was skipped and continue the remote loop. Steps 2–5 apply to the CodeRabbit CLI only; `pre-pr-review` resolves its own scope and scans for credentials, and step 6 applies to both. An explicitly requested or repository-required local pass is a blocker if it cannot run; `pre-pr-review` satisfies it unless the repository requires CodeRabbit specifically.
-2. Check the installed CLI version, official installation provenance, authentication, and `coderabbit review --help`. Agent mode requires at least v0.4.0. Prefer verified package-manager installation; never pipe a downloaded installer to a shell. Do not silently upgrade or sign the user in.
-3. Inspect the full selected diff, including new files, for credentials and sensitive data **before** sending anything to CodeRabbit. Its CLI transmits code to an external service. Do the same before publishing commits.
-4. Run `coderabbit review --agent --base <actual-base-ref>` using a fetched, correct base. For a stacked layer use its immediate predecessor, not the stack trunk. Only use `--base-commit` with a verified comparison commit supported by the installed CLI.
-5. Select the intended committed and uncommitted changes using flags the installed version actually supports. Older versions expose `-t all|committed|uncommitted`; newer versions expose `--committed`/`--uncommitted`. New untracked files may require `--include-untracked`; otherwise stage only owned new files before review. Never claim a file was reviewed if it was excluded.
-6. Triage every local finding using section 5, fix valid findings, and re-run relevant checks and local review until no valid actionable finding remains. Keep reasons for rejected findings in the ledger; do not post local-only findings as fake remote threads.
+Local review is a pre-push pass, never a substitute for remote review, and it is the only local review of this revision (do not also run `code-review`):
 
-Authentication failures, rate limits, unsupported options, billing confirmation, or incomplete review output are not clean reviews; fall back to `pre-pr-review` rather than reporting them as passed. Do not opt into paid credits automatically. If neither CodeRabbit nor `pre-pr-review` can complete an optional local review, report the gap; never silently skip a required pass.
+1. Honor explicit local-review/skip instructions and repository policy. Otherwise run local review when CodeRabbit is installed and authenticated, following [CodeRabbit CLI](references/coderabbit-cli.md). When it is missing, unauthenticated, rate-limited, out of credits, or the user wants to save CodeRabbit quota, run the `pre-pr-review` skill as the local pass instead and record that mode; only if neither can run, disclose that the optional pass was skipped and continue the remote loop. An explicitly requested or repository-required local pass is a blocker if it cannot run; `pre-pr-review` satisfies it unless the repository requires CodeRabbit specifically.
+2. Triage every local finding using section 5, fix valid findings, and re-run relevant checks and local review until no valid actionable finding remains. Keep reasons for rejected findings in the ledger; do not post local-only findings as fake remote threads. Stop after three local review rounds on one revision, or when one finding survives two fix attempts: record the open findings in the ledger, report the pass as blocked, and ask for a decision instead of starting another round or skipping the review.
+
+A CLI failure, limit or incomplete output is not a clean review; fall back to `pre-pr-review`. If neither CodeRabbit nor `pre-pr-review` can complete an optional local review, report the gap; never silently skip a required pass.
 
 ## 3. Publish the intended revision
 
 Create focused commits following the effective convention. Push only authorized branches. Reuse an existing PR; otherwise create one with explicit repository, head, and base, a meaningful title, a concise change summary, actual verification results, and stack dependencies where relevant. Honor PR templates and retain human-written body content. A final-review request normally means ready for review; respect an explicit draft requirement and report if draft status prevents review/approval.
 
-For native stacks, use the installed official stack workflow to preserve server membership, following the reference. Inspect the scope of submit/push operations before invoking them: they can affect more than the current branch. Do not create duplicate standalone PRs for stack layers.
+For native stacks, publish through the official stack workflow as [stacks](references/stacks.md) describes.
 
 After publishing, fetch the remote PR metadata and verify the expected remote head SHA and base. Record that revision. Local HEAD, a successful push command, or a PR URL is not completion evidence. If the remote changed unexpectedly, reconcile collaborator work before making further changes; never overwrite it.
 
@@ -114,15 +108,7 @@ Return to local verification/review, publication, and both remote tracks after a
 
 ## 6. Handle stack fixes at their owning layer
 
-Work bottom-up where dependencies require it; independent CI/review observation may run concurrently. Fix a finding in the layer that owns the code, never by masking it in a descendant.
-
-For a native stack, a lower-layer fix normally requires `gh stack rebase --upstack` followed by `gh stack push`. These operations rewrite/publish affected descendants; inspect installed help and the reference first. Run only with a clean worktree, known remote tips, and authorization for **all** affected branches. A stacked-finalization request authorizes necessary restacking of the user's in-scope owned branches, but does not override repository prohibitions on history rewriting or authorize collaborator branches. If those constraints conflict, ask before restacking.
-
-Use the stack tool's lease-protected push; never raw `--force`. On lease failure fetch/reconcile the competing update rather than retrying with a new lease blindly. Resolve conflicts with the repository's conflict workflow; never drop unfamiliar commits. Commit preparation remains governed by `gitmoji-commit`; stack rebasing is a separate authorized lifecycle operation, not permission to amend/rewrite unrelated commit messages.
-
-Re-run applicable local verification and the selected local review on each changed layer **before** pushing the restack. Refresh metadata, checks, discussions, and review completion for the edited layer and every descendant whose head or base changed; CodeRabbit reviews each pushed head automatically under the review-track rules above.
-
-If a predecessor merges or someone changes stack membership during the loop, rediscover the stack and use the supported sync workflow only within authorized scope. Sync can rebase and push; it is not a read-only discovery command. Do not prune branches, dissolve/reorder the stack, or merge a predecessor merely to get green status. Ordinary dependent PR chains use the repository's established restack tool/workflow; do not apply native stack commands to them blindly.
+Fix a finding in the layer that owns the code, never by masking it in a descendant. Restacking, lease-protected pushes, re-verification of each changed layer and membership changes during the loop follow [stacks](references/stacks.md); never use raw `--force`.
 
 ## 7. Completion gate and handoff
 

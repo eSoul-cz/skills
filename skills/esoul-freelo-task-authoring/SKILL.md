@@ -28,13 +28,20 @@ inferred confirmation, record the mapping as in
 [references/project-mapping.md](references/project-mapping.md). Never author tasks for more
 than one Freelo project in a run.
 
+The same section caches tasklist IDs and task label UUIDs. Use them directly; load them from
+Freelo only when the cache is missing or a cached value is rejected, then write or refresh the
+cache as the reference describes.
+
 ## 2. Evidence before questions
 
 - Inspect the codebase for real modules, domain terms, files, routes and patterns before
   asking anything answerable locally.
-- Load the project's tasklists, workers, and the task labels actually used there.
-- Search for duplicates and related work before every preview: by outcome, domain terms,
-  module and file names, in Czech and English, active and finished tasks. Not by title only.
+- Take tasklists and task labels from the `## Freelo` cache; load workers only when the task
+  needs an assignee.
+- Search for duplicates and related work once per batch, before the first preview: by outcome,
+  domain terms, module and file names, in Czech and English, active and finished tasks. Not by
+  title only. Reuse the results for revised previews; search again only for a task whose scope
+  or outcome changed.
 - Write in Czech; keep established programming terms (migrace, commandy, requesty); give
   domain concepts as `chovatel (Breeder)` when code uses an English name.
 - Never copy secrets, credentials, production personal data or raw sensitive datasets.
@@ -59,7 +66,7 @@ recommended answer, as in [references/interview.md](references/interview.md).
 
 ## 4. Metadata
 
-Resolve tasklists by name in the confirmed project. `To Do` only with complete description,
+Resolve tasklists by name from the cache (or the confirmed project). `To Do` only with complete description,
 assignee, approved estimate and no blockers; otherwise `Backlog`; `LTT` (or `Project
 Management`) only after explicit confirmation. Never create directly in later states.
 Never invent an assignee, estimate or due date. At least one label per task, only labels

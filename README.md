@@ -90,6 +90,16 @@ npx skills add eSoul-cz/skills \
 
 To work from a local checkout, replace `eSoul-cz/skills` with `.`.
 
+### Keep one copy of each skill up to date
+
+`npx skills add` installs a snapshot; it does not follow later releases. After every release run `npx skills update --global --yes` (and re-run `add` for agents that hold a copied rather than a linked skill, such as `~/.codex/skills/<name>`), or the agent keeps reading the old rules and an older, larger file. Claude Code users who installed the `esoul-skills` plugin do not need `npx` copies of the same skills for Claude Code: remove them with `npx skills remove` so the descriptions are not loaded twice. Project-local skills that repeat an eSoul skill for one project (targets, label UUIDs) should become sections of that project's `CONTEXT.md` instead: `## Freelo` (project, tasklist IDs, label UUIDs) and `## Tasking convention`.
+
+Check the skills themselves (frontmatter, description budget, links, manifest, README) before a release:
+
+```bash
+node --test tooling/scripts/test_skills.mjs
+```
+
 ## Skills
 
 ### `gitmoji-commit`
@@ -186,7 +196,7 @@ $esoul-maintain-application-documentation verify the documentation in this repos
 
 ### `freelo`
 
-Operates Freelo projects, tasks, comments, time records, and related entities through the authenticated `freelo` CLI.
+Operates Freelo projects, tasks, comments, time records, and related entities through the authenticated `freelo` CLI. Work reports record active work only, never waiting for tests, builds, CI or the test queue; `references/work-reports.md` computes the minutes from the session transcript.
 
 Usage:
 
@@ -196,7 +206,7 @@ $freelo show the active tasks in my project
 
 ### `esoul-freelo-task-authoring`
 
-Prepares implementation-ready eSoul tasks, checks for duplicates, presents an exact preview, and writes to Freelo only after approval. Requires the `freelo` skill.
+Prepares implementation-ready eSoul tasks, checks for duplicates once per batch, presents an exact preview, and writes to Freelo only after approval. Requires the `freelo` skill. Caches the project's tasklist IDs and task label UUIDs in the `## Freelo` section of the repository's `CONTEXT.md`, so later runs skip the slow lookups (Freelo allows about one request per 2.4 seconds).
 
 Usage:
 
@@ -303,6 +313,8 @@ $esoul-uat run chapters AUT and NAV on the UAT instance, desktop and mobile, wit
 
 Default entry point for eSoul work on web applications, WordPress sites, and data analyses. Loads repository context, sizes the task (S, M, L, bug, analysis), and routes each step to the owning skill instead of repeating it: `esoul-tasking` for tracked work, `esoul-mockup-authoring` and `frontend-design` for UI, `gitmoji-commit` for commits, `pre-pr-review` and `final-pr-review` for PRs. Uses the Matt Pocock skills (`grilling`, `tdd`, `diagnosing-bugs`, `code-review`) and CodeGraph when installed, and degrades gracefully without them. Includes short references for the eSoul web stack, the WP-template WordPress deployment model, and reproducible data analysis.
 
+Every check runs once per state of the code: after a check the agent records a verification receipt keyed on the worktree's Git tree, which stays the same when the verified files are committed, and `gitmoji-commit`, `pre-pr-review` and `final-pr-review` reuse it instead of running the suite again. A PR gets one local review (the `final-pr-review` pre-push pass), not an extra `code-review` on top, and subagents are always started with an explicit, cheaper model.
+
 Usage:
 
 ```text
@@ -312,7 +324,7 @@ $esoul-workflow analyse last quarter's orders by acquisition channel
 
 ### `esoul-model-routing`
 
-Choose and set the right Claude model and effort level for a task, to balance cost and quality: Haiku for trivial mechanical work, Sonnet for contained changes, Opus for real engineering, and `best` (Fable where available, else Opus) for the hardest or most sensitive work. Covers the current lineup and the Claude Code aliases, and picks the model for subagents it dispatches. Advises and sets the model; it does not silently swap the running turn.
+Choose and set the right Claude model and effort level for a task, to balance cost and quality: Haiku for trivial mechanical work, Sonnet for contained changes, Opus for real engineering, and `best` (Fable where available, else Opus) for the hardest or most sensitive work. Covers the current lineup (Fable 5.1, Opus 5.5, Sonnet 5.5, Haiku 5.5) with prices and default effort, the Claude Code aliases, and the model for each kind of subagent eSoul skills start. Recommends keeping `high` as the saved effort and raising it per session, rather than saving `xhigh` for every turn. Advises and sets the model; it does not silently swap the running turn.
 
 Usage:
 
@@ -352,6 +364,26 @@ node "$SKILL_DIR/scripts/conformance.mjs" /path/to/project --github eSoul-cz/exa
 ```
 
 Replace `/path/to/project` and `eSoul-cz/example-repo` with the project checkout and its repository.
+
+### `esoul-data-task-guard`
+
+On data tasks (label `data-migration`, legacy imports, data fixes, reports, analyses) the agent does not change application code or the data model beyond what the issue specifies. It finishes the independent data work, writes the needed change down as a proposal (finding, cause, fix as an example diff or SQL, impact on existing data) and creates a new issue/task pair through `esoul-tasking`. An explicit instruction from the user overrides it.
+
+Usage:
+
+```text
+$esoul-data-task-guard the import found duplicate breeders; propose the fix
+```
+
+### `esoul-project-data`
+
+Client files, photos, admin media, SQL dumps, backups and import files go to the tracked `assets/` folder through Git LFS, and guides to `docs/`, never to `storage/`, `*.nosync`, `tmp/` or Downloads, where only one computer has them. Secrets never go to Git; throwaway intermediates stay in the session scratchpad.
+
+Usage:
+
+```text
+$esoul-project-data back up the media before the import
+```
 
 ### `test-queue`
 

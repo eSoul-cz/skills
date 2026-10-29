@@ -1,6 +1,6 @@
 ---
 name: pre-pr-review
-description: Stand-in for CodeRabbit when it is missing, rate-limited, or out of credits. Before a push, reviews the exact diff against the real base, honoring .coderabbit.yaml path filters, path instructions and profile; scans changed files for credentials, runs the repository's own checks, reviews in focused passes (correctness, security and data boundaries, tests and contract, maintainability), verifies every finding against the code, and reports CodeRabbit-style findings with severity, evidence, and a proposed fix. When CodeRabbit hits its limit on an open PR, posts the findings to the PR as one review with inline comments and suggestions, without duplicates. Fixes and re-reviews incrementally when asked. Use for review before PR, local or pre-push review, "CodeRabbit is out of limit" locally or on a PR, or when final-pr-review cannot use CodeRabbit. Never an approval; does not replace CodeRabbit approval or the human review.
+description: Stand-in for CodeRabbit when it is missing, rate-limited, or out of credits. Reviews the exact diff against the real base with .coderabbit.yaml filters and instructions, scans for credentials, reviews in four verified passes, and reports CodeRabbit-style findings; on a rate-limited PR posts them as one inline review and approves in CodeRabbit's place once resolved. Use for local or pre-push review, "CodeRabbit is out of limit", or when final-pr-review cannot use CodeRabbit. Never a GitHub approval.
 ---
 
 # Pre-PR review
@@ -48,6 +48,8 @@ Only what is not in context yet:
 
 CodeRabbit runs linters alongside its review. Run the repository's configured equivalents instead: the commands its CI runs (Jenkinsfile, workflow files), composer or npm scripts, or the Makefile. Limit them to changed files where the tool supports it. Do not install tools or change their configuration. Where the machine runs `test-queue`, let test and build commands queue. A failure on a changed line is a finding. A pre-existing failure outside the diff is a baseline note, not a finding.
 
+Do not re-run a check that already ran on exactly this code. When the session holds a **verification receipt** for a check (`receipt · tree <tree> · <command> → <result>`, recorded by `esoul-workflow` or `final-pr-review`) and the current worktree tree still matches, report the check as `reused from receipt` with its result and skip it. Compute the tree without touching the index: `d=$(mktemp -d); GIT_INDEX_FILE="$d/index" git read-tree HEAD && GIT_INDEX_FILE="$d/index" git add -A && GIT_INDEX_FILE="$d/index" git write-tree; rm -rf "$d"`. Record a receipt for every check you run.
+
 ## 4. Review in focused passes
 
 Four lenses, with checklists and stack notes in [references/review-passes.md](references/review-passes.md):
@@ -62,7 +64,7 @@ Size decides how the passes run:
 | Reviewed scope | How |
 | --- | --- |
 | Up to 15 files and 400 changed lines | Apply all four lenses yourself. |
-| Larger | One fresh subagent per lens, in parallel, each with the self-contained brief from the reference. Never fork the conversation: a fork copies the whole context. |
+| Larger | One fresh subagent per lens, in parallel, each with the self-contained brief and the model the reference names (never inherited). Never fork the conversation: a fork copies the whole context. |
 | Script warns `Large change` (over 30 files or 1500 lines) | As above, per file group (module or layer), and suggest splitting the PR. |
 
 Without subagents, or when they are not allowed, run the lenses one after another and note it under **Passes** in the report. Every pass reads each hunk with enough surrounding code to understand it. Reviewing diff hunks in isolation is what produces false positives.

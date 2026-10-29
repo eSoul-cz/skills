@@ -83,7 +83,7 @@ Templates use `{{UPPER_SNAKE_CASE}}`. Common ones:
 | `{{STAGING_URL}}`, `{{PRODUCTION_URL}}` | Environments, `TBD` until known |
 | `{{UAT_EXTRA_DIMENSIONS}}` | Extra UAT context fields, comma-led |
 | `{{TASKING_MODE}}` | `github-freelo` or `freelo-only` |
-| `{{FREELO_BACKLOG_ID}}`, `{{FREELO_LABELS}}` | Backlog tasklist ID; Freelo category labels with UUIDs mapped to GitHub labels |
+| `{{FREELO_TASKLISTS}}`, `{{FREELO_LABELS}}` | Tasklists with IDs, e.g. Backlog `123` · To Do `124` · …; Freelo category labels with UUIDs mapped to GitHub labels |
 | `{{PROJECT_SUMMARY}}` | One to three English paragraphs for `AGENTS.md › What this project is` |
 | `{{UI_LANGUAGES}}` | User-facing languages, e.g. `Czech` or `cs (default), en, de` |
 | `{{COMMIT_SCOPES}}` | Allowed commit scopes, each in backticks |

@@ -1,6 +1,6 @@
 ---
 name: esoul-uat
-description: Plan, verify, run, and report user acceptance testing (UAT) of eSoul applications, e-shops, and websites as an end user in an isolated Chrome, covering both functionality and design (overflow, overlaps, responsiveness, match with a .pen or Figma design). Builds the scenario catalogue for the project type recorded in the project profile, keeps it current against code and docs, renders it to Markdown and PDF, executes it across roles and devices with recorded evidence, and files found bugs per the repository's tasking convention (GitHub issue + Freelo pairs, or Freelo tasks only) with URL, screenshot, reproduction, and proposed fix. Use for UAT, test scenarios, test plans, acceptance runs, "click through the app", responsive or design QA, or turning test findings into bugs. Depends on esoul-project-lifecycle for the project profile and on esoul-tasking (or the repository's own tasking skill) for bug writes.
+description: Plan, verify, run, and report user acceptance testing (UAT) of eSoul applications, e-shops, and websites as an end user in an isolated Chrome, covering functionality and design (overflow, overlaps, responsiveness, match with a .pen or Figma design). Keeps the scenario catalogue current, runs it across roles and devices with evidence, renders reports, and files found bugs through esoul-tasking. Use for UAT, test scenarios, acceptance runs, "click through the app", responsive or design QA, or turning test findings into bugs.
 ---
 
 # eSoul UAT
@@ -14,9 +14,7 @@ The scenario catalogue lives in the project repository; credentials never do.
 1. Use repository instructions already in context (`CLAUDE.md`, `AGENTS.md`, earlier reads);
    do not read them again. Read by section: `## Project profile` and `## Tasking convention`
    from root `CONTEXT.md`, falling back to `GLOSSARY.md`
-   (
-   `awk '/^## Project profile/{f=1;print;next} /^## /{f=0} f' CONTEXT.md`; the same on `GLOSSARY.md` only when
-   `CONTEXT.md` lacks it), plus
+   (`for f in CONTEXT.md GLOSSARY.md; do awk -v h='## Project profile' '$0==h{p=1;s=$0 ORS;next} /^## /{p=0} p{s=s $0 ORS; if(NF)n=1} END{if(n)printf "%s",s; exit !n}' "$f" 2>/dev/null && break; done`), plus
    `docs/testing/uat/README.md` and `environment.md`. ADRs, the plan, and glossary terms are
    read only in `plan` and `verify` modes, and only for the area in scope. Repository rules
    override this skill.
@@ -26,8 +24,8 @@ The scenario catalogue lives in the project repository; credentials never do.
    from scratch here.
 3. Resolve the **design source**: a `.pen` file in the repository, a Figma link in the profile
    or docs, an eSoul mockup bundle, or none ([design.md](references/design.md)).
-4. Resolve the **bug tasking skill**: a repository-specific tasking skill when one exists
-   (for example `schok-plemenna-kniha-tasking`), otherwise `esoul-tasking`.
+4. Bugs are written through `esoul-tasking`, which applies the repository's
+   `## Tasking convention` (mode, category labels, prefixes if the project defines any).
 5. Find facts yourself. Ask the user only for access, decisions, and approvals.
 
 ## 2. Pick the mode
@@ -93,7 +91,7 @@ into missing files; never overwrite project files.
 | Need | Skill |
 |---|---|
 | Project profile, product type, UAT dimensions | `esoul-project-lifecycle` |
-| Bug issues and Freelo tasks | repository tasking skill, else `esoul-tasking` |
+| Bug issues and Freelo tasks | `esoul-tasking` (repository `## Tasking convention`) |
 | PDF rendering | `esoul-maintain-application-documentation` (`docs/documentation build`) |
 | Fix of a found bug | `esoul-workflow` (Bug flow) |
 | Mockup bundles as design source | `esoul-mockup-authoring` |

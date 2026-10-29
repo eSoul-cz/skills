@@ -1,6 +1,6 @@
 ---
 name: esoul-workflow
-description: Default operating workflow for eSoul work on web applications (PHP/Laravel/Symfony, frontend), WordPress sites, and data analyses. Use at the start of any non-trivial eSoul task (build, change, fix, debug, review, analyse, or plan work) to size the task, load repository context, pick the right companion skill, and finish with verified, committed, reviewed output. Routes to esoul-project-lifecycle for project-level preparation, gitmoji-commit, pre-pr-review, final-pr-review, esoul-tasking, esoul-mockup-authoring, esoul-maintain-application-documentation, esoul-uat, and the Matt Pocock engineering skills (grilling, tdd, diagnosing-bugs, code-review, prototype, handoff) when installed.
+description: Default operating workflow for eSoul work on web applications (PHP/Laravel/Symfony, frontend), WordPress sites, and data analyses. Use at the start of any non-trivial eSoul task (build, change, fix, debug, review, analyse, or plan work) to size the task, load repository context, route each step to the owning eSoul or Matt Pocock skill, and finish with verified, committed, reviewed output without repeating checks.
 ---
 
 # eSoul workflow
@@ -10,7 +10,8 @@ The single entry point for eSoul work. It decides *how much process* a task need
 ## 1. Load context before touching anything
 
 1. Use the repository context that is already loaded; do not read it again. The harness loads `CLAUDE.md` (and the `AGENTS.md` and memory files it imports or injects) at session start and after every compaction, and files you already read in this session are still in context. Read only what is missing, and only the part you need:
-   - a convention (tasking, commits, Freelo, project profile): the section, not the file, e.g. `awk '/^## Tasking convention/{f=1;print;next} /^## /{f=0} f' CONTEXT.md` prints the whole section up to the next `##` heading; run it on `GLOSSARY.md` only when `CONTEXT.md` lacks the section;
+   - a convention (tasking, commits, Freelo, project profile): the section, not the file. This line prints the whole section from `CONTEXT.md`, or from `GLOSSARY.md` when `CONTEXT.md` lacks it; every eSoul skill uses the same line:
+     `for f in CONTEXT.md GLOSSARY.md; do awk -v h='## Tasking convention' '$0==h{p=1;s=$0 ORS;next} /^## /{p=0} p{s=s $0 ORS; if(NF)n=1} END{if(n)printf "%s",s; exit !n}' "$f" 2>/dev/null && break; done`;
    - domain vocabulary: look up the specific term in `GLOSSARY.md` or the context named in `GLOSSARY-MAP.md` (legacy `CONTEXT.md` or `CONTEXT-MAP.md`) when the task uses it, never the whole glossary up front;
    - decisions: `docs/adr/index.md`, then only the ADRs for the area being touched.
    Repository conventions always override this skill. Every skill below follows the same context budget.
@@ -23,7 +24,7 @@ The single entry point for eSoul work. It decides *how much process* a task need
    - `codegraph explore "<query>"` CLI when a `.codegraph/` directory exists but the MCP tool is absent (typical for sub-agents).
    - Otherwise Grep/Glob, then Read only the files that matter.
    CodeGraph results stay resident in context. In long sessions, ask narrow questions rather than surveying whole areas repeatedly.
-   For broad parallel searches or audits, start fresh sub-agents (Explore or general-purpose) with a self-contained brief. Never fork the current conversation for them: a fork inherits the whole context and multiplies the cost.
+   For broad parallel searches or audits, start fresh sub-agents (Explore or general-purpose) with a self-contained brief and an explicit model: `haiku` for search and extraction, `sonnet` for audits, as in `esoul-model-routing`. Without one they inherit this session's model and effort. Never fork the current conversation for them: a fork inherits the whole context and multiplies the cost.
 4. Find facts yourself. Ask the user only for decisions, never for things the repository, tools, or logs can answer.
 
 ## 2. Size the task
@@ -91,10 +92,25 @@ Do not claim done without evidence. Run what applies and report the actual resul
 
 If something could not be verified, say what and why.
 
+**Verification receipt.** Run each check once per state of the code. After every check, record one line in the conversation (never in the repository):
+
+```text
+receipt · tree <tree12> · <command> → <pass | fail: short result>
+```
+
+`tree` is the Git tree of the whole worktree, tracked and untracked files included, computed without touching the real index:
+
+```bash
+d=$(mktemp -d); GIT_INDEX_FILE="$d/index" git read-tree HEAD && GIT_INDEX_FILE="$d/index" git add -A && GIT_INDEX_FILE="$d/index" git write-tree; rm -rf "$d"
+```
+
+It does not change when the verified files are committed (it equals the new commit's `HEAD^{tree}`), so `gitmoji-commit`, `pre-pr-review` and `final-pr-review` reuse a receipt with the same tree instead of running the check again. Re-run only what a later change can affect, and run the full suite once on the tree that will be pushed. Receipts cover checks of file content (tests, linters, builds). Checks of the index or of staging, such as `git diff --cached --check`, are not receipted and always run.
+
 ### Review (M, L)
 
-- Run `code-review` (when installed) against the branch base: standards and spec, side by side. Fix valid findings.
-- The pre-push review belongs to `final-pr-review`, which falls back to `pre-pr-review` when local CodeRabbit is unavailable or out of quota. Run `pre-pr-review` directly only when the PR will not be finished through `final-pr-review`, or when the user asks for a local review.
+- One local review per revision. When the PR will be finished through `final-pr-review`, its pre-push pass (CodeRabbit CLI, or `pre-pr-review` as fallback) is the review: do not also run `code-review`. `pre-pr-review`'s tests-and-contract lens already checks the change against the issue.
+- Run `code-review` (when installed) against the branch base only when no PR follows, or when the user asks for it. Fix valid findings.
+- Run `pre-pr-review` directly only when the PR will not be finished through `final-pr-review`, or when the user asks for a local review.
 - For documentation changes, use `esoul-maintain-application-documentation` in verify mode.
 
 ### Commit and ship
@@ -108,6 +124,8 @@ If something could not be verified, say what and why.
 - Every write to Freelo, GitHub issues, or other shared systems needs an approved preview first.
 - Destructive commands (reset, drop, force-push, bulk delete, search-replace on a database) need a backup or a dry run and explicit confirmation.
 - Prefer the repository's own scripts (Makefile, composer/npm scripts, `scripts/`) over ad-hoc commands.
+- Project data (client files, dumps, media, backups) goes to tracked `assets/` via Git LFS, never to `storage/` or other ignored folders: `esoul-project-data`.
+- On a data task (label `data-migration`, imports, data fixes, reports), never change application code or the data model beyond what the issue specifies; propose the change as new work instead: `esoul-data-task-guard`.
 
 ## 5. Definition of done
 

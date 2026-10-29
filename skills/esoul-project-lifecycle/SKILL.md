@@ -1,6 +1,6 @@
 ---
 name: esoul-project-lifecycle
-description: Run an eSoul client project from first client materials to agent-ready work. Bootstrap or retrofit the repository, ingest podklady and legacy evidence, keep the question register, glossary, ADRs, project guidelines, design brief and plan with slices, set up quality gates, batch slices into GitHub issue + Freelo pairs, audit completeness, and fold every client session back into the docs. Use when starting a new eSoul project, onboarding an existing one to the eSoul standard, after a client meeting or client answers, when writing an ADR or a plan, or when checking a project's conformance. Stack-agnostic, with profiles for common eSoul stacks (Laravel, Medusa/Nuxt, Astro) and a full or light process tier. Depends on esoul-tasking for issue and task writes and hands implementation to esoul-workflow. Does not implement features.
+description: Run an eSoul client project from first client materials to agent-ready work - bootstrap or retrofit the repository, ingest podklady and legacy evidence, keep questions, glossary, ADRs, guidelines, design brief and a sliced plan, batch slices into issue + Freelo pairs, and audit conformance. Use when starting or onboarding an eSoul project, after a client meeting or answers, when writing an ADR or a plan, or when checking a project's conformance. Does not implement features.
 ---
 
 # eSoul project lifecycle
@@ -78,16 +78,21 @@ milestones agreed with the client; `G0` (ready for development) is reached at B5
 ## 4. Company rules this skill enforces
 
 These were approved for every eSoul project. Templates in `assets/templates/` already follow them.
+Each rule has one owning skill that holds its details; this list names the rule and the owner
+and does not repeat the details.
 
 - **Titles** of issue, Freelo task and PR are identical: `Kontext: Akční výsledek`. No `[FE]`,
   `[BE]`, `[DATA]` prefix and no slice ID in the title. Category is a label on both sides.
   The slice ID goes into the issue header line and the first line of the Freelo description.
-- **Estimates** in Freelo are human time (briefing the agent, checking, review, UAT, fixes) in
-  15-minute steps. Propose a split above 4 h. Actual time is logged as Freelo work reports.
-- **CONTEXT.md** holds project conventions; **GLOSSARY.md** holds domain language only.
+  Owner: `esoul-tasking`.
+- **Estimates** in Freelo are human time in 15-minute steps; split above 4 h. Owner:
+  `esoul-freelo-task-authoring`. Actual time is logged as Freelo work reports of active work
+  only (`freelo` › work reports).
+- **CONTEXT.md** holds project conventions, including the `## Freelo` cache of tasklist IDs and
+  label UUIDs; **GLOSSARY.md** holds domain language only.
 - **ADRs** are English, `docs/adr/NNNN-english-slug.md`, with Implementation status and gaps.
-- **UAT** in the issue: `## UAT` with Role, Předpoklad and the project's UAT dimensions, then
-  `1. [ ] akce → očekávaný výsledek`. Concrete values, no SQL or shell.
+- **UAT** in the issue: the `## UAT` format owned by `esoul-tasking` (Role, Předpoklad, the
+  project's UAT dimensions, one checkbox per step).
 - **Dependencies**: GitHub native `blocked_by` is the source of truth, mirrored as a Freelo
   relation. No temporary "create this relation manually" comments.
 - **Merging**: squash merge, required `Jenkins` check and one human approval on `main`, no

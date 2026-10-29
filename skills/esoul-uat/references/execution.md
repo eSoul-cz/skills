@@ -67,8 +67,9 @@ something irreversible that the scenario does not describe, stop and ask.
 Run each chapter as its own session or fresh sub-agent (not a fork of this conversation) when
 the run is long; pass it the chapter
 file, the run directory, and the role accounts (by role code, not passwords). The parent
-only reads `uat.mjs stats <run-dir>` between chapters. Use `esoul-model-routing` to choose a
-cheaper model for mechanical chapters and a stronger one for analysing failures.
+only reads `uat.mjs stats <run-dir>` between chapters. Start chapter sub-agents with an
+explicit `model: sonnet` (they click and record; without a model they inherit the parent's
+model and effort) and keep the analysis of failures and the bug triage on the parent model.
 
 ### Responsive sweep and design
 

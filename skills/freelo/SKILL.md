@@ -26,8 +26,20 @@ This file is the core. Read a reference only when the task needs it:
 - [references/api-behaviour.md](references/api-behaviour.md): response and error shapes,
   pagination, date formats, whitelists (currency, colours, priority), integer IDs vs UUIDs,
   CREATE vs GET differences, data model, raw API escape hatch, troubleshooting.
+- [references/work-reports.md](references/work-reports.md): how to count the minutes of a
+  work report. Read it before every `freelo reports create` or `edit`.
 
 If this skill is already loaded in the session, do not load it again.
+
+Every request costs ~2.4 s, so reuse what the session already fetched, and in a repository read
+project, tasklist and label IDs from the `## Freelo` section of `CONTEXT.md` before listing them.
+
+## Work reports: active work only
+
+A work report records active work, never waiting for tests, builds, mutation testing, E2E, CI or
+the test queue. Compute the minutes from the session transcript as described in
+[references/work-reports.md](references/work-reports.md), round to 5 minutes, and tell the user
+how much waiting was left out.
 
 ## Check authentication first
 

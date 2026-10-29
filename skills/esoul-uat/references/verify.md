@@ -12,7 +12,7 @@ changes and whenever the user asks whether the scenarios are current.
    branch head (`origin/main` or the repository default), not a feature branch; use a
    detached worktree when the main checkout is on another branch.
 2. Split chapters into groups of 5–8 and audit the groups in parallel with fresh read-only
-   sub-agents (Explore). Never fork the current conversation for this: a fork inherits the
+   sub-agents (Explore, `model: sonnet`). Never fork the current conversation for this: a fork inherits the
    whole context and multiplies the cost. The same applies to sub-agents that update chapters. Give each the chapter files, the format rules, the code areas (routes, pages,
    navigation, policies, form requests, language files, seeders, tests), and the docs
    (GLOSSARY, ADRs, plan). Ask for evidence with `file:line` for every claim.

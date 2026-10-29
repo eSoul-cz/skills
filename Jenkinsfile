@@ -48,6 +48,12 @@ pipeline {
 			}
 		}
 
+		stage('Verify skills') {
+			steps {
+				sh 'tooling/scripts/test_skills'
+			}
+		}
+
 		stage('Verify tooling') {
 			steps {
 				sh 'tooling/scripts/test_tooling_version'
