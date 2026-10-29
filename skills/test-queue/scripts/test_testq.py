@@ -119,6 +119,12 @@ class AdmissionTest(unittest.TestCase):
         running_m = dict(m, state="running", started_at=5)
         self.assertIn("budget", self.admit(m2, [h1, h2, running_m, m2]))
 
+    def test_class_limit_raises_a_smaller_budget(self):
+        h1, h2 = job("a", "heavy", "running", 1, 1), job("b", "heavy", "waiting", 2)
+        self.assertIsNone(self.admit(h2, [h1, h2], max={"light": 4, "medium": 2, "heavy": 2}))  # 5+5 > 8, limit wins
+        running_h2, m = dict(h2, state="running", started_at=2), job("c", "medium", "waiting", 3)
+        self.assertIn("budget full (10+3 > 10)", self.admit(m, [h1, running_h2, m], max={"light": 4, "medium": 2, "heavy": 2}))
+
     def test_fifo_within_class(self):
         first, second = job("a", "medium", "waiting", 1), job("b", "medium", "waiting", 2)
         self.assertIsNotNone(self.admit(second, [first, second]))
