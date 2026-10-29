@@ -314,7 +314,7 @@ $esoul-workflow analyse last quarter's orders by acquisition channel
 
 ### `esoul-model-routing`
 
-Choose and set the right Claude model and effort level for a task, to balance cost and quality: Haiku for trivial mechanical work, Sonnet for contained changes, Opus for real engineering, and `best` (Fable where available, else Opus) for the hardest or most sensitive work. Covers the current lineup and the Claude Code aliases, and picks the model for subagents it dispatches. Advises and sets the model; it does not silently swap the running turn.
+Choose and set the right Claude model and effort level for a task, to balance cost and quality: Haiku for trivial mechanical work, Sonnet for contained changes, Opus for real engineering, and `best` (Fable where available, else Opus) for the hardest or most sensitive work. Covers the current lineup (Fable 5.1, Opus 5.5, Sonnet 5.5, Haiku 5.5) with prices and default effort, the Claude Code aliases, and the model for each kind of subagent eSoul skills start. Recommends keeping `high` as the saved effort and raising it per session, rather than saving `xhigh` for every turn. Advises and sets the model; it does not silently swap the running turn.
 
 Usage:
 
