@@ -3,7 +3,7 @@
 
 Usage:
   testq run [-c light|medium|heavy] [-l LABEL] -- CMD [ARGS...]
-  testq status [--json]        what runs and waits right now, plus memory/load
+  testq status [--json]        what runs and waits right now, estimated times, memory/load
   testq history [N]            last finished jobs
   testq pause | resume         stop / allow starting new jobs (running ones continue)
   testq enable | disable       turn the whole queue (and the Claude hook) on / off
@@ -28,6 +28,7 @@ import os
 import re
 import shlex
 import signal
+import statistics
 import subprocess
 import sys
 import threading
@@ -46,6 +47,10 @@ CLASSES = ("light", "medium", "heavy")
 RANK = {c: i for i, c in enumerate(CLASSES)}
 POLL_SECONDS = 1.5
 REPORT_SECONDS = 60
+HISTORY_KEEP = 500
+# run time per class when the history has nothing comparable
+TYPICAL_RUN = {"light": 60, "medium": 300, "heavy": 900}
+STOPPED_EXITS = (130, 143)
 
 DEFAULTS = {
     "enabled": True,
@@ -113,7 +118,9 @@ def merge_config(cfg, override):
 
 def load_config():
     cfg = merge_config(json.loads(json.dumps(DEFAULTS)), tuned_limits(*hardware()))
-    return merge_config(cfg, read_json(CONFIG_PATH, {}) or {})
+    cfg = merge_config(cfg, read_json(CONFIG_PATH, {}) or {})
+    cfg["budget"] = effective_budget(cfg)
+    return cfg
 
 
 def set_config(key, value):
@@ -249,6 +256,11 @@ def weight(cfg, cls):
     return cfg["weights"].get(cls, 3)
 
 
+def effective_budget(cfg):
+    """The budget, raised so that each class limit is reachable: max.heavy 2 needs 2 × 5."""
+    return max([cfg["budget"]] + [cfg["max"][c] * weight(cfg, c) for c in ("medium", "heavy")])
+
+
 def admission(me, jobs, cfg, stats, now):
     """None when `me` may start now, otherwise the reason it has to wait."""
     if not cfg["enabled"]:
@@ -263,9 +275,9 @@ def admission(me, jobs, cfg, stats, now):
         return None
 
     gated = [j for j in running if j["class"] != "light"]
-    used, w = sum(weight(cfg, j["class"]) for j in gated), weight(cfg, cls)
-    if gated and used + w > cfg["budget"]:
-        return f"budget full ({used}+{w} > {cfg['budget']})"
+    used, w, budget = sum(weight(cfg, j["class"]) for j in gated), weight(cfg, cls), effective_budget(cfg)
+    if gated and used + w > budget:
+        return f"budget full ({used}+{w} > {budget})"
 
     # FIFO, except that a job may overtake an earlier job of another class that is blocked
     # by its own class limit: that job can only start once a job of its class ends, which
@@ -305,6 +317,78 @@ def running_summary(jobs, now):
     parts = [f"{j['class']} {j.get('project', '?')} {fmt_secs(now - (j.get('started_at') or now))}"
              for j in jobs if j["state"] == "running"]
     return ", ".join(parts) or "nothing"
+
+
+# --- run time estimates ------------------------------------------------------------
+
+def estimate_keys(job):
+    """From the most to the least specific: the same command, the project's class, the class."""
+    return (("label", job.get("project"), job.get("label")),
+            ("project", job.get("project"), job["class"]),
+            ("class", job["class"]))
+
+
+def run_samples(history):
+    """Run times of finished jobs grouped by estimate_keys(), oldest first. Stopped runs are left out."""
+    samples = {}
+    for h in history:
+        if h.get("class") not in CLASSES or not h.get("started_at") or not h.get("ended_at") \
+                or h.get("exit") in STOPPED_EXITS:
+            continue
+        for key in estimate_keys(h):
+            samples.setdefault(key, []).append(h["ended_at"] - h["started_at"])
+    return samples
+
+
+def estimate_run(job, samples):
+    """(typical run time in seconds, basis): the median of the last runs of the closest match."""
+    for key in estimate_keys(job):
+        runs = samples.get(key)
+        if runs:
+            return statistics.median(runs[-7:]), key[0]
+    return TYPICAL_RUN[job["class"]], "default"
+
+
+def forecast(jobs, cfg, now, samples):
+    """Expected start and end of every job, replaying admission() with typical run times.
+
+    The memory and load gates are left out, so on a machine short of memory it is optimistic.
+    start/end stay None for jobs that cannot start, e.g. while the queue is paused."""
+    sim, result = [], {}
+    for job in jobs:
+        run, basis = estimate_run(job, samples)
+        entry = result[job["id"]] = {"run": run, "basis": basis, "start": None, "end": None}
+        if job["state"] == "running":
+            entry["start"] = now if job.get("started_at") is None else job["started_at"]
+            # a job past its estimate still needs a moment
+            entry["end"] = max(entry["start"] + run, now + 30)
+        sim.append(dict(job))
+
+    stats, t = {"mem_level": None, "load": [0.0]}, now
+    while any(j["state"] == "waiting" for j in sim):
+        # one pass in queue order: a start only restricts later jobs, except for FIFO,
+        # and an earlier job has already had its turn in this pass
+        for job in sim:
+            if job["state"] == "waiting" and admission(job, sim, cfg, stats, t) is None:
+                job.update(state="running", started_at=t)
+                entry = result[job["id"]]
+                entry.update(start=t, end=t + entry["run"])
+        running = [j for j in sim if j["state"] == "running"]
+        events = [result[j["id"]]["end"] for j in running]
+        gated = [j["started_at"] for j in running if j["class"] != "light"]
+        if gated:
+            events.append(max(gated) + cfg["settle_seconds"])
+        events = [e for e in events if e > t]
+        if not events:
+            break
+        t = min(events)
+        sim = [j for j in sim if j["state"] != "running" or result[j["id"]]["end"] > t]
+    return result
+
+
+def queue_end(estimates):
+    ends = [e["end"] for e in estimates.values()]
+    return max(ends) if ends and None not in ends else None
 
 
 def descendants(pid):
@@ -799,10 +883,12 @@ def snapshot():
 
 def cmd_status(args):
     snap = snapshot()
+    cfg, sysm, now = snap["config"], snap["system"], snap["now"]
+    est = forecast(snap["jobs"], cfg, now, run_samples(read_history(HISTORY_KEEP)))
+    snap.update(estimates=est, queue_end=queue_end(est))
     if "--json" in args:
         print(json.dumps(snap, indent=2))
         return 0
-    cfg, sysm, now = snap["config"], snap["system"], snap["now"]
     state = "DISABLED" if not cfg["enabled"] else "PAUSED" if cfg["paused"] else "on"
     swap = f"{sysm['swap_used_mb'] / 1024:.1f}/{sysm['swap_total_mb'] / 1024:.1f} GB" if sysm["swap_total_mb"] else "-"
     print(f"queue {state} | free memory {sysm['mem_level']}% (min {cfg['mem_min_level']}%) | swap {swap} | "
@@ -813,7 +899,13 @@ def cmd_status(args):
         rows = [j for j in snap["jobs"] if j["state"] == st]
         print(f"\n{title} ({len(rows)})")
         for j in rows:
-            print(f"  {j['id'][-8:]}  {j['class']:<6} {fmt_secs(now - j[ts]):>7}  {j.get('project', '?'):<24} {j.get('label', '')[:70]}")
+            e = est[j["id"]]
+            eta = ("-" if e["start"] is None else f"~{fmt_secs(e['end'] - now)} left" if st == "running"
+                   else "now" if e["start"] - now < 5 else f"in ~{fmt_secs(e['start'] - now)}")
+            print(f"  {j['id'][-8:]}  {j['class']:<6} {fmt_secs(now - j[ts]):>7} {eta:>12}  "
+                  f"{j.get('project', '?'):<24} {j.get('label', '')[:70]}")
+    if snap["queue_end"]:
+        print(f"\nqueue empty in ~{fmt_secs(snap['queue_end'] - now)} (typical run times from history, memory gate ignored)")
     return 0
 
 
@@ -1122,7 +1214,7 @@ def cmd_doctor():
         swap_ok = not stats["swap_total_mb"] or stats["swap_used_mb"] / 1024 < mem_gb * 0.1
         if cls != "light" and median > 300 and (stats["mem_level"] or 0) >= 40 and swap_ok:
             tips.append(f"{cls} jobs wait {fmt_secs(median)} on median while memory is free: "
-                        f"raise `testq config max.{cls} {cfg['max'][cls] + 1}` (and `budget` if needed).")
+                        f"raise `testq config max.{cls} {cfg['max'][cls] + 1}`.")
 
     print("\n" + ("\n".join(f"- {t}" for t in tips) if tips else "No issues found."))
     return 0

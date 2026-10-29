@@ -15,7 +15,7 @@ without restarting anything.
 | `max.heavy` | 1 | Concurrent heavy jobs (E2E, mutation). | 2 on 32 GB+ once `doctor` shows long heavy waits with free memory. |
 | `max.medium` | 2 | Concurrent medium jobs (suites, builds). | Raise when medium waits are long and memory stays above ~40 %. |
 | `max.light` | 4 | Concurrent light jobs. | Rarely; lower on 8 GB machines. |
-| `budget` | 8 | Shared capacity of medium + heavy jobs, using their weights. | Raise together with `max.*`, otherwise the budget still blocks: two heavy jobs need ≥ 10. |
+| `budget` | 8 | Shared capacity of medium + heavy jobs, using their weights. Never lower than each class limit alone needs (`max.heavy` 2 × weight 5 = 10); testq raises it to that. | Lower it to stop heavy and medium jobs from running side by side; raise it to allow more of them together. |
 | `weights.{light,medium,heavy}` | 1 / 3 / 5 | Cost of a job against the budget. | Make heavy 6–8 when E2E runs several browsers per worker. |
 | `mem_min_level` | 20 | Percent of RAM that must be available to start another medium/heavy job (macOS `kern.memorystatus_level`, Linux `MemAvailable`). A job always starts when nothing else runs. | Raise to 30 when swap keeps growing; lower to 10–15 on 64 GB machines. |
 | `max_load` | 0 (off) | Optional load-average gate for medium/heavy starts. | Leave off on macOS: load counts threads stuck on swap and lags behind memory. |
@@ -40,11 +40,16 @@ queue is paused.
 
 - **Rings**: CPU, memory in use (100 − available %), swap in use, load average. Green, orange
   and red follow the same thresholds as `testq doctor`.
-- **Running / Waiting**: class badge (T heavy, S medium, L light), project, command, time, a
-  stop button. Stopping a waiting job cancels it; stopping a running one terminates its
+- **Running / Waiting**: class badge (T heavy, S medium, L light), project, command, time, the
+  estimate (time left, or expected start and run time; the tooltip names its source), a
+  stop button. The waiting header shows when the whole queue should be empty. Stopping a waiting job cancels it; stopping a running one terminates its
   whole process tree (exit 143 for the agent).
 - **Controls**: Pause/Resume, the queue on/off switch, and steppers for `max.heavy`,
-  `max.medium`, `budget`, `mem_min_level` and `workers`. They write `config.json`.
+  `max.medium`, `max.light`, `weights.heavy`, `weights.medium`, `budget`, `mem_min_level` and
+  `workers`.
+  They write `config.json`. The budget shows the value testq uses and cannot go below what the
+  class limits need. Below it, the widget shows how much of the budget running jobs use and
+  which mixes fit at once (for example `2S · 1T+1S · 2T`).
 - **Docker VM (Colima)**, shown only when a Colima profile exists: the VM memory with a
   stepper (2 GB up to RAM − 2 GB) and a **Restart** button. After a confirmation it runs
   `testq vm restart --memory N` (see below) and shows each phase; the last result or error
@@ -53,7 +58,20 @@ queue is paused.
 - **Open data** opens `~/.local/state/testq`; **Quit widget** stops the app until the next
   login (`launchctl kickstart gui/$(id -u)/cz.esoul.testq` starts it again).
 
-The widget only reads the state files and sends signals; the queue works without it.
+The popup scrolls when a long queue would not fit on the screen.
+
+The widget reads the state files, sends signals and asks `testq status --json` for estimates
+every 10 s; the queue works without it.
+
+## Estimates
+
+`testq status` (and `--json`, which the widget reads) shows how long each job should still
+run or when it should start. A job's run time is the median of the last runs of the same
+command (label) in the same project, else of the same class in the project, else of the class
+anywhere, else 1 / 5 / 15 min for light / medium / heavy. Runs stopped with exit 130/143 do
+not count. Start times replay the admission rules (limits, budget, order, settle time) with
+these run times. The memory and load gates cannot be predicted, so on a machine short of
+RAM the estimate is optimistic.
 
 ## `testq doctor`
 

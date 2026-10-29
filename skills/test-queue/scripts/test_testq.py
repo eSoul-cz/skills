@@ -119,6 +119,12 @@ class AdmissionTest(unittest.TestCase):
         running_m = dict(m, state="running", started_at=5)
         self.assertIn("budget", self.admit(m2, [h1, h2, running_m, m2]))
 
+    def test_class_limit_raises_a_smaller_budget(self):
+        h1, h2 = job("a", "heavy", "running", 1, 1), job("b", "heavy", "waiting", 2)
+        self.assertIsNone(self.admit(h2, [h1, h2], max={"light": 4, "medium": 2, "heavy": 2}))  # 5+5 > 8, limit wins
+        running_h2, m = dict(h2, state="running", started_at=2), job("c", "medium", "waiting", 3)
+        self.assertIn("budget full (10+3 > 10)", self.admit(m, [h1, running_h2, m], max={"light": 4, "medium": 2, "heavy": 2}))
+
     def test_fifo_within_class(self):
         first, second = job("a", "medium", "waiting", 1), job("b", "medium", "waiting", 2)
         self.assertIsNotNone(self.admit(second, [first, second]))
@@ -141,6 +147,44 @@ class AdmissionTest(unittest.TestCase):
         me = job("a", "medium", "waiting", 1)
         self.assertIn("paused", self.admit(me, [me], paused=True))
         self.assertIsNone(self.admit(me, [me], paused=True, enabled=False))
+
+
+def finished(cls, label, run, exit_code=0, project="p"):
+    return {"class": cls, "project": project, "label": label, "queued_at": 0, "started_at": 10,
+            "ended_at": 10 + run, "exit": exit_code}
+
+
+class ForecastTest(unittest.TestCase):
+    cfg = AdmissionTest.cfg
+
+    def test_estimate_prefers_the_same_command(self):
+        samples = testq.run_samples([
+            finished("medium", "pnpm test", 100), finished("medium", "pnpm test", 300),
+            finished("medium", "pnpm test", 5, exit_code=143),  # stopped, not a real run time
+            finished("medium", "composer test", 1000),
+            finished("heavy", "e2e", 600, project="other"),
+        ])
+        self.assertEqual(testq.estimate_run(dict(job("a", "medium", "waiting", 1), label="pnpm test"), samples), (200, "label"))
+        self.assertEqual(testq.estimate_run(dict(job("a", "medium", "waiting", 1), label="new"), samples), (300, "project"))
+        self.assertEqual(testq.estimate_run(job("a", "heavy", "waiting", 1), samples), (600, "class"))
+        self.assertEqual(testq.estimate_run(job("a", "light", "waiting", 1), samples), (60, "default"))
+
+    def test_replays_the_queue(self):
+        samples = testq.run_samples([finished("heavy", "e2e", 1000), finished("medium", "suite", 300)])
+        h1 = dict(job("h1", "heavy", "running", 0, 0), label="e2e")
+        h2 = dict(job("h2", "heavy", "waiting", 1), label="e2e")
+        m1, m2 = (dict(job(i, "medium", "waiting", q), label="suite") for i, q in (("m1", 2), ("m2", 3)))
+        est = testq.forecast([h1, h2, m1, m2], self.cfg, 400.0, samples)
+        self.assertEqual(est["h1"]["end"], 1000)
+        self.assertEqual((est["m1"]["start"], est["m1"]["end"]), (400, 700))  # overtakes the class-blocked heavy
+        self.assertEqual(est["m2"]["start"], 700)  # 5+3+3 does not fit next to m1, only after it
+        self.assertEqual(est["h2"]["start"], 1000)
+        self.assertEqual(testq.queue_end(est), 2000)
+
+    def test_paused_queue_has_no_start(self):
+        est = testq.forecast([job("a", "medium", "waiting", 1)], dict(self.cfg, paused=True), 0.0, {})
+        self.assertIsNone(est["a"]["start"])
+        self.assertIsNone(testq.queue_end(est))
 
 
 class ColimaTest(unittest.TestCase):

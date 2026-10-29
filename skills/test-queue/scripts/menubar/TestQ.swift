@@ -57,6 +57,42 @@ struct HistoryEntry: Identifiable, Decodable {
     }
 }
 
+struct Estimate: Decodable {
+    let run: Double
+    let basis: String
+    let start: Double?
+    let end: Double?
+}
+
+struct Forecast: Decodable {
+    let estimates: [String: Estimate]
+    let queueEnd: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case estimates
+        case queueEnd = "queue_end"
+    }
+}
+
+let toolPath = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+// Estimates come from `testq status --json`, which replays the queue with run times from the history.
+func readForecast() -> Forecast? {
+    let process = Process()
+    let pipe = Pipe()
+    process.executableURL = URL(fileURLWithPath: testqPath)
+    process.arguments = ["status", "--json"]
+    var env = ProcessInfo.processInfo.environment
+    env["PATH"] = toolPath
+    process.environment = env
+    process.standardOutput = pipe
+    process.standardError = FileHandle.nullDevice
+    guard (try? process.run()) != nil else { return nil }
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    process.waitUntilExit()
+    return process.terminationStatus == 0 ? try? JSONDecoder().decode(Forecast.self, from: data) : nil
+}
+
 func pidAlive(_ pid: Int32?) -> Bool {
     guard let pid, pid > 0 else { return false }
     return kill(pid, 0) == 0 || errno == EPERM
@@ -91,9 +127,14 @@ final class Model: ObservableObject {
     @Published var vmMemory: Int?
     @Published var vmTarget = 0
     @Published var vmState: [String: Any] = [:]
+    @Published var forecast: Forecast?
+    @Published var contentHeight: CGFloat = 600
     let ncpu = ProcessInfo.processInfo.activeProcessorCount
     let ramGB = Int(ProcessInfo.processInfo.physicalMemory / 1_073_741_824)
     private var vmTargetEdited = false
+    private var forecastAt = 0.0
+    private var forecastJobs: [String] = []
+    private var forecasting = false
     private var prevTicks: (busy: UInt64, total: UInt64)?
     private var timer: Timer?
 
@@ -119,6 +160,13 @@ final class Model: ObservableObject {
         return (node as? NSNumber)?.intValue ?? 0
     }
 
+    // testq raises the budget to what the class limits need; show the value it really uses
+    var minBudget: Int {
+        max(intValue("max.heavy") * intValue("weights.heavy"), intValue("max.medium") * intValue("weights.medium"))
+    }
+
+    func estimate(_ job: Job) -> Estimate? { forecast?.estimates[job.id] }
+
     func refresh() {
         now = Date().timeIntervalSince1970
         readStats()
@@ -126,6 +174,26 @@ final class Model: ObservableObject {
         readJobs()
         readHistory()
         readVM()
+        refreshForecast()
+    }
+
+    private func refreshForecast() {
+        let ids = jobs.map(\.id)
+        guard !forecasting, !ids.isEmpty, ids != forecastJobs || now - forecastAt >= 10 else {
+            if ids.isEmpty { forecast = nil }
+            return
+        }
+        forecasting = true
+        forecastAt = now
+        forecastJobs = ids
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let result = readForecast()
+            Task { @MainActor in
+                guard let self else { return }
+                self.forecasting = false
+                if let result { self.forecast = result }
+            }
+        }
     }
 
     var vmPhase: String { vmState["phase"] as? String ?? "" }
@@ -167,7 +235,7 @@ final class Model: ObservableObject {
         process.executableURL = URL(fileURLWithPath: testqPath)
         process.arguments = ["vm", "restart", "--memory", String(vmTarget)] + (busyJobs > 0 ? ["--force"] : [])
         var env = ProcessInfo.processInfo.environment
-        env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+        env["PATH"] = toolPath
         process.environment = env
         process.standardOutput = FileHandle.nullDevice
         process.standardError = FileHandle.nullDevice
@@ -349,13 +417,40 @@ struct JobRow: View {
             }
             Spacer(minLength: 6)
             if let position { Text("#\(position)").font(.caption).foregroundStyle(.secondary) }
-            Text(fmtDuration(model.now - (job.startedAt ?? job.queuedAt)))
-                .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+            VStack(alignment: .trailing, spacing: 1) {
+                Text(fmtDuration(model.now - (job.startedAt ?? job.queuedAt)))
+                    .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                if let estimate = model.estimate(job) {
+                    Text(etaText(estimate))
+                        .font(.caption2.monospacedDigit()).foregroundStyle(.tertiary)
+                        .help(basisText(estimate))
+                }
+            }
             Button { model.stop(job) } label: {
                 Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
             .help(job.state == "running" ? "Ukončit běžící testy" : "Zrušit čekající běh")
+        }
+    }
+
+    private func etaText(_ estimate: Estimate) -> String {
+        if job.state == "running" {
+            guard let end = estimate.end else { return "" }
+            let elapsed = model.now - (job.startedAt ?? model.now)
+            return elapsed > estimate.run ? "přes odhad \(fmtDuration(estimate.run))" : "zbývá ~\(fmtDuration(end - model.now))"
+        }
+        guard let start = estimate.start else { return "start ?" }
+        let run = "běh ~\(fmtDuration(estimate.run))"
+        return start - model.now < 5 ? "start teď · \(run)" : "start ~\(fmtDuration(start - model.now)) · \(run)"
+    }
+
+    private func basisText(_ estimate: Estimate) -> String {
+        switch estimate.basis {
+        case "label": "Odhad z posledních běhů stejného příkazu"
+        case "project": "Odhad z běhů téže třídy v tomto projektu"
+        case "class": "Odhad z běhů téže třídy ve všech projektech"
+        default: "Výchozí odhad, historie zatím nic podobného nemá"
         }
     }
 }
@@ -367,17 +462,58 @@ struct LimitStepper: View {
     let range: ClosedRange<Int>
     var step = 1
     var suffix = ""
+    var minimum = Int.min
 
     var body: some View {
-        let value = model.intValue(key)
+        let lower = min(max(range.lowerBound, minimum), range.upperBound)
+        let value = max(model.intValue(key), lower)
         HStack {
             Text(title).font(.callout)
             Spacer()
             Text("\(value)\(suffix)").font(.callout.monospacedDigit()).frame(minWidth: 34, alignment: .trailing)
-            Stepper("", value: Binding(get: { value }, set: { model.setConfig(key, $0) }), in: range, step: step)
+            Stepper("", value: Binding(get: { value }, set: { model.setConfig(key, $0) }),
+                    in: lower...range.upperBound, step: step)
                 .labelsHidden()
         }
     }
+}
+
+// What the budget holds right now and which mixes of heavy and medium jobs fit into it.
+struct BudgetUsage: View {
+    @EnvironmentObject var model: Model
+
+    var body: some View {
+        let (wHeavy, wMedium) = (model.intValue("weights.heavy"), model.intValue("weights.medium"))
+        let budget = max(model.intValue("budget"), model.minBudget)
+        let heavy = model.running.filter { $0.jobClass == "heavy" }.count
+        let medium = model.running.filter { $0.jobClass == "medium" }.count
+        let parts = (heavy > 0 ? ["\(heavy)×T \(heavy * wHeavy)"] : []) + (medium > 0 ? ["\(medium)×S \(medium * wMedium)"] : [])
+        VStack(alignment: .leading, spacing: 2) {
+            Text(parts.isEmpty ? "Využito 0 z \(budget)"
+                : "Využito \(heavy * wHeavy + medium * wMedium) z \(budget): \(parts.joined(separator: " + "))")
+            Text("Vejde se najednou: \(mixes(budget, wHeavy, wMedium).joined(separator: " · "))")
+        }
+        .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // the largest mixes within the class limits; a smaller mix that fits inside another is left out
+    private func mixes(_ budget: Int, _ wHeavy: Int, _ wMedium: Int) -> [String] {
+        let (maxHeavy, maxMedium) = (model.intValue("max.heavy"), model.intValue("max.medium"))
+        guard wHeavy > 0, wMedium > 0 else { return [] }
+        let options: [(Int, Int)] = (0...max(maxHeavy, 0)).compactMap { h in
+            let left = budget - h * wHeavy
+            return left < 0 ? nil : (h, min(maxMedium, left / wMedium))
+        }
+        return options
+            .filter { o in o != (0, 0) && !options.contains { $0 != o && $0.0 >= o.0 && $0.1 >= o.1 } }
+            .map { h, m in [h > 0 ? "\(h)T" : nil, m > 0 ? "\(m)S" : nil].compactMap { $0 }.joined(separator: "+") }
+    }
+}
+
+struct ContentHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
 }
 
 struct VMSection: View {
@@ -443,7 +579,23 @@ struct VMSection: View {
 struct ContentView: View {
     @EnvironmentObject var model: Model
 
+    // A long queue would push the controls below the screen edge: cap the height and scroll.
     var body: some View {
+        ScrollView(.vertical) {
+            content
+                .background(GeometryReader { Color.clear.preference(key: ContentHeightKey.self, value: $0.size.height) })
+        }
+        .frame(width: 400, height: min(model.contentHeight, maxHeight))
+        .onPreferenceChange(ContentHeightKey.self) { height in
+            Task { @MainActor in if model.contentHeight != height { model.contentHeight = height } }
+        }
+    }
+
+    private var maxHeight: CGFloat {
+        (NSScreen.main?.visibleFrame.height ?? 800) - 24
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text("Fronta testů").font(.headline)
@@ -484,7 +636,16 @@ struct ContentView: View {
             VStack(spacing: 4) {
                 LimitStepper(title: "Těžké najednou (E2E, mutace)", key: "max.heavy", range: 0...4)
                 LimitStepper(title: "Střední najednou (sady, buildy)", key: "max.medium", range: 1...6)
-                LimitStepper(title: "Rozpočet (T=5, S=3)", key: "budget", range: 3...20)
+                LimitStepper(title: "Lehké najednou (lint, phpstan, 1 test)", key: "max.light", range: 1...8)
+                    .help("Lehké běhy nečekají na rozpočet ani na paměť, hlídá je jen tenhle limit.")
+                LimitStepper(title: "Váha těžkého (T)", key: "weights.heavy", range: 1...10)
+                    .help("Kolik rozpočtu zabere jeden těžký běh.")
+                LimitStepper(title: "Váha středního (S)", key: "weights.medium", range: 1...10)
+                    .help("Kolik rozpočtu zabere jeden střední běh.")
+                LimitStepper(title: "Rozpočet", key: "budget", range: 3...40, minimum: model.minBudget)
+                    .help("Těžké a střední běhy se dělí o rozpočet podle vah. Nikdy není menší, "
+                        + "než kolik potřebují limity výše, jinak by se nastavený počet nespustil.")
+                BudgetUsage()
                 LimitStepper(title: "Min. volná paměť", key: "mem_min_level", range: 0...50, step: 5, suffix: " %")
                 LimitStepper(title: "Workerů na jeden běh", key: "workers", range: 1...8)
             }
@@ -518,12 +679,19 @@ struct ContentView: View {
             .buttonStyle(.link).font(.caption)
         }
         .padding(16)
-        .frame(width: 400)
     }
 
     @ViewBuilder
     private func section(_ title: String, _ jobs: [Job], numbered: Bool) -> some View {
-        Text("\(title) (\(jobs.count))").font(.caption).foregroundStyle(.secondary)
+        HStack {
+            Text("\(title) (\(jobs.count))")
+            Spacer()
+            if numbered, !jobs.isEmpty, let end = model.forecast?.queueEnd {
+                Text("vše doběhne za ~\(fmtDuration(end - model.now))").monospacedDigit()
+                    .help("Odhad z typických časů běhu v historii; nepočítá s čekáním na volnou paměť.")
+            }
+        }
+        .font(.caption).foregroundStyle(.secondary)
         if jobs.isEmpty {
             Text(numbered ? "Nic nečeká" : "Nic neběží").font(.callout).foregroundStyle(.tertiary)
         } else {
