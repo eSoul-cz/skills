@@ -106,7 +106,7 @@ $gitmoji-commit commit your work
 
 Finishes individual GitHub PRs and native stacked PRs: optional local CodeRabbit review before pushing, CI and remote review monitoring, fixes for valid findings, evidence-backed replies to invalid findings, and repeated verification until the current revision is approved. Does not merge or bypass required human reviews.
 
-Uses `gitmoji-commit` for commits and `code-review` for local review when available. Requires authenticated GitHub access and the repository's CodeRabbit integration; automatic CodeRabbit approval requires `reviews.request_changes_workflow` to be enabled.
+Uses `gitmoji-commit` for commits and `code-review` for local review when available, and falls back to `pre-pr-review` when local CodeRabbit is unavailable or out of quota. When CodeRabbit is rate-limited or out of credits on the PR, it posts a `pre-pr-review` fallback review and accepts that skill's approval instead of waiting for CodeRabbit (`wait-pr.mjs --skip-reviewer` stops the poller from waiting for it). Requires authenticated GitHub access and the repository's CodeRabbit integration; automatic CodeRabbit approval requires `reviews.request_changes_workflow` to be enabled.
 
 Usage:
 
@@ -131,6 +131,47 @@ It exits with a JSON snapshot when CI fails, discussion or review activity appea
 
 ```bash
 node --test tooling/scripts/test_wait_pr.mjs
+```
+
+### `pre-pr-review`
+
+Reviews a branch locally before a PR is opened or updated, in place of CodeRabbit's pre-push review when its CLI is missing, rate-limited, or out of credits. Resolves the exact diff against the real base (committed, staged, unstaged, and untracked changes), applies `.coderabbit.yaml` path filters, path instructions, and profile, scans every changed file for credentials, runs the repository's own linters and tests, and reviews the change through four lenses: correctness, security and data boundaries, tests and contract, and maintainability. Larger changes run the lenses as parallel subagents. Every candidate finding is verified against the code before it is reported, using the project's severity scale, with evidence, a proposed fix, and verification. Fixes valid findings and re-reviews incrementally when asked.
+
+When CodeRabbit hits its rate limit or runs out of credits on an open PR, the skill reviews the published head and posts the findings to the PR the way CodeRabbit would: one review with event `COMMENT`, inline comments with one-click suggestions on lines in the diff, everything else in the review body, and no duplicates on later heads. `final-pr-review` does this automatically when it sees the limit and then continues with the fallback review in CodeRabbit's place: once every finding is resolved, the skill posts its approval of the current head, so the PR is approved either by CodeRabbit or by `pre-pr-review`, and a rate-limited or out-of-credits CodeRabbit no longer blocks finishing it. The approval is a `COMMENT` review, not a GitHub approval, so it never counts toward the required human review.
+
+The code never leaves the agent's own model. The verdict is not an approval: it is reported as a CodeRabbit substitution, and the human review is still required.
+
+Usage:
+
+```text
+$pre-pr-review review my branch against origin/main before I open the PR
+$pre-pr-review CodeRabbit is out of limit; review and fix the uncommitted changes only
+$pre-pr-review CodeRabbit is rate-limited on https://github.com/OWNER/REPO/pull/123; post the review to the PR
+```
+
+Resolving the scope uses the bundled read-only script (Node.js 18+, no dependencies). Run it from the repository under review (or pass `--repo <path>`), with `SKILL_DIR` set to the installed skill's directory:
+
+```bash
+node "$SKILL_DIR/scripts/review-scope.mjs" --base origin/main
+```
+
+It prints the reviewed and excluded files with reasons, the matching path instructions, redacted credential hits, and warnings about stale bases or large changes. Its regression tests build throwaway git repositories and need no network:
+
+```bash
+node --test tooling/scripts/test_review_scope.mjs
+```
+
+Detecting the limit and posting use the second bundled script (Node.js 18+ and authenticated `gh`). `check` is read-only; `post` is a dry run that prints the exact payload unless `--post` is given:
+
+```bash
+node "$SKILL_DIR/scripts/post-review.mjs" check https://github.com/OWNER/REPO/pull/123
+node "$SKILL_DIR/scripts/post-review.mjs" post https://github.com/OWNER/REPO/pull/123 --findings findings.json [--post]
+```
+
+The findings format is in `references/pr-comments.md`. Its regression tests use a fake `gh` and need no network:
+
+```bash
+node --test tooling/scripts/test_post_review.mjs
 ```
 
 ### `esoul-maintain-application-documentation`
@@ -260,7 +301,7 @@ $esoul-uat run chapters AUT and NAV on the UAT instance, desktop and mobile, wit
 
 ### `esoul-workflow`
 
-Default entry point for eSoul work on web applications, WordPress sites, and data analyses. Loads repository context, sizes the task (S, M, L, bug, analysis), and routes each step to the owning skill instead of repeating it: `esoul-tasking` for tracked work, `esoul-mockup-authoring` and `frontend-design` for UI, `gitmoji-commit` for commits, `final-pr-review` for PRs. Uses the Matt Pocock skills (`grilling`, `tdd`, `diagnosing-bugs`, `code-review`) and CodeGraph when installed, and degrades gracefully without them. Includes short references for the eSoul web stack, the WP-template WordPress deployment model, and reproducible data analysis.
+Default entry point for eSoul work on web applications, WordPress sites, and data analyses. Loads repository context, sizes the task (S, M, L, bug, analysis), and routes each step to the owning skill instead of repeating it: `esoul-tasking` for tracked work, `esoul-mockup-authoring` and `frontend-design` for UI, `gitmoji-commit` for commits, `pre-pr-review` and `final-pr-review` for PRs. Uses the Matt Pocock skills (`grilling`, `tdd`, `diagnosing-bugs`, `code-review`) and CodeGraph when installed, and degrades gracefully without them. Includes short references for the eSoul web stack, the WP-template WordPress deployment model, and reproducible data analysis.
 
 Usage:
 
