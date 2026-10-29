@@ -43,6 +43,7 @@ const TEXT = {
         defaultReason: 'CodeRabbit could not review this revision.',
         stats: (head, inline, outside, duplicates) => `**Revision:** \`${head.slice(0, 12)}\` · **Inline findings:** ${inline} · **Outside the diff:** ${outside} · **Already reported:** ${duplicates}`,
         outside: (count) => `Findings outside the diff range (${count})`,
+        resolved: (count) => `Resolved findings outside the diff (${count})`,
         proposed: 'Proposed change:',
         footer: '<sub>pre-pr-review · CodeRabbit fallback</sub>',
         retried: '> [!WARNING]\n> GitHub rejected the inline positions, so every finding is listed in this body.',
@@ -55,6 +56,7 @@ const TEXT = {
         defaultReason: 'CodeRabbit tuto revizi nezreviewoval.',
         stats: (head, inline, outside, duplicates) => `**Revize:** \`${head.slice(0, 12)}\` · **Inline nálezy:** ${inline} · **Mimo diff:** ${outside} · **Už nahlášeno:** ${duplicates}`,
         outside: (count) => `Nálezy mimo rozsah diffu (${count})`,
+        resolved: (count) => `Vyřešené nálezy mimo diff (${count})`,
         proposed: 'Navržená změna:',
         footer: '<sub>pre-pr-review · náhrada za CodeRabbit</sub>',
         retried: '> [!WARNING]\n> GitHub odmítl pozice inline komentářů, proto jsou všechny nálezy v tomto těle.',
@@ -210,6 +212,10 @@ function markerOf(body) {
     return (body ?? '').match(new RegExp(`<!-- ${MARKER}:finding:([\\w-]+) -->`))?.[1] ?? null;
 }
 
+function markedIds(bodies, kind) {
+    return new Set(bodies.flatMap((body) => [...(body ?? '').matchAll(new RegExp(`<!-- ${MARKER}:${kind}:([\\w-]+) -->`, 'g'))].map((match) => match[1])));
+}
+
 /**
  * Keeps quoted review text from notifying people or addressing bots: inserts a zero-width
  * space after `@` outside code, where GitHub would turn it into a mention.
@@ -234,6 +240,11 @@ function validateInput(input) {
         }
         if (finding.suggestion !== undefined && typeof finding.suggestion !== 'string') throw new UsageError(`findings[${index}].suggestion must be a string.`);
         if (finding.id !== undefined && !ID_PATTERN.test(String(finding.id))) throw new UsageError(`findings[${index}].id may contain only letters, digits, _ and - (at most 64).`);
+    }
+    if (input.resolved !== undefined && !Array.isArray(input.resolved)) throw new UsageError('"resolved" must be an array.');
+    for (const [index, entry] of (input.resolved ?? []).entries()) {
+        if (!ID_PATTERN.test(String(entry?.id ?? ''))) throw new UsageError(`resolved[${index}].id must be an id of an earlier finding.`);
+        if (typeof entry.note !== 'string' || !entry.note.trim()) throw new UsageError(`resolved[${index}].note must explain the resolution (fix commit or evidence).`);
     }
     if (input.language && !TEXT[input.language]) throw new UsageError(`language must be one of: ${Object.keys(TEXT).join(', ')}.`);
 }
@@ -281,7 +292,13 @@ export function planReview({ input, files, threads, reviewBodies }) {
         existing.push({ id, path: thread.path, line: thread.line, title, resolved: thread.isResolved, outdated: thread.isOutdated, url: first.url });
         if (!thread.isResolved) openThreads.set(id, first.url);
     }
-    const reportedInBodies = new Set(reviewBodies.flatMap((body) => [...(body ?? '').matchAll(new RegExp(`<!-- ${MARKER}:finding:([\\w-]+) -->`, 'g'))].map((match) => match[1])));
+    // Body-only findings have no thread to resolve, so a later review records their resolution.
+    const reportedInBodies = markedIds(reviewBodies, 'finding');
+    const resolvedInBodies = markedIds(reviewBodies, 'resolved');
+    const resolvedNow = (input.resolved ?? []).map((entry) => String(entry.id));
+    const unknownResolved = resolvedNow.filter((id) => !reportedInBodies.has(id));
+    const newlyResolved = resolvedNow.filter((id) => reportedInBodies.has(id) && !resolvedInBodies.has(id));
+    const openInBodies = [...reportedInBodies].filter((id) => !resolvedInBodies.has(id) && !resolvedNow.includes(id));
     const headsMarked = (kind) => new Set(reviewBodies.flatMap((body) => [...(body ?? '').matchAll(new RegExp(`<!-- ${MARKER}:${kind} head=([0-9a-f]{40}) -->`, 'g'))].map((match) => match[1])));
     const reviewedHeads = headsMarked('review');
     const approvedHeads = headsMarked('approved');
@@ -307,22 +324,26 @@ export function planReview({ input, files, threads, reviewBodies }) {
             if (finding.startLine && finding.startLine < finding.line) Object.assign(comment, { start_line: finding.startLine, start_side: 'RIGHT' });
             comments.push(comment);
             inline.push(id);
-        } else if (reportedInBodies.has(id)) {
+        } else if (openInBodies.includes(id)) {
             duplicates.push({ id, url: null });
         } else {
             outside.push({ id, entry: outsideEntry(finding, id, text) });
         }
     }
 
-    // The skill approves a head when its review found nothing and no fallback thread is still open.
-    const approved = !input.findings.length && !openThreads.size;
-    const openFindings = new Set([...openThreads.keys(), ...inline, ...outside.map((entry) => entry.id)]).size;
-    const upToDate = !comments.length && !outside.length && reviewedHeads.has(input.head) && (!approved || approvedHeads.has(input.head));
+    // The skill approves a head when its review found nothing and no fallback finding is open:
+    // every thread resolved and every body-only finding recorded as resolved.
+    const approved = !input.findings.length && !openThreads.size && !openInBodies.length;
+    const openFindings = new Set([...openThreads.keys(), ...openInBodies, ...inline, ...outside.map((entry) => entry.id)]).size;
+    const upToDate = !comments.length && !outside.length && !newlyResolved.length && reviewedHeads.has(input.head)
+        && (!approved || approvedHeads.has(input.head));
     const body = renderBody({ input, text, inline: inline.length, outside, duplicates: duplicates.length, approved, openFindings });
     return {
         upToDate,
         approved,
         openFindings,
+        openInBodies,
+        unknownResolved,
         payload: { commit_id: input.head, event: 'COMMENT', body, comments },
         inline,
         outside: outside.map((entry) => entry.id),
@@ -343,6 +364,11 @@ function renderBody({ input, text, inline, outside, duplicates, retried = false,
     if (outside.length) {
         parts.push(`<details>\n<summary>${text.outside(outside.length)}</summary>\n\n${outside.map((entry) => entry.entry).join('\n\n---\n\n')}\n\n</details>`);
     }
+    const resolved = input.resolved ?? [];
+    if (resolved.length) {
+        const entries = resolved.map((entry) => `- \`${entry.id}\`: ${defang(entry.note.trim())} <!-- ${MARKER}:resolved:${entry.id} -->`);
+        parts.push(`<details>\n<summary>${text.resolved(resolved.length)}</summary>\n\n${entries.join('\n')}\n\n</details>`);
+    }
     if (input.verdict?.trim()) parts.push(defang(input.verdict.trim()));
     parts.push(approved ? text.approved : text.pending(openFindings));
     return parts.join('\n\n');
@@ -360,7 +386,8 @@ function post(target, findingsPath, publish) {
     const threads = reviewThreads(target);
     const reviewBodies = restPages(target, `repos/${target.owner}/${target.repo}/pulls/${target.number}/reviews`).map((review) => review.body);
     const plan = planReview({ input, files, threads, reviewBodies });
-    const summary = { pr: pr.html_url, head: pr.head.sha, approved: plan.approved, openFindings: plan.openFindings, inline: plan.inline, outside: plan.outside, duplicates: plan.duplicates, existing: plan.existing };
+    if (plan.unknownResolved.length) throw new UsageError(`resolved ids not found in earlier fallback reviews: ${plan.unknownResolved.join(', ')}`);
+    const summary = { pr: pr.html_url, head: pr.head.sha, approved: plan.approved, openFindings: plan.openFindings, openInBodies: plan.openInBodies, inline: plan.inline, outside: plan.outside, duplicates: plan.duplicates, existing: plan.existing };
 
     if (plan.upToDate) return { ...summary, posted: false, reason: 'up-to-date: this head already has a fallback review and nothing changed' };
     if (!publish) return { ...summary, posted: false, dryRun: true, payload: plan.payload };
