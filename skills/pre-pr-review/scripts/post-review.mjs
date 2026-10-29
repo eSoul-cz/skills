@@ -208,6 +208,16 @@ function markerOf(body) {
     return (body ?? '').match(new RegExp(`<!-- ${MARKER}:finding:([\\w-]+) -->`))?.[1] ?? null;
 }
 
+/**
+ * Keeps quoted review text from notifying people or addressing bots: inserts a zero-width
+ * space after `@` outside code, where GitHub would turn it into a mention.
+ */
+export function defang(text) {
+    return (text ?? '').split(/(`{3,}[\s\S]*?`{3,}|`[^`\n]+`)/).map((part, index) => (index % 2
+        ? part
+        : part.replace(/(^|[^\w`])@(?=[A-Za-z0-9])/g, '$1@\u200b'))).join('');
+}
+
 function validateInput(input) {
     if (!input || typeof input !== 'object') throw new UsageError('Findings file must contain a JSON object.');
     if (!/^[0-9a-f]{40}$/i.test(input.head ?? '')) throw new UsageError('Findings file needs "head": the full SHA that was reviewed.');
@@ -233,11 +243,11 @@ function fence(content, info = '') {
 
 function heading(finding) {
     const icon = SEVERITY_ICONS[finding.severity.toLowerCase()] ?? '⚪';
-    return `${icon} **${finding.severity}** · **${finding.title}**`;
+    return `${icon} **${finding.severity}** · **${defang(finding.title)}**`;
 }
 
 function inlineBody(finding, id, text) {
-    const parts = [heading(finding), finding.body.trim()];
+    const parts = [heading(finding), defang(finding.body.trim())];
     if (finding.suggestion !== undefined) parts.push(fence(finding.suggestion, 'suggestion'));
     parts.push(`${text.footer}\n<!-- ${MARKER}:finding:${id} -->`);
     return parts.join('\n\n');
@@ -245,7 +255,7 @@ function inlineBody(finding, id, text) {
 
 function outsideEntry(finding, id, text) {
     const location = finding.startLine ? `${finding.path}:${finding.startLine}-${finding.line}` : `${finding.path}:${finding.line}`;
-    const parts = [`#### ${heading(finding)}\n\`${location}\``, finding.body.trim()];
+    const parts = [`#### ${heading(finding)}\n\`${location}\``, defang(finding.body.trim())];
     if (finding.suggestion !== undefined) parts.push(`${text.proposed}\n\n${fence(finding.suggestion)}`);
     parts.push(`<!-- ${MARKER}:finding:${id} -->`);
     return parts.join('\n\n');
@@ -322,15 +332,15 @@ function renderBody({ input, text, inline, outside, duplicates, retried = false,
     const parts = [
         `<!-- ${MARKER}:review head=${input.head} -->${approved ? `\n<!-- ${MARKER}:approved head=${input.head} -->` : ''}`,
         text.title,
-        text.note(input.reason?.trim() || text.defaultReason),
+        text.note(defang(input.reason?.trim()) || text.defaultReason),
     ];
     if (retried) parts.push(text.retried);
     parts.push(text.stats(input.head, inline, outside.length, duplicates));
-    if (input.summary?.trim()) parts.push(input.summary.trim());
+    if (input.summary?.trim()) parts.push(defang(input.summary.trim()));
     if (outside.length) {
         parts.push(`<details>\n<summary>${text.outside(outside.length)}</summary>\n\n${outside.map((entry) => entry.entry).join('\n\n---\n\n')}\n\n</details>`);
     }
-    if (input.verdict?.trim()) parts.push(input.verdict.trim());
+    if (input.verdict?.trim()) parts.push(defang(input.verdict.trim()));
     parts.push(approved ? text.approved : text.pending(openFindings));
     return parts.join('\n\n');
 }
