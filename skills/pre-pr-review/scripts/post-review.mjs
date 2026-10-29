@@ -144,7 +144,8 @@ export function parseWait(text) {
  */
 export function rateLimitState({ comments, reviews, statuses = [], checkRuns = [], reviewer }) {
     const mine = (login) => normalizeLogin(login) === reviewer;
-    const latestReviewAt = reviews.filter((review) => mine(review.user?.login) && review.submitted_at)
+    // Replies in review threads arrive as reviews with an empty body; they are not reviews of the code.
+    const latestReviewAt = reviews.filter((review) => mine(review.user?.login) && review.submitted_at && review.body?.trim())
         .map((review) => review.submitted_at).sort().at(-1) ?? null;
     const latest = comments.filter((comment) => mine(comment.user?.login) && RATE_LIMIT_NOTICE.test(comment.body ?? ''))
         .sort((a, b) => a.updated_at.localeCompare(b.updated_at)).at(-1);
