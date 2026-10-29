@@ -244,6 +244,14 @@ test('a body-only finding blocks approval until a later review records its resol
     const reappears = planReview({ input: { head: HEAD, findings: [finding({ title: 'Outside', path: 'src/z.php' })] }, files, threads: [], reviewBodies: [earlier, resolving.payload.body] });
     assert.deepEqual(reappears.outside, [id], 'a resolved body finding found again is reported again');
 
+    const history = [earlier, resolving.payload.body, reappears.payload.body];
+    const afterReopen = planReview({ input: { head: HEAD, findings: [] }, files, threads: [], reviewBodies: history });
+    assert.equal(afterReopen.approved, false, 'the newer report reopens it despite the older resolution');
+    assert.deepEqual(afterReopen.openInBodies, [id]);
+    const resolvedAgain = planReview({ input: { head: HEAD, findings: [], resolved: [{ id, note: 'Opraveno znovu v def5678.' }] }, files, threads: [], reviewBodies: history });
+    assert.equal(resolvedAgain.approved, true);
+    assert.equal(resolvedAgain.upToDate, false);
+
     assert.deepEqual(planReview({ input: { head: HEAD, findings: [], resolved: [{ id: 'nope', note: 'x' }] }, files, threads: [], reviewBodies: [] }).unknownResolved, ['nope']);
 });
 
