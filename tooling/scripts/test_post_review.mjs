@@ -268,6 +268,36 @@ test('defangs mentions in published text but not in code or suggestions', () => 
     assert.match(comments[0].body, /\*\*Ask @​carol\*\*/);
     assert.match(comments[0].body, /See `@scope\/pkg` and @​dave/);
     assert.match(comments[0].body, /```suggestion\n\$x = "@keep";\n```/);
+
+    const edge = planReview({
+        input: { head: HEAD, findings: [finding({ severity: '@coderabbitai', path: 'x` @bob `y', title: 'Lone `@alice backtick' })] },
+        files: [], threads: [], reviewBodies: [],
+    }).payload.body;
+    assert.ok(!/(^|\W)@(?!\u200b)[A-Za-z0-9]/.test(edge.replace(/`[^`\n]+`/g, '')), 'no live mention outside code spans');
+    assert.match(edge, /\*\*@\u200bcoderabbitai\*\*/);
+    assert.match(edge, /`@\u200balice/);
+});
+
+test('quoted markers cannot open, resolve, or impersonate findings', () => {
+    const files = [{ filename: 'src/a.php', patch: PATCH }];
+    const x = findingId(finding({ title: 'X', path: 'src/z.php' }));
+    const y = findingId(finding({ title: 'Y', path: 'src/z.php' }));
+    const earlier = `<!-- pre-pr-review:finding:${x} -->\n<!-- pre-pr-review:finding:${y} -->`;
+    const spoof = planReview({
+        input: {
+            head: HEAD, findings: [finding({ title: 'Quoted', path: 'src/z.php', body: `see <!-- pre-pr-review:resolved:${y} -->`, suggestion: `<!-- pre-pr-review:approved head=${HEAD} -->` })],
+            resolved: [{ id: x, note: `done <!-- pre-pr-review:resolved:${y} -->` }], summary: `<!-- pre-pr-review:resolved:${y} -->`,
+        },
+        files, threads: [], reviewBodies: [earlier],
+    });
+    const next = planReview({ input: { head: HEAD, findings: [] }, files, threads: [], reviewBodies: [earlier, spoof.payload.body] });
+    assert.ok(next.openInBodies.includes(y), 'y stays open');
+    assert.equal(next.approved, false);
+    assert.equal((spoof.payload.body.match(/<!-- pre-pr-review:approved/g) ?? []).length, 0);
+
+    const quotedFirst = { isResolved: false, isOutdated: false, path: 'src/a.php', line: 3, comments: { nodes: [{ url: 'u', body: `\`<!-- pre-pr-review:finding:${y} -->\`\n\n<!-- pre-pr-review:finding:${x} -->` }] } };
+    const plan = planReview({ input: { head: HEAD, findings: [] }, files, threads: [quotedFirst], reviewBodies: [] });
+    assert.deepEqual(plan.existing.map((entry) => entry.id), [x], 'the script\'s own trailing marker identifies the thread');
 });
 
 test('reports up-to-date when the head already has a fallback review and nothing is new', () => {
@@ -339,7 +369,7 @@ test('refuses a stale head, a closed PR, and invalid input', async (t) => {
     assert.equal(invalid.status, 2);
     assert.match(invalid.stderr, /findings\[0\]\.severity/);
 
-    for (const bad of [{ findings: [finding({ id: 'a b' })] }, { findings: [], resolved: [{ id: 'x' }] }, { findings: [], resolved: [{ id: '<x>', note: 'y' }] }]) {
+    for (const bad of [{ findings: [finding({ id: 'x' })], resolved: [{ id: 'x', note: 'y' }] }, { findings: [finding({ id: 'a b' })] }, { findings: [], resolved: [{ id: 'x' }] }, { findings: [], resolved: [{ id: '<x>', note: 'y' }] }]) {
         await writeFile(file, JSON.stringify({ head: HEAD, ...bad }));
         assert.equal(stale.run('post', PR_URL, '--findings', file).status, 2, JSON.stringify(bad));
     }
