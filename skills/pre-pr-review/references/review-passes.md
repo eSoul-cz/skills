@@ -87,7 +87,7 @@ Report only problems you can point to in the code. For each candidate return:
 Return "no findings" when there are none. Do not pad the list with style preferences.
 ```
 
-Always pass a model when starting a lens subagent; without one it inherits the parent's model and effort. Use `sonnet` for the maintainability and tests-and-contract lenses. Use the parent model for correctness and security when the change touches authorization, money, migrations, or personal data, otherwise `sonnet`. Verification of the returned candidates (SKILL.md step 5) stays on the parent model.
+In Claude Code start each lens in a plugin agent, whose model and effort are fixed: `esoul-skills:reviewer` (Sonnet, medium) for the maintainability and tests-and-contract lenses, and for correctness and security on ordinary changes; `esoul-skills:critical-reviewer` (Opus, high) for correctness and security when the change touches authorization, money, migrations, or personal data. Elsewhere pass the same model explicitly; without one a subagent inherits the parent's model and effort. Verification of the returned candidates (SKILL.md step 5) stays on the parent model.
 
 ## Report template
 

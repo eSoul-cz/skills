@@ -50,6 +50,19 @@ node tooling/scripts/check_upstream.mjs /path/to/mattpocock-skills            # 
 node tooling/scripts/check_upstream.mjs /path/to/mattpocock-skills --accept   # after porting
 ```
 
+**Agents and usage.** `esoul-skills` also ships worker agents in `agents/`, each with its
+model and effort pinned, so the main session (Opus) orchestrates and cheaper models do the
+mechanical work: `scout` (Haiku, read-only search), `test-runner` (Haiku, verification
+runs), `implementer` (Sonnet, builds a specified change), `reviewer` (Sonnet, review
+lenses), `critical-reviewer` (Opus high, risky changes only), `uat-runner` (Sonnet, UAT
+chapters) and `ops` (Haiku, commits and tracker chores). The skills start them as
+`esoul-skills:<name>`; `esoul-model-routing` holds the rules, the recommended settings, and
+a usage report that shows where the weekly limit goes:
+
+```bash
+node skills/esoul-model-routing/scripts/usage-report.mjs --days 7
+```
+
 Start any real task with the router:
 
 ```text
@@ -352,7 +365,7 @@ $esoul-workflow analyse last quarter's orders by acquisition channel
 
 ### `esoul-model-routing`
 
-Choose and set the right Claude model and effort level for a task, to balance cost and quality: Haiku for trivial mechanical work, Sonnet for contained changes, Opus for real engineering, and `best` (Fable where available, else Opus) for the hardest or most sensitive work. Covers the current lineup (Fable 5.1, Opus 5.5, Sonnet 5.5, Haiku 5.5) with prices and default effort, the Claude Code aliases, and the model for each kind of subagent eSoul skills start. Recommends keeping `high` as the saved effort and raising it per session, rather than saving `xhigh` for every turn. Advises and sets the model; it does not silently swap the running turn.
+Choose the model, effort and delegation for a task so the weekly usage limit buys the most good output. The main session orchestrates on Opus at `medium` effort (raised per session for planning, L or security work); the plugin agents do search and verification on Haiku and implementation, reviews and UAT runs on Sonnet; `critical-reviewer` keeps Opus for risky changes. Explains why context size, not output, drives usage, and sets the context budget (one task per session, early auto-compact, no dumps in context). Covers the current lineup (Fable 5.1, Opus 5.5, Sonnet 5.5, Haiku 5.5), recommended `settings.json`, Zeron chat defaults and child chats, and a usage report (`scripts/usage-report.mjs`) that also flags subagents that did not run on their configured model. Advises and sets the model; it does not silently swap the running turn.
 
 Usage:
 
