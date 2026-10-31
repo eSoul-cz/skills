@@ -1,126 +1,126 @@
 ---
 name: esoul-model-routing
-description: Choose and set the right Claude model and effort level for an eSoul task, to balance cost and quality. Use when deciding which model to run, when the user asks to make work cheaper, faster or more thorough, when picking a model for a subagent, or when starting a task under esoul-workflow. Covers the current model lineup (Fable, Opus, Sonnet, Haiku) and the Claude Code aliases.
+description: Choose the model, effort and delegation for an eSoul task so the weekly usage limit buys the most good output. Use when starting a task under esoul-workflow, when delegating to a subagent or a Zeron child chat, when the user asks to make work cheaper, faster or more thorough, or when usage runs out too fast. Covers the orchestrator and worker roles (the esoul-skills plugin agents), effort defaults, the context budget, the model lineup and how to measure usage.
 ---
 
 # eSoul model routing
 
-Guidance for putting the right Claude model and effort behind each eSoul task. Cheaper models on simple work, stronger models where a mistake is expensive.
+Put the right model, effort and context behind each piece of eSoul work. The expensive model orchestrates, decides and reviews; cheaper models do the reading, running and typing.
+
+## Where usage goes
+
+Every request re-reads the whole conversation. Prompt caching makes that re-read cost a tenth of fresh input, but in long sessions it still dominates: measured on eSoul sessions, about three quarters of the main session's cost was re-reading context and under a tenth was output. Cost per session grows faster than its length, because each step re-reads everything before it.
+
+So the order of levers is:
+
+1. **Context size and number of steps in the main session** (biggest).
+2. **The model of the work that is delegated.**
+3. **Effort** (smallest, but free to change).
+
+Subagent tokens count toward the same plan limits as the main conversation; delegation saves usage because workers run on cheaper models with small fresh contexts, not because their work is free.
 
 ## What this skill can and cannot do
 
-- It **cannot** hot-swap the model of the turn already running. The model for a turn is fixed when the turn starts, chosen by the user or by configuration.
-- It **can**: recommend which model and effort to set, tell the user the exact command to set it, and choose the `model:` for a subagent that this skill dispatches (a subagent runs on its own model). So "route" here means *advise and set*, not silently switch mid-turn.
-- When a task clearly wants a different model than the one running, say so in one line and let the user switch, rather than pretending to have switched.
+- It cannot switch the model of the turn already running. It can recommend the session model and effort (the person sets them), and it picks the model and effort of every subagent or child chat it starts.
+- When a task clearly wants a different session model, say so in one line instead of pretending to have switched.
 
-## Current models (verify with the docs when unsure)
+## Roles
 
-As of October 2026, newest to lightest. Prices are per million tokens (input / output).
+The orchestrator is the main session. In Claude Code the `esoul-skills` plugin ships the worker roles as agents with their model and effort fixed in frontmatter, so routing does not depend on remembering a `model` parameter. Start them with `subagent_type: "esoul-skills:<role>"`. Where these agents are not installed (or in another harness), start a fresh general-purpose subagent with the same model and effort and paste the role's rules into the brief.
 
-| Model | Claude Code alias | API id | Price in/out | API default effort | Use for |
-|---|---|---|---|---|---|
-| Fable 5.1 | `fable` | `claude-fable-5-1` | $10 / $50 | `high` | The hardest, longest, most autonomous jobs; when Opus at high effort still falls short. |
-| Opus 5.5 | `opus` | `claude-opus-5-5` | $4 / $20 | `medium` | Default for real engineering and knowledge work; long-running agentic coding. |
-| Sonnet 5.5 | `sonnet` | `claude-sonnet-5-5` | $2 / $10 | `high` | Everyday coding, writing and analysis; the versatile middle. |
-| Haiku 5.5 | `haiku` | `claude-haiku-5-5` | $0.10 / $0.50 up to 100K prompt tokens, $0.50 / $2.50 above | `medium` | Fast, cheap, simple: lookups, extraction, formatting, small mechanical edits, search fan-out. |
-
-The effort column is the API default. Claude Code may apply its own default per model; `/effort` shows the level in use.
-
-Notes:
-- Opus 5.5 is the account default and is already strong; do not reach for Fable by reflex. Fable costs about 2.5x Opus per token.
-- Haiku 5.5 costs a fortieth of Opus per token for prompts up to 100K tokens and an eighth above, so mechanical subagent work (search, extraction, first-pass triage) belongs there.
-- `best` resolves to `fable` where available, otherwise `opus`. It is the safe alias for a shared team: colleagues with Fable get it, those without fall back to Opus automatically, one instruction for everyone.
-- Availability differs per person and per org. Fable is a paid model that some eSoul colleagues have and others do not. Never assume a model is available; if a set model is refused, fall back to the next one down and say so.
-
-## Choosing a model
-
-Map to the task size from `esoul-workflow` when it is in play.
-
-| Task | Model | Why |
+| Role | Model · effort | Does |
 |---|---|---|
-| Typo, rename, format, lint fix, copy tweak, single obvious line | `haiku` | Trivial and mechanical; speed and cost win. |
-| Small bug fix, one focused function, add a test, config change (workflow size S) | `sonnet` | Real but contained; Sonnet handles it well. |
-| A feature, multi-file change, new endpoint, migration, a WordPress/Laravel change with real logic (size M) | `opus` | Reasoning across files; the default for eSoul dev. |
-| System or domain design, security-sensitive work, a large refactor, a gnarly bug you have already failed once with a lighter model (size L, or Bug that resisted) | `best` (Fable, else Opus) | Sustained reasoning; the cost of a mistake is high. |
-| Data analysis: profiling and cleaning | `sonnet` | Mechanical, high volume of tokens. |
-| Data analysis: interpretation, method choice, the write-up | `opus` | Judgement and correctness matter. |
+| Orchestrator (main session) | `opus` · `medium`; `high` while clarifying or planning M; `xhigh` for L, security-sensitive work, or a bug that resisted | Sizing, decisions, briefs, reviewing diffs and findings, final judgement, anything the user talks to |
+| `esoul-skills:scout` | `haiku` · `medium` | Read-only search, inventories, "where/how is X", facts from logs and exports. Use it instead of Explore, which runs on the main session's model. |
+| `esoul-skills:test-runner` | `haiku` · `low` | Runs tests, builds, linters, sweep scripts; returns receipts and failures only |
+| `esoul-skills:implementer` | `sonnet` · `medium` | Builds a specified change with tests; fixes failures and findings with a clear cause |
+| `esoul-skills:reviewer` | `sonnet` · `medium` | Review lenses, catalogue and documentation audits |
+| `esoul-skills:critical-reviewer` | `opus` · `high` | Correctness and security on changes touching authorization, money, migrations, personal data or concurrency |
+| `esoul-skills:uat-runner` | `sonnet` · `medium` | Executes UAT chapters in the browser and records results |
+| `esoul-skills:ops` | `haiku` · `low` | Commits, `gh`/git queries, Freelo reads and already-approved writes, work reports |
 
-Escalate, do not de-escalate silently: if a lighter model is going in circles, stop and recommend stepping up rather than burning more turns.
+Never use a fork (an Agent call that copies this conversation): it always runs on the main session's model and carries the whole context.
 
-## Choosing effort (on the model that supports it)
+## When to delegate
 
-Effort tunes how much the model thinks. It is separate from the model and often the cheaper lever.
+- **Size S** (one obvious change, three files or fewer): do it directly; a brief and a diff review would cost as much as the work. Better still, run the whole session on `sonnet`.
+- **Size M and L:** the orchestrator settles decisions and writes the brief; `implementer` builds; `test-runner` verifies; the orchestrator reviews the diff and the receipts. Send fixes back to the same implementer (SendMessage) so it keeps its context.
+- **Any search over more than a few files, any verification run, any log or export:** delegate, so the raw output never enters the main context.
+- **Escalate, never loop:** after two failed attempts on a worker model, the orchestrator takes over or raises the model. Do not try a third time on the same model.
+- Independent workers start in one message so they run in parallel. Do not start subagents for work that needs this conversation's shared context more than it needs isolation; that is where multi-agent work wastes tokens.
 
-- `low`: short, scoped, latency-sensitive work.
-- `medium`: cost-sensitive work; the Opus 5.5 default.
-- `high`: the balanced default for most models.
-- `xhigh` / `max`: deep reasoning for the hardest problems, at higher cost; `max` is a one-off.
+### Brief
 
-Reach for lower effort on a strong model before jumping to Fable: Opus at `high` or `xhigh` is often enough and cheaper than Fable.
+A worker knows only its brief. Write it like a ticket: goal; acceptance criteria; files and areas; decisions already made (and by whom); boundaries (what not to touch); the verification command; the answer format and length. A one-line brief produces duplicated or misdirected work.
 
-Where Claude Code keeps it: `/effort <level>` saves the level for the current model under `modelSettings.<model id>.effortLevel` in the user settings (`max` is session-only and never saved). The top-level `effortLevel` is the fallback for models without their own entry, and project or local settings files can override it. Do not save `xhigh` as a model's default: every turn on that model, including commits, lookups and Freelo writes, then pays for the deepest reasoning. Keep `high` (or the model default) saved and raise it for the session with `/effort xhigh` for workflow size L, security-sensitive work, or a bug that resisted one attempt; use `max` as a one-off.
+## Context budget for the main session
 
-## How to set it (Claude Code, terminal or VS Code)
+- **One task, one session.** `/clear` between unrelated tasks; when work continues elsewhere, write a handoff (`esoul-workflow` references/handoff.md) and start fresh.
+- **Auto-compact early:** keep `autoCompactWindow` for the main models around 250K (see Settings). Keep plans and decisions in files, not only in the conversation, so compaction loses nothing important.
+- **Keep large outputs out:** read files with offset and limit or through `scout`; never paste whole logs, `gh ... --json` dumps, test output or browser snapshots into the main session.
+- **Fewer steps:** batch independent tool calls in one message, chain related shell commands in one call, and wait with the harness's background or Monitor facility or a bundled waiter (`final-pr-review`'s `wait-pr.mjs`), never with `sleep` loops.
+- **Keep the cache warm:** do not switch the session model mid-task (each switch re-reads the whole history uncached, which is also why `opusplan` is not the default), and do not change MCP servers or `CLAUDE.md` mid-session.
 
-The person sets these; state the command, do not claim to have run it.
+## Models (verify with the docs when unsure)
 
-Model for the current session:
+As of October 2026. Prices are per million tokens (input / output).
 
-```text
-/model opus            # or: sonnet, haiku, fable, best, default
-```
+| Model | Alias | API id | Price in/out | Default effort | Use for |
+|---|---|---|---|---|---|
+| Fable 5.1 | `fable` | `claude-fable-5-1` | $10 / $50 | `high` | The hardest, longest, most autonomous jobs when Opus at `xhigh` falls short |
+| Opus 5.5 | `opus` | `claude-opus-5-5` | $4 / $20 | `medium` | Orchestration, design, review of risky changes |
+| Sonnet 5.5 | `sonnet` | `claude-sonnet-5-5` | $2 / $10 | `medium` | Implementation, tests, reviews, UAT runs; whole S sessions |
+| Haiku 5.5 | `haiku` | `claude-haiku-5-5` | $0.10 / $0.50 up to 100K prompt tokens, $0.50 / $2.50 above | `medium` | Search, running commands, extraction, chores |
 
-At startup, or as a saved default:
+- `best` resolves to `fable` where available, otherwise `opus`; use it in shared instructions so colleagues without Fable fall back automatically.
+- Availability differs per person and org. If a model is refused, take the next one down and say which model actually ran.
+- Effort tunes thinking, not the model: try Opus at `high` or `xhigh` before Fable.
+- The advisor feature (`/advisor opus` on a Sonnet session) is experimental and each consultation re-reads the conversation uncached; try it for S and M work in short sessions only.
 
-```bash
-claude --model opus
-```
+## Settings
+
+The person's `~/.claude/settings.json` (the person sets it, or approves the change):
 
 ```json
-// ~/.claude/settings.json
-{ "model": "opus" }
+{
+  "model": "opus",
+  "effortLevel": "medium",
+  "modelSettings": {
+    "claude-opus-5-5": { "effortLevel": "medium", "autoCompactWindow": 250000 },
+    "claude-fable-5-1": { "effortLevel": "high", "autoCompactWindow": 250000 }
+  },
+  "env": { "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet" },
+  "permissions": { "deny": ["Agent(fork)"] }
+}
 ```
 
-Effort:
+- Never save `xhigh` as a model's default: every turn, including commits and lookups, then pays for the deepest reasoning. Raise it per session with `/effort xhigh`; `max` is a one-off.
+- In user settings the top-level `effortLevel` no longer applies to Opus 5.5; set the model's `modelSettings` entry.
+- `CLAUDE_CODE_SUBAGENT_MODEL` is only the fallback for subagents that name no model; plugin agent frontmatter and an explicit `model` win. Do not set `CLAUDE_CODE_SUBAGENT_MODEL_FORCE` or `CLAUDE_CODE_EFFORT_LEVEL`: they override every role above.
+- Session commands: `/model sonnet|opus|haiku|fable|best`, `/effort low|medium|high|xhigh|max`, `/autocompact 250k`.
 
-```text
-/effort high           # or: low, medium, xhigh, max
+## Zeron
+
+Zeron chats run the Claude Code harness with the same plugins and settings, so the roles above work there too. Two Zeron specifics:
+
+- **A chat's model and reasoning level set in Zeron override `settings.json`.** Keep Zeron's default for new chats at Opus 5.5 · `medium` and the title model on Haiku; raise the level per chat when the task needs it.
+- **Child chats** (`create_chat`/`create_chats`, one level deep) are full sessions with their own model and effort. Use them for long, independent work the person wants to see or steer (one plan slice per chat on `claude-sonnet-5-5` · `medium`, UAT chapters in parallel); use subagents for short jobs that return a summary. Both count toward the same limit, except work delegated to a non-Claude harness such as Codex, which uses that provider's quota.
+
+## Measure
+
+Run the bundled report before and after a change in habits (it reads local transcripts only and takes a minute or two):
+
+```bash
+node <this skill>/scripts/usage-report.mjs --days 7
 ```
 
-Useful aliases: `opusplan` (Opus while planning, Sonnet to execute), `sonnet[1m]` / `opus[1m]` (1M-token context for very large inputs), `default` (revert to the account default).
-
-## Model for a subagent
-
-A subagent runs on its own model. This is the one place a skill genuinely picks the model for work it launches: pass `model` when starting the subagent (the Agent tool's `model` parameter), or set it in the agent definition's frontmatter.
-
-```markdown
----
-model: haiku      # or sonnet / opus / fable / best / inherit
----
-```
-
-- Without a model the subagent inherits the parent's model and effort, so an Opus `xhigh` session spawns Opus `xhigh` searches. Always choose one.
-- Defaults for eSoul skills that fan out:
-
-| Subagent work | Model |
-|---|---|
-| Codebase search, file inventory, log or transcript extraction (Explore) | `haiku` |
-| Review lenses for maintainability and tests, UAT sweeps, documentation checks | `sonnet` |
-| Review lenses for correctness and security on risky changes, design or architecture | parent model (`opus`) |
-
-- Keep synthesis, verification of findings and the final judgement on the parent model.
-
-## When the model is not available
-
-If a chosen model is refused (not on the person's plan, or restricted by the org), Claude Code falls back to the newest permitted model and warns. In that case take the next model down from the table, tell the person which model actually ran, and continue rather than failing.
+It shows the share of usage per model in main sessions and subagents, how much of the main session's cost comes from requests above 300K context, and which model each subagent type actually ran on. A plugin agent that ran on another model than its frontmatter names is flagged: subagent routing has had intermittent bugs where configured models were ignored, so check before trusting the savings.
 
 ## Reporting
 
-When this skill informs a choice, note it in one short line so the person sees the reasoning and the cost trade-off, for example:
+When this skill informs a choice, say it in one line, for example:
 
 ```text
-Model: sonnet · effort high — contained bug fix in one module; Opus would be overkill.
-Model: best (Fable where available) · security-sensitive refactor; correctness outweighs cost.
+Model: sonnet session · S fix in one module; Opus would be overkill.
+Delegation: implementer (sonnet) builds slice 2, test-runner verifies; I review the diff.
 ```
-
-Do not add banners, dashboards or metrics tables; one line is enough.
