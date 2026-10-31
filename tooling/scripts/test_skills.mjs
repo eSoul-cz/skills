@@ -116,3 +116,31 @@ test('skills do not route to retired project-local skills', () => {
     const offenders = skillMarkdown().filter((file) => retired.test(readFileSync(file, 'utf8')));
     assert.deepEqual(offenders.map((file) => relative(root, file)), []);
 });
+
+// Plugin agents carry the model routing, so each must pin its model and effort; an agent
+// without them silently inherits the caller's (usually most expensive) model.
+test('every plugin agent pins its model and effort, and skills route only to existing agents', () => {
+    const agentsDir = join(root, 'agents');
+    const agents = readdirSync(agentsDir).filter((name) => name.endsWith('.md'));
+    for (const file of agents) {
+        const match = readFileSync(join(agentsDir, file), 'utf8').match(/^---\n([\s\S]*?)\n---\n/);
+        assert.ok(match, `${file}: no frontmatter`);
+        const fields = Object.fromEntries(
+            match[1].split('\n').map((line) => line.match(/^([a-zA-Z]+):\s*(.*)$/)).filter(Boolean).map((m) => [m[1], m[2]]),
+        );
+        assert.equal(fields.name, file.replace(/\.md$/, ''), `${file}: name differs from its file name`);
+        assert.ok(fields.description, `${file}: description is missing`);
+        assert.match(fields.model ?? '', /^(haiku|sonnet|opus|fable)$/, `${file}: model must be a pinned alias`);
+        assert.match(fields.effort ?? '', /^(low|medium|high|xhigh)$/, `${file}: effort must be set`);
+    }
+    const known = new Set(agents.map((file) => file.replace(/\.md$/, '')));
+    const unknown = [];
+    for (const file of skillMarkdown()) {
+        for (const [, name] of readFileSync(file, 'utf8').matchAll(/esoul-skills:([a-z-]+)/g)) {
+            if (!known.has(name)) {
+                unknown.push(`${relative(root, file)} → esoul-skills:${name}`);
+            }
+        }
+    }
+    assert.deepEqual(unknown, []);
+});

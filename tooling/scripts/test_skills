@@ -18,7 +18,7 @@ fi
 
 # Stream the files into the container instead of bind-mounting them, so the check also works
 # when the Docker daemon runs on another host than this workspace.
-tar -cf - .claude-plugin README.md skills tooling/upstream \
+tar -cf - .claude-plugin README.md agents skills tooling/upstream \
     tooling/scripts/test_skills.mjs tooling/scripts/check_upstream.mjs tooling/scripts/test_check_upstream.mjs |
     docker run --rm -i "${NODE_IMAGE}" sh -c \
         'mkdir /work && cd /work && tar -xf - && node --test tooling/scripts/test_skills.mjs tooling/scripts/test_check_upstream.mjs'
