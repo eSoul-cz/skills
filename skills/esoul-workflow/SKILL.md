@@ -24,7 +24,7 @@ The single entry point for eSoul work. It decides *how much process* a task need
    - `codegraph explore "<query>"` CLI when a `.codegraph/` directory exists but the MCP tool is absent (typical for sub-agents).
    - Otherwise Grep/Glob, then Read only the files that matter.
    CodeGraph results stay resident in context. In long sessions, ask narrow questions rather than surveying whole areas repeatedly.
-   For broad parallel searches or audits, start fresh sub-agents (Explore or general-purpose) with a self-contained brief and an explicit model: `haiku` for search and extraction, `sonnet` for audits, as in `esoul-model-routing`. Without one they inherit this session's model and effort. Never fork the current conversation for them: a fork inherits the whole context and multiplies the cost.
+   For searches across more than a few files, start the `esoul-skills:scout` agent (Haiku) with a self-contained brief; for audits, `esoul-skills:reviewer` (Sonnet). Not Explore: it runs on this session's model. Never fork the current conversation: a fork inherits the whole context and runs on this session's model.
 4. Find facts yourself. Ask the user only for decisions, never for things the repository, tools, or logs can answer.
 
 ## 2. Size the task
@@ -41,7 +41,17 @@ Pick the smallest size that fits, and say which size you picked in one line.
 
 Escalate the size as soon as a hidden decision appears. Never de-escalate silently.
 
-When model or effort matters (a cheap mechanical job, or an expensive-to-get-wrong one), use the `esoul-model-routing` skill to pick the model and effort, then tell the user the command to set it.
+### Who does the work
+
+This session is the orchestrator: it decides, writes briefs, and reviews. Mechanical work goes to the worker roles in `esoul-model-routing`, so its raw output never grows this context and it runs on a cheaper model:
+
+| Size | Who does what |
+|---|---|
+| **S** | Do it directly; suggest a `sonnet` session for a run of S tasks. Delegation would cost as much as the work. |
+| **M, L, Bug** | Settle decisions here, then brief `esoul-skills:implementer` (Sonnet) per slice; `esoul-skills:test-runner` (Haiku) runs the checks; review the diff and receipts here. After two failed worker attempts, take over or escalate. |
+| **Any** | Searches → `scout`; test, build and lint runs → `test-runner`; commits, `gh` queries and approved tracker writes → `ops`; review lenses → `reviewer`, or `critical-reviewer` for authorization, money, migrations or personal data. |
+
+Keep the session small: one task per session, `/clear` or a handoff between tasks, no whole logs or dumps in context, independent tool calls batched in one message. Effort `medium` is the default for this session; raise it to `high` for clarifying and planning, `xhigh` for L or security-sensitive work. The full rules, the Zeron specifics and the usage report are in `esoul-model-routing`.
 
 ## 3. Run the flow
 
@@ -85,7 +95,7 @@ Use `esoul-project-lifecycle` instead of this flow when the task is about the pr
 Do not claim done without evidence. Run what applies and report the actual results:
 
 - Type checks, linters, and formatters the repository defines.
-- The single affected test file while iterating; the full suite once at the end.
+- The single affected test file while iterating; the full suite once at the end. Outside S tasks, run them through `esoul-skills:test-runner` so only receipts and failures come back.
 - When the machine runs `test-queue`, test, E2E and build commands wait in a shared queue: run long suites in the background and read `[testq]` lines as queue state, not failures.
 - For UI: load the page in a browser (Playwright or the available browser tool) at desktop 1440px and mobile 390px, check the console for errors, and look at the result.
 - For acceptance of a whole module or release, use `esoul-uat`: it runs the project's UAT scenarios across roles and devices, checks layout and design, and files approved bugs.

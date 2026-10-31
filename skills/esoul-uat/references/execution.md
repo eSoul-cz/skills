@@ -64,16 +64,21 @@ something irreversible that the scenario does not describe, stop and ask.
 
 ### Keeping context small
 
-Run each chapter as its own session or fresh sub-agent (not a fork of this conversation) when
-the run is long; pass it the chapter
-file, the run directory, and the role accounts (by role code, not passwords). The parent
-only reads `uat.mjs stats <run-dir>` between chapters. Start chapter sub-agents with an
-explicit `model: sonnet` (they click and record; without a model they inherit the parent's
-model and effort) and keep the analysis of failures and the bug triage on the parent model.
+Browser snapshots and screenshots are the largest thing a UAT run puts into context, so the
+orchestrating session does not click through chapters itself. Run each chapter in the
+`esoul-skills:uat-runner` agent (Sonnet, effort medium; not a fork of this conversation), or
+in a Zeron child chat on Sonnet when chapters should run in parallel and stay visible. Pass
+it the chapter file, the run directory, and the role accounts (by role code, not passwords).
+The parent only reads `uat.mjs stats <run-dir>` and the runner's summary between chapters,
+and keeps the analysis of failures and the bug triage. Where the agent is not installed,
+start a fresh subagent with `model: sonnet` and effort `medium` (without them it inherits
+the parent's model and effort).
 
 ### Responsive sweep and design
 
-After the functional chapters (or in parallel, since it only reads):
+After the functional chapters (or in parallel, since it only reads), run the sweep through
+`esoul-skills:test-runner` (Haiku) so its output stays out of context; then review the
+findings on their screenshots in `uat-runner` or here, not in the runner:
 
 ```bash
 node <skill>/scripts/sweep.mjs --config docs/testing/uat/uat.config.json \

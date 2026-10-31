@@ -11,12 +11,14 @@ changes and whenever the user asks whether the scenarios are current.
    (`git log --since=<date> --format='%h %ad %s' --date=short`). Verify against the default
    branch head (`origin/main` or the repository default), not a feature branch; use a
    detached worktree when the main checkout is on another branch.
-2. Split chapters into groups of 5–8 and audit the groups in parallel with fresh read-only
-   sub-agents (Explore, `model: sonnet`). Never fork the current conversation for this: a fork inherits the
-   whole context and multiplies the cost. The same applies to sub-agents that update chapters. Give each the chapter files, the format rules, the code areas (routes, pages,
+2. Split chapters into groups of 5–8 and audit the groups in parallel with the read-only
+   `esoul-skills:reviewer` agent (Sonnet; elsewhere a fresh subagent with `model: sonnet`).
+   Never fork the current conversation for this: a fork inherits the whole context and
+   multiplies the cost. Chapter updates go to `esoul-skills:implementer`. Give each the chapter files, the format rules, the code areas (routes, pages,
    navigation, policies, form requests, language files, seeders, tests), and the docs
    (GLOSSARY, ADRs, plan). Ask for evidence with `file:line` for every claim.
 3. Add one global gap scan: every route group and page directory against the chapter list.
+   It is mechanical, so run it in `esoul-skills:scout` (Haiku).
 4. Re-check every security-relevant claim yourself in code before reporting it.
 
 ## Output per chapter
