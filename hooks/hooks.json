@@ -2,6 +2,6 @@
   "description": "eSoul usage rules: inject the routing rules at session start and keep subagents off the main model",
   "hooks": {
     "SessionStart": [{ "hooks": [{ "type": "command", "command": "cat \"${CLAUDE_PLUGIN_ROOT}/hooks/session-rules.md\"" }] }],
-    "PreToolUse": [{ "matcher": "Agent|Task", "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/agent-guard.mjs\"", "timeout": 10 }] }]
+    "PreToolUse": [{ "matcher": "Agent|Task", "hooks": [{ "type": "command", "command": "command -v node >/dev/null 2>&1 && node \"${CLAUDE_PLUGIN_ROOT}/hooks/agent-guard.mjs\" || true", "timeout": 10 }] }]
   }
 }

@@ -60,7 +60,7 @@ chapters) and `ops` (Haiku, commits and tracker chores). The skills start them a
 a usage report that shows where the weekly limit goes. The plugin's hooks make this automatic:
 a SessionStart hook injects the usage rules into every session, and a PreToolUse guard denies
 Explore, forks and general-purpose agents without an explicit `model` (disable it with
-`ESOUL_AGENT_GUARD=off`).
+`ESOUL_AGENT_GUARD=off`). The guard needs Node 18+ on `PATH` and is skipped otherwise.
 
 ```bash
 node skills/esoul-model-routing/scripts/usage-report.mjs --days 7
