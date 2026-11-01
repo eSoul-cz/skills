@@ -123,6 +123,10 @@ Jenkins (CI-required, status check `Jenkins`; image `node:24` from `testing-imag
   major that satisfies `engines` and exists in `testing-images`.
 - Parallel Jenkins stages sharing a workspace flaked (`nuxt build` wipes `.nuxt` that typecheck and
   Vitest read). Run checks sequentially or isolate workspaces.
+- One HTTP integration file per issue grew to 47 files, each booting Medusa with all migrations,
+  and one build held the shared Jenkins for about 25 minutes, twice per commit with an open pull
+  request. Add tests to the suite of their area, set `disableConcurrentBuilds(abortPrevious: true)`
+  and build each commit once (`deployment.md`, `tools.md` templates).
 - Calling plain `pnpm` in a non-root CI container fails; use `corepack pnpm`.
 - Vendored skills edited in place drift from the lock; generic skill advice (React Query,
   `building-storefronts`) contradicts project rules unless `AGENTS.md` says which wins.

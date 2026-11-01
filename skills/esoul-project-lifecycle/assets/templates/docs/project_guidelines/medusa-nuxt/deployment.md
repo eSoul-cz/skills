@@ -68,6 +68,20 @@ E2E tests do not run in Jenkins because they need the whole stack; a pull reques
 customer flow runs them locally and lists the result. Keep the check stages sequential, and keep
 the required `Jenkins` check matching the multibranch job.
 
+Jenkins is shared by every eSoul project, so build time matters:
+
+- `options { disableConcurrentBuilds(abortPrevious: true) }` aborts a running build when a newer
+  revision of the same branch or pull request arrives.
+- Push a coherent unit, and push review fixes together once they pass locally; every push starts
+  a full build.
+- When the multibranch job discovers both branches and pull requests, a commit with an open pull
+  request is built twice and both builds write the same `Jenkins` check. Building each commit once
+  is a job setting (*Discover branches*: exclude branches that are also filed as pull requests).
+  Do not skip stages in one of the two jobs instead: the one that finishes last decides the
+  required check.
+- The integration stage grows with the number of HTTP suite files
+  ([tools.md](tools.md#cost-of-the-integration-run)).
+
 ## Environments
 
 - Staging ({{STAGING_URL}}) is deployed from `main`; production ({{PRODUCTION_URL}}) from a
