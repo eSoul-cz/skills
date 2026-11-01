@@ -26,7 +26,7 @@ Subagent tokens count toward the same plan limits as the main conversation; dele
 
 ## Roles
 
-The orchestrator is the main session. In Claude Code the `esoul-skills` plugin ships the worker roles as agents with their model and effort fixed in frontmatter, so routing does not depend on remembering a `model` parameter. Start them with `subagent_type: "esoul-skills:<role>"`. Where these agents are not installed (or in another harness), start a fresh general-purpose subagent with the same model and effort and paste the role's rules into the brief.
+The orchestrator is the main session. In Claude Code the `esoul-skills` plugin ships the worker roles as agents with their model and effort fixed in frontmatter, so routing does not depend on remembering a `model` parameter. The plugin's SessionStart hook injects these rules into every session, and a PreToolUse guard blocks Explore, forks and general-purpose agents without a `model` (set `ESOUL_AGENT_GUARD=off` to disable it). Start them with `subagent_type: "esoul-skills:<role>"`. Where these agents are not installed (or in another harness), start a fresh general-purpose subagent with the same model and effort and paste the role's rules into the brief.
 
 | Role | Model · effort | Does |
 |---|---|---|
@@ -105,6 +105,10 @@ Zeron chats run the Claude Code harness with the same plugins and settings, so t
 
 - **A chat's model and reasoning level set in Zeron override `settings.json`.** Keep Zeron's default for new chats at Opus 5.5 · `medium` and the title model on Haiku; raise the level per chat when the task needs it.
 - **Child chats** (`create_chat`/`create_chats`, one level deep) are full sessions with their own model and effort. Use them for long, independent work the person wants to see or steer (one plan slice per chat on `claude-sonnet-5-5` · `medium`, UAT chapters in parallel); use subagents for short jobs that return a summary. Both count toward the same limit, except work delegated to a non-Claude harness such as Codex, which uses that provider's quota.
+
+## Codex
+
+The roles map to Codex custom agents of the same name, generated from `agents/` with the models `haiku` → `gpt-6-luna`, `sonnet` → `gpt-6.1-terra`, `opus` → `gpt-6.1-sol`. From a clone of this repo run `node codex/install.mjs` (agents into `~/.codex/agents`, rules into `~/.codex/AGENTS.md`) and merge `codex/config.toml` into `~/.codex/config.toml` by hand. Codex work counts against the OpenAI quota, not Claude's.
 
 ## Measure
 
