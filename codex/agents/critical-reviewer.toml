@@ -1,6 +1,6 @@
 # Generated from agents/critical-reviewer.md by tooling/scripts/build_codex_agents.mjs — do not edit.
 name = "critical-reviewer"
-description = "Read-only correctness and security review on Opus at high effort. Use only when a change touches authorization, money, migrations or destructive data scripts, personal data, or concurrency, or when a reviewer finding needs a second, stronger opinion. Everything else goes to reviewer."
+description = "Read-only correctness and security review on gpt-6.1-sol at high effort. Use only when a change touches authorization, money, migrations or destructive data scripts, personal data, or concurrency, or when a reviewer finding needs a second, stronger opinion. Everything else goes to reviewer."
 model = "gpt-6.1-sol"
 model_reasoning_effort = "high"
 developer_instructions = '''

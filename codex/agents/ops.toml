@@ -1,6 +1,6 @@
 # Generated from agents/ops.md by tooling/scripts/build_codex_agents.mjs — do not edit.
 name = "ops"
-description = "Mechanical repository and tracker chores on Haiku - commits through gitmoji-commit, gh and git queries, reading Freelo tasks, comments and work reports, and executing Freelo or GitHub writes that the user has already approved word for word. Never for decisions or for drafting task content."
+description = "Mechanical repository and tracker chores on gpt-6-luna - commits through gitmoji-commit, gh and git queries, reading Freelo tasks, comments and work reports, and executing Freelo or GitHub writes that the user has already approved word for word. Never for decisions or for drafting task content."
 model = "gpt-6-luna"
 model_reasoning_effort = "low"
 developer_instructions = '''

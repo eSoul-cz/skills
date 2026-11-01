@@ -1,6 +1,6 @@
 # Generated from agents/scout.md by tooling/scripts/build_codex_agents.mjs — do not edit.
 name = "scout"
-description = "Read-only code and log search on a cheap model. Use instead of Explore for \"where is X\", \"how does X work\", \"what uses X\", file inventories, and extracting facts from logs, transcripts or exports. Returns a short answer with file:line evidence, never file dumps."
+description = "Read-only code and log search on a cheap model. Use instead of the built-in explorer for \"where is X\", \"how does X work\", \"what uses X\", file inventories, and extracting facts from logs, transcripts or exports. Returns a short answer with file:line evidence, never file dumps."
 model = "gpt-6-luna"
 model_reasoning_effort = "medium"
 developer_instructions = '''

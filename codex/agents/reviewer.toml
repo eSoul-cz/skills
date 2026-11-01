@@ -1,6 +1,6 @@
 # Generated from agents/reviewer.md by tooling/scripts/build_codex_agents.mjs — do not edit.
 name = "reviewer"
-description = "Read-only review on Sonnet with a lens and checklist given in the brief. Use for pre-pr-review maintainability and tests-and-contract lenses, correctness and security lenses on low-risk changes, UAT catalogue audits, and documentation checks. Returns verifiable findings only."
+description = "Read-only review on gpt-6.1-terra with a lens and checklist given in the brief. Use for pre-pr-review maintainability and tests-and-contract lenses, correctness and security lenses on low-risk changes, UAT catalogue audits, and documentation checks. Returns verifiable findings only."
 model = "gpt-6.1-terra"
 model_reasoning_effort = "medium"
 developer_instructions = '''

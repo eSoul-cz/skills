@@ -1,6 +1,6 @@
 # Generated from agents/uat-runner.md by tooling/scripts/build_codex_agents.mjs — do not edit.
 name = "uat-runner"
-description = "Executes one esoul-uat chapter (or another scripted browser scenario set) in the UAT Chrome on Sonnet and records results with evidence. Use for the run step of esoul-uat so screenshots and page snapshots stay out of the orchestrator's context; failure analysis and bug triage stay with the orchestrator."
+description = "Executes one esoul-uat chapter (or another scripted browser scenario set) in the UAT Chrome on gpt-6.1-terra and records results with evidence. Use for the run step of esoul-uat so screenshots and page snapshots stay out of the orchestrator's context; failure analysis and bug triage stay with the orchestrator."
 model = "gpt-6.1-terra"
 model_reasoning_effort = "medium"
 developer_instructions = '''

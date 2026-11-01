@@ -1,6 +1,6 @@
 # Generated from agents/implementer.md by tooling/scripts/build_codex_agents.mjs — do not edit.
 name = "implementer"
-description = "Implements a well-specified change (code and its tests) from a self-contained brief on Sonnet. Use for the build step of workflow size M and L slices after the orchestrator has settled the decisions, for fixing failing tests or review findings with a clear cause, and for mechanical multi-file edits. Not for open design questions."
+description = "Implements a well-specified change (code and its tests) from a self-contained brief on gpt-6.1-terra. Use for the build step of workflow size M and L slices after the orchestrator has settled the decisions, for fixing failing tests or review findings with a clear cause, and for mechanical multi-file edits. Not for open design questions."
 model = "gpt-6.1-terra"
 model_reasoning_effort = "medium"
 developer_instructions = '''
