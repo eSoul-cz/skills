@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -143,4 +144,40 @@ test('every plugin agent pins its model and effort, and skills route only to exi
         }
     }
     assert.deepEqual(unknown, []);
+});
+
+test('generated Codex agents match agents/', () => {
+    const result = spawnSync('node', [join(root, 'tooling/scripts/build_codex_agents.mjs'), '--check'], { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+});
+
+test('agent guard denies Explore, forks and model-less general-purpose agents only', () => {
+    const guard = join(root, 'hooks/agent-guard.mjs');
+    const run = (input, env = {}) => {
+        const stdin = typeof input === 'string' ? input : JSON.stringify({ tool_name: 'Agent', tool_input: input });
+        const result = spawnSync('node', [guard], { input: stdin, encoding: 'utf8', env: { ...process.env, ESOUL_AGENT_GUARD: '', ...env } });
+        assert.equal(result.status, 0, result.stderr);
+        return result.stdout ? JSON.parse(result.stdout).hookSpecificOutput : null;
+    };
+    for (const input of [{ subagent_type: 'Explore', model: 'haiku' }, { subagent_type: 'fork' }, { subagent_type: 'general-purpose' }, { prompt: 'x' }, { subagent_type: 'claude', model: ' ' }]) {
+        const decision = run(input);
+        assert.equal(decision?.permissionDecision, 'deny', JSON.stringify(input));
+        assert.ok(decision.permissionDecisionReason);
+    }
+    assert.match(run({ subagent_type: 'Explore' }).permissionDecisionReason, /esoul-skills:scout/);
+    for (const input of [{ subagent_type: 'general-purpose', model: 'haiku' }, { subagent_type: 'esoul-skills:scout' }]) {
+        assert.equal(run(input), null, JSON.stringify(input));
+    }
+    assert.equal(run('not json'), null);
+    assert.equal(run({ subagent_type: 'Explore' }, { ESOUL_AGENT_GUARD: 'off' }), null);
+});
+
+test('hooks.json parses and references files that exist', () => {
+    const config = JSON.parse(readFileSync(join(root, 'hooks/hooks.json'), 'utf8'));
+    const commands = Object.values(config.hooks).flat().flatMap((entry) => entry.hooks.map((hook) => hook.command));
+    assert.ok(commands.length >= 2);
+    for (const command of commands) {
+        const [, path] = command.match(/\$\{CLAUDE_PLUGIN_ROOT\}\/([^"\s]+)/) ?? [];
+        assert.ok(path && existsSync(join(root, path)), `hooks.json references a missing file: ${command}`);
+    }
 });
