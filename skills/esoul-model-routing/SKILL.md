@@ -26,7 +26,7 @@ Subagent tokens count toward the same plan limits as the main conversation; dele
 
 ## Roles
 
-The orchestrator is the main session. In Claude Code the `esoul-skills` plugin ships the worker roles as agents with their model and effort fixed in frontmatter, so routing does not depend on remembering a `model` parameter. The plugin's SessionStart hook injects these rules into every session, and a PreToolUse guard blocks Explore, forks and general-purpose agents without a `model` (set `ESOUL_AGENT_GUARD=off` to disable it). Start them with `subagent_type: "esoul-skills:<role>"`. Where these agents are not installed (or in another harness), start a fresh general-purpose subagent with the same model and effort and paste the role's rules into the brief.
+The orchestrator is the main session. In Claude Code the `esoul-skills` plugin ships the worker roles as agents with their model and effort fixed in frontmatter, so routing does not depend on remembering a `model` parameter. The plugin's SessionStart hook injects these rules into every session, and a PreToolUse guard blocks Explore, forks, and general-purpose or Plan agents without a `model` (planning belongs to the orchestrator; if you delegate it, pass `sonnet`) (set `ESOUL_AGENT_GUARD=off` to disable it). Start them with `subagent_type: "esoul-skills:<role>"`. Where these agents are not installed (or in another harness), start a fresh general-purpose subagent with the same model and effort and paste the role's rules into the brief.
 
 | Role | Model · effort | Does |
 |---|---|---|
@@ -35,7 +35,7 @@ The orchestrator is the main session. In Claude Code the `esoul-skills` plugin s
 | `esoul-skills:test-runner` | `haiku` · `low` | Runs tests, builds, linters, sweep scripts; returns receipts and failures only |
 | `esoul-skills:implementer` | `sonnet` · `medium` | Builds a specified change with tests; fixes failures and findings with a clear cause |
 | `esoul-skills:reviewer` | `sonnet` · `medium` | Review lenses, catalogue and documentation audits |
-| `esoul-skills:critical-reviewer` | `opus` · `high` | Correctness and security on changes touching authorization, money, migrations, personal data or concurrency |
+| `esoul-skills:critical-reviewer` | `opus` · `high` | Correctness and security on changes touching authorization, money, migrations or destructive data scripts, personal data or concurrency |
 | `esoul-skills:uat-runner` | `sonnet` · `medium` | Executes UAT chapters in the browser and records results |
 | `esoul-skills:ops` | `haiku` · `low` | Commits, `gh`/git queries, Freelo reads and already-approved writes, work reports |
 

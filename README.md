@@ -16,12 +16,14 @@ claude plugin marketplace add eSoul-cz/skills
 
 # install the workflow set
 claude plugin install esoul-skills@esoul          # esoul-workflow + all eSoul skills
-claude plugin install esoul-awesome-picks@esoul   # WordPress, Laravel, SEO, data, ...
+claude plugin install esoul-awesome-picks@esoul --scope project   # per project: WordPress, Laravel, SEO, data, ...
 claude plugin install frontend-design@esoul        # distinctive, non-templated UI
 ```
 
 The same install works in the terminal and in Claude in VS Code: both read the
 same `~/.claude` configuration, so a plugin installed once is available in both.
+
+`esoul-awesome-picks` adds about 21 skill descriptions to every session, so install it per project, only in WordPress, Laravel, SEO, or data projects: `claude plugin install esoul-awesome-picks@esoul --scope project`. A plain install enables it user-wide.
 
 `frontend-design` is referenced from its upstream repository, so its updates come
 from Anthropic. `esoul-skills` and `esoul-awesome-picks` are maintained here.

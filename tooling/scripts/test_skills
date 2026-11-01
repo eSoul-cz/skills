@@ -8,7 +8,7 @@ NODE_IMAGE='node:22-alpine'
 cd "${REPOSITORY_ROOT}"
 
 if command -v node >/dev/null 2>&1; then
-    exec node --test tooling/scripts/test_skills.mjs tooling/scripts/test_check_upstream.mjs
+    exec node --test tooling/scripts/test_skills.mjs tooling/scripts/test_check_upstream.mjs skills/freelo/scripts/work-report-minutes.test.mjs
 fi
 
 if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
@@ -21,4 +21,4 @@ fi
 tar -cf - .claude-plugin README.md agents hooks codex skills tooling/upstream \
     tooling/scripts/test_skills.mjs tooling/scripts/build_codex_agents.mjs tooling/scripts/check_upstream.mjs tooling/scripts/test_check_upstream.mjs |
     docker run --rm -i "${NODE_IMAGE}" sh -c \
-        'mkdir /work && cd /work && tar -xf - && node --test tooling/scripts/test_skills.mjs tooling/scripts/test_check_upstream.mjs'
+        'mkdir /work && cd /work && tar -xf - && node --test tooling/scripts/test_skills.mjs tooling/scripts/test_check_upstream.mjs skills/freelo/scripts/work-report-minutes.test.mjs'

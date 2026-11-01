@@ -1,6 +1,6 @@
 ---
 name: esoul-freelo-task-authoring
-description: Prepare, refine, preview, and create one or more well-specified eSoul tasks in a single confirmed Freelo project. Use when a user asks to add, create, specify, split, or revise an eSoul Freelo task; turn a feature, bug, technical change, spike, data task, documentation task, or LTT into Freelo work; or avoid a duplicate while authoring a new task. Inspect the active codebase and existing Freelo work, interview only as needed, and require explicit approval before every Freelo write.
+description: Prepare, preview and create well-specified eSoul tasks in one confirmed Freelo project, with duplicate search and approval before every write. Use to add, create, specify, split or revise an eSoul Freelo task, or turn a feature, bug, spike, data task or LTT into Freelo work.
 ---
 
 # eSoul Freelo task authoring
@@ -11,8 +11,9 @@ when the step needs it. Skills already loaded in this session are not loaded aga
 
 ## Companion and context
 
-Use the `freelo` skill core for commands (its task authoring recipe covers create,
-description, labels, estimate, relations and read-back). Prefer available Freelo MCP tools;
+Use the `freelo` skill core for general CLI rules and the
+[CLI recipe](references/cli-recipe.md) for the authoring commands (create, description,
+labels, estimate, relations, read-back). Prefer available Freelo MCP tools;
 otherwise the authenticated `freelo` CLI with `--agent`. Never call the API with `curl`.
 
 Use applicable `AGENTS.md` content already in context; do not read it again. Read only the
@@ -40,7 +41,8 @@ cache as the reference describes.
   needs an assignee.
 - Search for duplicates and related work once per batch, before the first preview: by outcome,
   domain terms, module and file names, in Czech and English, active and finished tasks. Not by
-  title only. Reuse the results for revised previews; search again only for a task whose scope
+  title only. In an orchestrated session the searches run through `esoul-skills:ops` with a
+  compact-fields brief (`freelo` skill, Delegation). Reuse the results for revised previews; search again only for a task whose scope
   or outcome changed.
 - Write in Czech; keep established programming terms (migrace, commandy, requesty); give
   domain concepts as `chovatel (Breeder)` when code uses an English name.
@@ -88,7 +90,8 @@ new preview. Silence or approval of an earlier draft is not approval.
 1. Create prerequisites first; create each task, then description and metadata.
 2. Create approved subtasks; apply labels by UUID; set the estimate; create relations.
 3. Read back every created or modified task (tasklist, content, subtasks, labels, estimate,
-   assignee, due date, relations) and return clickable links.
+   assignee, due date, relations) and return clickable links. In an orchestrated session,
+   `esoul-skills:ops` runs the approved writes and the read-back, returning compact fields.
 
 Writes are not atomic. On partial failure stop dependent writes, read the actual state,
 report what succeeded and what remains, and ask before changed operations. Do not move tasks

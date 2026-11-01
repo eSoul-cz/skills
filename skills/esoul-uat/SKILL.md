@@ -1,6 +1,6 @@
 ---
 name: esoul-uat
-description: Plan, verify, run, and report user acceptance testing (UAT) of eSoul applications, e-shops, and websites as an end user in an isolated Chrome, covering functionality and design (overflow, overlaps, responsiveness, match with a .pen or Figma design). Keeps the scenario catalogue current, runs it across roles and devices with evidence, renders reports, and files found bugs through esoul-tasking. Use for UAT, test scenarios, acceptance runs, "click through the app", responsive or design QA, or turning test findings into bugs.
+description: Plan, verify, run and report UAT of eSoul apps, e-shops and websites as an end user in an isolated Chrome (functionality and design). Use for UAT, test scenarios, acceptance runs, "click through the app", responsive or design QA, or turning findings into bugs via esoul-tasking.
 ---
 
 # eSoul UAT
@@ -84,6 +84,9 @@ into missing files; never overwrite project files.
   approved preview. Batch all bugs from one run into one preview. The repository's
   `Tasking convention` decides the form: `github-freelo` pairs, or self-contained Freelo
   tasks in `freelo-only` projects (then attach screenshots to the task).
+- **Abort.** A chapter stops after 3 consecutive blocked steps and is reported
+  ([execution](references/execution.md)). Report and PDF rendering runs through
+  `esoul-skills:test-runner`.
 - **Stable IDs.** Scenario IDs (`ZV-11`) are never renumbered or reused.
 
 ## 5. Companion skills

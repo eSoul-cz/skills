@@ -20,6 +20,14 @@ Never store client data in gitignored folders such as `storage/`, `tmp/` or Down
 exception is unanonymized legacy evidence in the gitignored `_reference/`, which never reaches
 an agent unless anonymized.
 
+## Reading the files
+
+Do not read podklady and legacy files in the orchestrating session. Give
+`esoul-skills:scout` (Haiku) the file list and ask for a summary per file (sheets, chapters,
+figures, open points) with locations, and with `path:line` (or sheet/cell) evidence for every
+number and formula. The session decides what becomes a note, question or ADR, and verifies the
+numbers it relies on by targeted reads of those locations only.
+
 ## Writing a podklad note
 
 Start from `assets/templates/docs/podklady/_poznamka.md`.

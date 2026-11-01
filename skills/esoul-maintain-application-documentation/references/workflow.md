@@ -1,43 +1,12 @@
 # Workflow
 
-## Mode selection
+## Modes
 
-### Create
+Read only the file for the selected mode:
 
-Use when no approved documentation system exists or the user asks to establish a new guide set.
-
-1. Inventory repository instructions, domain context, existing docs, code, tests, configuration, routes/UI, deployment files, observability, and official external contracts.
-2. Run `$grill-with-docs` when available, one question at a time. Otherwise conduct the same approval-gated interview directly, one question at a time. Investigate discoverable answers instead of asking.
-3. Maintain domain terms in `GLOSSARY.md` or the contexts named by `GLOSSARY-MAP.md`. Read legacy `CONTEXT.md` or `CONTEXT-MAP.md` glossaries as the fallback when no glossary exists, but record new terms in `GLOSSARY.md`. Keep implementation details out of the glossary. Offer ADRs only when the domain-modeling criteria are satisfied.
-4. Write `docs/documentation-spec.md`. Record substantive choices and evidence conflicts in `docs/documentation-decisions.md` as they occur.
-5. Surface unresolved evidence gaps and intended-versus-implemented mismatches.
-6. Obtain explicit specification approval.
-7. Install managed project tools and create `docs/documentation.toml`.
-8. Author the approved guides and optional screenshot manifest.
-9. Run mechanical, visual, privacy, accessibility, correctness, and completeness gates.
-
-### Refresh
-
-Use when approved guides and a specification already exist.
-
-1. Establish the change scope from the user request, Git diff, issue/specification, or repository evidence.
-2. Compare affected implementation and official contracts with the specification, decisions, existing docs, and screenshots.
-3. Continue directly for factual corrections, version updates, renamed labels, added commands, and other changes covered by the specification.
-4. Propose reopening `$grill-with-docs` when audience, scope, domain language, source authority, guide structure, planned/current behavior policy, screenshot policy, or publication requirements changed.
-5. Update affected content, evidence, screenshots, and decisions.
-6. Suggest a documentation-version bump when configured: patch for corrections; minor for new workflows/features/roles/substantial sections; major for materially incompatible audience or scope changes. Never apply a bump without approval.
-7. Run the full publication gates for changed guides.
-
-### Verify
-
-Use for read-only assessment unless the user separately authorizes fixes.
-
-1. Check managed-tool version and drift.
-2. Validate configuration, sources, links, assets, math, accessibility basics, ignore rules, and likely sensitive data.
-3. Compare claims against implementation, tests, configuration, observed UI, and approved external sources.
-4. Report stale content, omissions, evidence conflicts, due attestations, intended/implemented mismatches, screenshot drift, and PDF problems.
-5. Build and visually inspect when the environment permits; otherwise identify exactly which gates remain unverified. `build` writes disposable PDFs and review artifacts, so in a strictly read-only review use a temporary project copy or obtain authorization for those generated files.
-6. Do not edit content in verify mode.
+- [Create](workflow-create.md)
+- [Refresh](workflow-refresh.md)
+- [Verify](workflow-verify.md)
 
 ## Evidence policy
 
@@ -90,6 +59,6 @@ Call a guide publish-ready only when all required gates pass:
 - No unresolved findings except explicit user acceptances
 - Markdown and asset validation
 - Successful Dockerized PDF build
-- Structural PDF checks and every-page visual inspection
+- Structural PDF checks and every-page visual inspection (delegated, see SKILL.md)
 - Privacy and source-level accessibility review
-- Independent correctness and completeness reviews when sub-agents are available
+- Independent correctness and completeness reviews when `esoul-skills:reviewer` sub-agents are available

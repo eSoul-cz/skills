@@ -37,7 +37,7 @@ project, tasklist and label IDs from the `## Freelo` section of `CONTEXT.md` bef
 ## Work reports: active work only
 
 A work report records active work, never waiting for tests, builds, mutation testing, E2E, CI or
-the test queue. Compute the minutes from the session transcript as described in
+the test queue. Compute the minutes with `scripts/work-report-minutes.mjs` as described in
 [references/work-reports.md](references/work-reports.md), round to 5 minutes, and tell the user
 how much waiting was left out.
 
@@ -59,28 +59,24 @@ freelo <command> --ids-only    # IDs, one per line
 freelo <command> --count       # count only
 ```
 
-## Task authoring recipe (verified with CLI 1.3)
+## Task authoring
 
-```bash
-freelo tasklists list --project <project-id> --agent                    # resolve tasklist IDs by name
-freelo tasks create --project <project-id> --tasklist <tasklist-id> --name "<title>" --agent
-freelo tasks description <task-id> --set '<p>…</p>' --agent             # sanitized HTML; links with target="_blank" rel="noopener"
-freelo labels add-to-task --task <task-id> --uuid <label-uuid> --agent  # one call per label, existing UUIDs only
-freelo api post /task/<task-id>/total-time-estimate --data '{"minutes":180}'   # estimate; the CLI has no flag
-freelo api post /task/<task-id>/relations --data '{"type":"blocked_by","related_task_id":<other-id>}'
-freelo api get /task/<task-id>                                          # read back: tasklist, labels, total_time_estimate, relations
-freelo search "<keyword>" --type task --agent                           # duplicates (searches all projects; filter by project)
-```
+Before creating a task, check that `esoul-freelo-task-authoring` is installed. If it is not, stop and ask the user to install it; do not author tasks ad hoc.
 
-- Relation `type` is `blocked_by`, `blocks`, `related_to` or `duplicate_of`, from the point of
-  view of `<task-id>`; Freelo shows the reverse side automatically.
-- Task label UUIDs: `freelo labels list` returns *project* labels, not task labels. Collect
-  task-label UUIDs from existing tasks of the project:
-  `freelo api get "/all-tasks?projects_ids[]=<project-id>&p=<page>"` → `labels[].uuid`.
-  Never create a label by name; that creates a duplicate.
-- Files: `freelo files upload <path> --agent` returns a UUID; attach it with
-  `freelo tasks description <task-id> --set '…' --file <uuid>`.
-- Subtasks, comments, editing, moving and other commands: [references/commands.md](references/commands.md).
+Title format, labels by UUID, estimates, relations, duplicate search and the command recipe
+(create, description, labels, estimate, relations, read-back, files) are owned by
+`esoul-freelo-task-authoring` (when installed): see its `references/cli-recipe.md`. Do not restate them here.
+Subtasks, comments, editing, moving and other commands:
+[references/commands.md](references/commands.md).
+
+## Delegation
+
+In an orchestrated session (`esoul-model-routing`), the orchestrator keeps approval content:
+previews, decisions, task wording. Freelo reads (task lookups, duplicate searches, `/all-tasks`
+pagination, label and tasklist cache refresh) and, after approval, the writes and their
+read-back go to `esoul-skills:ops` (Haiku). Its brief asks for compact fields only: IDs,
+titles, states, URLs, and the exact write to run verbatim. Raw `--agent` JSON never enters the
+main session. Without an orchestrator, run the commands directly.
 
 ## Common patterns
 

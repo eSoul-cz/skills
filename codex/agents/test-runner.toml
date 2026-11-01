@@ -17,5 +17,5 @@ Answer format, nothing else:
 ```text
 receipt · tree <tree12 or n/a> · <command> → <pass | fail: short result>
 ```
-one line per command, then for each failure at most 30 lines: the failing test or file, the assertion or error message, and the first relevant stack frame inside the repository (`path:line`). If more than 10 tests fail, list the first 10 and the total count. End with the path of the full log when one was saved.
+one line per command, then the artifact paths the brief asks for, then for each failure at most 30 lines: the failing test or file, the assertion or error message, and the first relevant stack frame inside the repository (`path:line`). If more than 10 tests fail, list the first 10 and the total count. End with the path of the full log when one was saved.
 '''

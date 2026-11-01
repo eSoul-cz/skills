@@ -1,6 +1,6 @@
 ---
 name: esoul-tasking
-description: Prepare, preview, and create eSoul work as a self-contained Freelo task or a linked GitHub issue and Freelo task. Use when the user invokes esoul-tasking, asks to pair GitHub issues with Freelo tasks, or authors work under a repository tasking convention. Depends directly on esoul-freelo-task-authoring. Resolve and record the split/no-split convention in root CONTEXT.md (falling back to GLOSSARY.md), inspect real code and existing work, and require explicit approval before remote writes. Does not implement work or manage its later lifecycle.
+description: Prepare, preview and create eSoul work as a Freelo task or a linked GitHub issue + Freelo task, per the repository's split/no-split convention in CONTEXT.md. Use when invoked, when pairing GitHub issues with Freelo tasks, or under a tasking convention. Requires esoul-freelo-task-authoring; needs approval before writes.
 ---
 
 # eSoul tasking
@@ -54,19 +54,19 @@ tasks, and classify each result as a new pair, an existing pair to refine, or a 
 counterpart: [references/github-freelo.md](references/github-freelo.md). Never create labels,
 projects, repositories or tasklists as a shortcut.
 
-Search once per batch, not once per preview: keep the results and reuse them when the user
-asks for wording changes, and search again only for a task whose scope, outcome or domain
-changed. Tasklist IDs and label UUIDs come from the `## Freelo` cache in `CONTEXT.md`
+Duplicate-search rules (once per batch, reuse for revised previews) are owned by the
+companion; here the search also covers GitHub issues. In an orchestrated session the Freelo
+and `gh` searches run through `esoul-skills:ops` only, with a compact-fields
+brief (`freelo` skill, Delegation); `scout` may search only the local repository. Tasklist IDs and label UUIDs come from the `## Freelo` cache in `CONTEXT.md`
 (companion's [project mapping](../esoul-freelo-task-authoring/references/project-mapping.md));
 GitHub label names come from one `gh label list` per session.
 
 ## 3. Titles, labels, specifications
 
-- Same title for both entities: `Context: Actionable result`. Categories are existing labels
-  in each system, not `[FE]`/`[BE]`/`[DATA]` prefixes, unless the repository's tasking
-  convention defines prefixes. At least one existing label on each entity; real Freelo UUIDs
-  and exact GitHub label names. The convention's category table (GitHub label ↔ Freelo label)
-  decides the pair.
+- Title, labels and estimate follow `esoul-freelo-task-authoring` (title format, labels by
+  UUID, estimates). Delta: both entities get the same title, each has at least one existing
+  label in its own system (exact GitHub label names, real Freelo UUIDs), and the convention's
+  category table (GitHub label ↔ Freelo label) decides the pair.
 - `freelo-only`: the companion's full self-contained description, including verification.
 - `github-freelo`: the issue is the source of truth (outcome, verified areas, scope,
   acceptance criteria, verification, dependencies as native `blocked_by`, link to Freelo);
@@ -108,6 +108,7 @@ preview and the mechanical link substitutions only.
 Freelo link in the issue; read back both sides. Full order and failure handling:
 [references/github-freelo.md](references/github-freelo.md).
 
-Writes are not atomic: on failure stop, read the actual state in both systems, report, and
+In an orchestrated session `esoul-skills:ops` runs the approved writes and the read-back
+verbatim and returns compact fields. Writes are not atomic: on failure stop, read the actual state in both systems, report, and
 ask before changed operations. Do not implement the work, move lifecycle states, track time,
 close or reopen issues, or assign people without explicit scope.

@@ -13,4 +13,4 @@ Rules:
 - Record each scenario with `uat.mjs` as the skill describes: `pass` only when every expected result was observed, otherwise `fail`, `deviation`, `blocked` or `skipped` with the step, the actual result and the screenshot path.
 - Do not diagnose code or write bugs; describe what you observed precisely enough that the orchestrator can.
 
-Answer format: totals per status, then one line per non-pass scenario (`ID · status · step · actual result · screenshot`), then anything that blocked the run.
+Answer format, unless the brief specifies another format: totals per status, then one line per non-pass scenario (`ID · status · step · actual result · screenshot`), then anything that blocked the run.

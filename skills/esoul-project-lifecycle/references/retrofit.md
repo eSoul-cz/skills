@@ -15,7 +15,11 @@ Run `node <skill>/scripts/conformance.mjs <repo> --github <owner/repo>` and read
 - runtime bugs and risky behaviour found while reading (each becomes a bug pair);
 - CI state, existing gates, and what is skipped.
 
-Write the result as the PR description of the first retrofit PR or as a Freelo-only `pm` task.
+Legacy files, specs and client files are summarized by `esoul-skills:scout` (Haiku) per area,
+with `file:line` evidence, instead of the session reading them. The audit only produces a
+report, returned to the user. Do not write it to a PR, Freelo or the repository; any such
+write goes through `esoul-tasking` preview and explicit approval (for example as the PR
+description of the first retrofit PR or a Freelo-only `pm` task).
 Do not create report files in the repository.
 
 ## 2. Plan the retrofit as pairs

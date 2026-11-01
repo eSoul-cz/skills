@@ -49,7 +49,7 @@ This session is the orchestrator: it decides, writes briefs, and reviews. Mechan
 |---|---|
 | **S** | Do it directly; suggest a `sonnet` session for a run of S tasks. Delegation would cost as much as the work. |
 | **M, L, Bug** | Settle decisions here, then brief `esoul-skills:implementer` (Sonnet) per slice; `esoul-skills:test-runner` (Haiku) runs the checks; review the diff and receipts here. After two failed worker attempts, take over or escalate. |
-| **Any** | Searches → `scout`; test, build and lint runs → `test-runner`; commits, `gh` queries and approved tracker writes → `ops`; review lenses → `reviewer`, or `critical-reviewer` for authorization, money, migrations or personal data. |
+| **Any** | Searches → `scout`; test, build and lint runs → `test-runner`; commits, `gh` queries and approved tracker writes → `ops`; review lenses → `reviewer`, or `critical-reviewer` for authorization, money, migrations or destructive data scripts, personal data, concurrency. |
 
 Keep the session small: one task per session, `/clear` or a handoff between tasks, no whole logs or dumps in context, independent tool calls batched in one message. Effort `medium` is the default for this session; raise it to `high` for clarifying and planning, `xhigh` for L or security-sensitive work. The full rules, the Zeron specifics and the usage report are in `esoul-model-routing`.
 
@@ -119,7 +119,7 @@ It does not change when the verified files are committed (it equals the new comm
 
 ### Review (M, L)
 
-- One local review per revision. When the PR will be finished through `final-pr-review`, its pre-push pass (CodeRabbit CLI, or `pre-pr-review` as fallback) is the review: do not also run `code-review`. `pre-pr-review`'s tests-and-contract lens already checks the change against the issue.
+- One local review per revision. A diff revision gets at most one local review; later passes review only the delta `git diff <last reviewed head>..HEAD`, unless the delta is large or touches a risk trigger (authorization, money, migrations or destructive data scripts, personal data, concurrency). When the PR will be finished through `final-pr-review`, its pre-push pass (CodeRabbit CLI, or `pre-pr-review` as fallback) is the review: do not also run `code-review`. `pre-pr-review`'s tests-and-contract lens already checks the change against the issue.
 - Run `code-review` (when installed) against the branch base only when no PR follows, or when the user asks for it. Fix valid findings.
 - Run `pre-pr-review` directly only when the PR will not be finished through `final-pr-review`, or when the user asks for a local review.
 - For documentation changes, use `esoul-maintain-application-documentation` in verify mode.
