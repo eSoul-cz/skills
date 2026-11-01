@@ -25,16 +25,29 @@ Work done on the task while tests run (documentation, PR description) counts.
 ## How to compute the minutes
 
 1. The most accurate source is the session transcript
-   (`~/.claude/projects/<project>/<session>.jsonl`; every record has a `timestamp`). Sum the gaps
-   between records from the start of work on the task to the report:
-   - gaps inside test, build, mutation and install runs and waiting loops (`until`, `sleep`,
-     `Monitor`, `[testq] waiting`) longer than one minute do not count;
+   (`~/.claude/projects/<project>/<session>.jsonl`; every record has a `timestamp`). Run the
+   bundled script, preferably through `esoul-skills:test-runner` so the transcript stays out of
+   context:
+
+   ```bash
+   node <skill>/scripts/work-report-minutes.mjs <transcript.jsonl> [--from <ISO time>] [--to <ISO time>]
+   ```
+
+   `--from` is the start of work on the task, `--to` the moment of the report. It sums the gaps
+   between records:
+   - a gap inside a test, build, mutation or install run or a waiting loop (`until`, `sleep`,
+     `Monitor`, `[testq] waiting`) longer than one minute does not count;
    - subagent work (`Agent`, `Skill`, `Workflow`) counts in full;
    - any other gap counts for at most 5 minutes (a longer pause is waiting).
+
+   It prints the active minutes, the 5-minute rounded value to report and the waiting left out
+   (`--json` for a machine-readable form). Spot-check it against the commit times when the
+   result looks off; the script cannot see waiting that happened inside a long normal-looking
+   command.
 2. Without a transcript, build a timeline from the branch reflog
    (`git reflog show <branch> --date=format:%H:%M`), commit times, test log modification times
    (`ls -lT`) and Freelo moves, and sum only the active stretches.
-3. Round to 5 minutes.
+3. Round to 5 minutes (the script already does).
 4. In the report note, say what was done and that the time is active work without waiting for
    tests. Add the PR link when a PR exists; before that, link the issue or branch and add the PR
    link when the report is next edited.
