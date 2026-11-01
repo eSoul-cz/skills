@@ -26,7 +26,7 @@ Subagent tokens count toward the same plan limits as the main conversation; dele
 
 ## Roles
 
-The orchestrator is the main session. In Claude Code the `esoul-skills` plugin ships the worker roles as agents with their model and effort fixed in frontmatter, so routing does not depend on remembering a `model` parameter. The plugin's SessionStart hook injects these rules into every session, and a PreToolUse guard blocks Explore, forks and general-purpose agents without a `model` (set `ESOUL_AGENT_GUARD=off` to disable it). Start them with `subagent_type: "esoul-skills:<role>"`. Where these agents are not installed (or in another harness), start a fresh general-purpose subagent with the same model and effort and paste the role's rules into the brief.
+The orchestrator is the main session. In Claude Code the `esoul-skills` plugin ships the worker roles as agents with their model and effort fixed in frontmatter, so routing does not depend on remembering a `model` parameter. The plugin's SessionStart hook injects these rules into every session, and a PreToolUse guard blocks Explore, forks, and general-purpose or Plan agents without a `model` (planning belongs to the orchestrator; if you delegate it, pass `sonnet`) (set `ESOUL_AGENT_GUARD=off` to disable it). Start them with `subagent_type: "esoul-skills:<role>"`. Where these agents are not installed (or in another harness), start a fresh general-purpose subagent with the same model and effort and paste the role's rules into the brief.
 
 | Role | Model · effort | Does |
 |---|---|---|

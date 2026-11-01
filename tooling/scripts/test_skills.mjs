@@ -151,7 +151,7 @@ test('generated Codex agents match agents/', () => {
     assert.equal(result.status, 0, result.stderr);
 });
 
-test('agent guard denies Explore, forks and model-less general-purpose agents only', () => {
+test('agent guard denies Explore, forks and model-less general-purpose and Plan agents only', () => {
     const guard = join(root, 'hooks/agent-guard.mjs');
     const run = (input, env = {}) => {
         const stdin = typeof input === 'string' ? input : JSON.stringify({ tool_name: 'Agent', tool_input: input });
@@ -159,13 +159,14 @@ test('agent guard denies Explore, forks and model-less general-purpose agents on
         assert.equal(result.status, 0, result.stderr);
         return result.stdout ? JSON.parse(result.stdout).hookSpecificOutput : null;
     };
-    for (const input of [{ subagent_type: 'Explore', model: 'haiku' }, { subagent_type: 'fork' }, { subagent_type: 'general-purpose' }, { prompt: 'x' }, { subagent_type: 'claude', model: ' ' }]) {
+    for (const input of [{ subagent_type: 'Explore', model: 'haiku' }, { subagent_type: 'fork' }, { subagent_type: 'general-purpose' }, { prompt: 'x' }, { subagent_type: 'claude', model: ' ' }, { subagent_type: 'Plan' }]) {
         const decision = run(input);
         assert.equal(decision?.permissionDecision, 'deny', JSON.stringify(input));
         assert.ok(decision.permissionDecisionReason);
     }
     assert.match(run({ subagent_type: 'Explore' }).permissionDecisionReason, /esoul-skills:scout/);
-    for (const input of [{ subagent_type: 'general-purpose', model: 'haiku' }, { subagent_type: 'esoul-skills:scout' }]) {
+    assert.match(run({ subagent_type: 'Plan' }).permissionDecisionReason, /sonnet/);
+    for (const input of [{ subagent_type: 'Plan', model: 'sonnet' }, { subagent_type: 'general-purpose', model: 'haiku' }, { subagent_type: 'esoul-skills:scout' }]) {
         assert.equal(run(input), null, JSON.stringify(input));
     }
     assert.equal(run('not json'), null);
