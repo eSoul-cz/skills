@@ -99,6 +99,29 @@ test. Text a test supplies itself and expects to be forwarded unchanged is test 
 - Authorization is tested for the allowed **and** the refused role
   ([security-and-data.md](security-and-data.md#authorization-tests)).
 
+## Keeping the integration run short
+
+Integration tests cost what it takes to start the application and prepare its database, and the
+stack decides how often that happens: per file, per test class or per test ([tools.md](tools.md)).
+A test added to an existing suite costs the test itself; a new suite can add another start. Every
+eSoul project shares one Jenkins, so a slow run blocks every other project too.
+
+- **Pick the cheapest layer that can see the behaviour.** Calculations, mapping, value validation
+  and branching are unit tests, with table-driven cases for the variants. An integration test is
+  for what needs the real database, framework or application: the contract of a route or
+  command, authorization, persistence, events and wiring across parts.
+- **Add to the suite of the area.** A new integration test goes into the existing suite of its
+  area. A new suite is only for an area no suite covers, and the pull request says why. Name a
+  suite after the area, never after an issue.
+- **Prove each path once.** Each failure class and the success of a route or command are proven
+  once at the integration layer; further input variants of the same rule are unit tests. Do not
+  repeat what a cheaper test already asserts.
+- **Create shared data once** per suite, not in every test, when the stack allows it without
+  making tests depend on each other.
+
+Suites that break these rules are merged or moved to a cheaper layer in their own issue, not in
+passing.
+
 ## Mutation testing
 
 Mutation testing checks that tests are useful, not only that they pass. The stack's tool

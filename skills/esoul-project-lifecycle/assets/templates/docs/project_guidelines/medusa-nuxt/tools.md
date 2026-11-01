@@ -58,6 +58,22 @@ checks table in [CONTRIBUTING.md](../../CONTRIBUTING.md) says so. For a quick lo
 `pnpm --filter <package> typecheck` and `test` are enough while you work; they do not replace
 `pnpm check`.
 
+## Cost of the integration run
+
+Every HTTP integration file boots a whole Medusa application: `medusaIntegrationTestRunner`
+creates a database, runs every migration and starts the app before the first test. The files run
+one after another, because several applications in one process exceed Node's heap. The run
+therefore grows with the number of files, not tests: in one eSoul project, 47 HTTP files made one
+Jenkins build take about 25 minutes. On top of
+[testing.md](testing.md#keeping-the-integration-run-short):
+
+- the behaviour of one module service goes into a module suite (`moduleIntegrationTestRunner`
+  loads only that module), not into an HTTP suite;
+- an HTTP test goes into the existing HTTP suite of its area, in its own `describe` block when it
+  needs its own data; a new file needs a reason in the pull request;
+- one `medusaIntegrationTestRunner` per file; the store, products and customers a suite shares are
+  created in its `beforeAll`.
+
 ### Lint and the suppression ratchet
 
 - One ESLint run covers the whole repository. The project's own rules live in

@@ -77,6 +77,19 @@ every branch and pull request.
 Mutation testing does not run in CI; it is a local soft gate ([testing.md](testing.md)). Keep the
 stage names stable: the required check is the multibranch job's `Jenkins` status.
 
+Jenkins is shared by every eSoul project, so build time matters:
+
+- `options { disableConcurrentBuilds(abortPrevious: true) }` aborts a running build when a newer
+  revision of the same branch or pull request arrives.
+- Push a coherent unit, and push review fixes together once they pass locally; every push starts
+  a full build.
+- When the multibranch job discovers both branches and pull requests, a commit with an open pull
+  request is built twice and both builds write the same `Jenkins` check. Building each commit once
+  is a job setting (*Discover branches*: exclude branches that are also filed as pull requests).
+  Do not skip stages in one of the two jobs instead: the one that finishes last decides the
+  required check.
+- Integration tests follow [testing.md](testing.md#keeping-the-integration-run-short).
+
 ## Environments
 
 - **Staging is built from `main`.** Every merge to `main` that passes the pipeline is deployed to
