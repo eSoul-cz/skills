@@ -56,7 +56,8 @@ A worker knows only its brief. Write it like a ticket: goal; acceptance criteria
 ## Context budget for the main session
 
 - **One task, one session.** `/clear` between unrelated tasks; when work continues elsewhere, write a handoff (`esoul-workflow` references/handoff.md) and start fresh.
-- **Auto-compact early:** keep `autoCompactWindow` for the main models around 250K (see Settings). Keep plans and decisions in files, not only in the conversation, so compaction loses nothing important.
+- **Auto-compact early:** keep `autoCompactWindow` for the main models around 250K (see Settings). It also caps 1M-context sessions (`[1m]` models, Zeron's 1M option). Keep plans and decisions in files, not only in the conversation, so compaction loses nothing important.
+- **1M context only by exception:** the window costs nothing, but every request re-reads what fills it, so a 900K request costs about 3.5 times a 250K one, on every turn. Raise the cap (`/autocompact 1m`) for one short session that must hold a large input at once and cannot split it, and end it when done. Prefer giving the large input to a subagent, which reads it once and returns a summary. Never make it the default, and never use it just to avoid compaction in a long interactive session.
 - **Keep large outputs out:** read files with offset and limit or through `scout`; never paste whole logs, `gh ... --json` dumps, test output or browser snapshots into the main session.
 - **Fewer steps:** batch independent tool calls in one message, chain related shell commands in one call, and wait with the harness's background or Monitor facility or a bundled waiter (`final-pr-review`'s `wait-pr.mjs`), never with `sleep` loops.
 - **Keep the cache warm:** do not switch the session model mid-task (each switch re-reads the whole history uncached, which is also why `opusplan` is not the default), and do not change MCP servers or `CLAUDE.md` mid-session.

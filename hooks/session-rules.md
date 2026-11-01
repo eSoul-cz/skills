@@ -12,6 +12,7 @@ The main session decides, writes briefs and reviews. Mechanical work goes to sub
 - Size S: do it directly.
 - After two failed worker attempts, take over yourself.
 - One task per session. Do not read whole files, logs or JSON dumps into the main context.
+- Keep auto-compact at about 250K; 1M context only for one short session that must hold a large input at once (prefer a subagent for it).
 - Batch independent tool calls. Wait for CI in the background, never with sleep loops.
 
 Details: skill `esoul-model-routing`.
