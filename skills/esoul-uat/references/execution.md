@@ -97,7 +97,7 @@ rows (`design.md`).
 ## Report
 
 Rendering runs through `esoul-skills:test-runner` (Haiku), which returns only the verdict and
-the output paths:
+the output paths (the brief asks it to list the produced artifact paths):
 
 ```bash
 node <skill>/scripts/uat.mjs report <run-dir>     # writes <run-dir>/report.md

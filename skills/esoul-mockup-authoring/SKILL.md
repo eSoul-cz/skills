@@ -65,7 +65,7 @@ The application injects its own review bridge and the local server injects an au
 
 ## Delegate browser inspection
 
-Run steps 4-6 (frames at 1440 and 390 px, Show clickable, console and network) in `esoul-skills:uat-runner`. Give it the preview URL and frame list. It returns pass/fail per frame, console and network findings, and screenshot paths. Read only that summary and open a screenshot only for a reported defect. Run the two-session review-cycle proof from [references/publish.md](references/publish.md) the same way.
+Run steps 4-6 (frames at 1440 and 390 px, Show clickable, console and network) in `esoul-skills:uat-runner`. Give it the preview URL and frame list. This brief overrides the uat-runner's default scenario format. Ask it to return, for each frame at each viewport (1440 and 390 px), pass/fail, console errors, failed network requests, and the screenshot path. For the review-cycle proof, ask for pass/fail per step. Read only that summary and open a screenshot only for a reported defect. Run the two-session review-cycle proof from [references/publish.md](references/publish.md) the same way.
 
 ## References
 

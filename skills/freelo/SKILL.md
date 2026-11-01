@@ -61,6 +61,8 @@ freelo <command> --count       # count only
 
 ## Task authoring
 
+Before creating a task, check that `esoul-freelo-task-authoring` is installed. If it is not, stop and ask the user to install it; do not author tasks ad hoc.
+
 Title format, labels by UUID, estimates, relations, duplicate search and the command recipe
 (create, description, labels, estimate, relations, read-back, files) are owned by
 `esoul-freelo-task-authoring` (when installed): see its `references/cli-recipe.md`. Do not restate them here.

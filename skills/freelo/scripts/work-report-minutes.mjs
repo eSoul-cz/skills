@@ -5,7 +5,8 @@
 // Usage: node work-report-minutes.mjs <transcript.jsonl> [--from <ISO time>] [--to <ISO time>] [--json]
 //
 // Gaps between consecutive records are summed from --from (default: first record) to --to
-// (default: last record):
+// (default: last record); a gap crossing either bound is clipped to it and classified by its
+// closing record, and a wait is judged on the unclipped gap:
 //   - a gap that ends in the result of a test, build, mutation, install or waiting-loop command
 //     (`until`, `sleep`, `Monitor`, `[testq] waiting`) longer than one minute does not count;
 //   - a gap that ends in the result of subagent work (Agent, Skill, Workflow) counts in full;
@@ -56,20 +57,28 @@ export function compute(records, from = null, to = null) {
     const timed = records
         .filter((record) => Number.isFinite(Date.parse(record?.timestamp)))
         .map((record) => ({ record, time: Date.parse(record.timestamp) }))
-        .sort((a, b) => a.time - b.time)
-        .filter(({ time }) => (from === null || time >= from) && (to === null || time <= to));
+        .sort((a, b) => a.time - b.time);
+    const inRange = timed.filter(({ time }) => (from === null || time >= from) && (to === null || time <= to));
 
     let activeMs = 0;
     let elapsedMs = 0;
     for (let i = 1; i < timed.length; i++) {
-        const gap = timed[i].time - timed[i - 1].time;
+        // Clip the interval to [from, to]; it is classified by its closing entry. A wait is judged
+        // on the unclipped gap, so an interval crossing a boundary keeps its full-length rule.
+        const fullGap = timed[i].time - timed[i - 1].time;
+        const start = from === null ? timed[i - 1].time : Math.max(timed[i - 1].time, from);
+        const end = to === null ? timed[i].time : Math.min(timed[i].time, to);
+        const gap = end - start;
+        if (gap <= 0) {
+            continue;
+        }
         const kind = classify(timed[i].record, toolUses);
         elapsedMs += gap;
         if (kind === 'full') {
             activeMs += gap;
         } else if (kind === 'wait') {
             // A wait longer than one minute does not count at all.
-            activeMs += gap > MINUTE ? 0 : gap;
+            activeMs += fullGap > MINUTE ? 0 : gap;
         } else {
             activeMs += Math.min(gap, OTHER_CAP);
         }
@@ -77,7 +86,7 @@ export function compute(records, from = null, to = null) {
 
     const toMinutes = (ms) => Math.round(ms / MINUTE);
     return {
-        records: timed.length,
+        records: inRange.length,
         elapsedMinutes: toMinutes(elapsedMs),
         activeMinutes: toMinutes(activeMs),
         reportMinutes: Math.round(activeMs / MINUTE / 5) * 5,

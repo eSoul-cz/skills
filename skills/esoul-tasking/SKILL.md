@@ -56,8 +56,8 @@ projects, repositories or tasklists as a shortcut.
 
 Duplicate-search rules (once per batch, reuse for revised previews) are owned by the
 companion; here the search also covers GitHub issues. In an orchestrated session the Freelo
-and `gh` searches run through `esoul-skills:ops` or `esoul-skills:scout` with a compact-fields
-brief (`freelo` skill, Delegation). Tasklist IDs and label UUIDs come from the `## Freelo` cache in `CONTEXT.md`
+and `gh` searches run through `esoul-skills:ops` only, with a compact-fields
+brief (`freelo` skill, Delegation); `scout` may search only the local repository. Tasklist IDs and label UUIDs come from the `## Freelo` cache in `CONTEXT.md`
 (companion's [project mapping](../esoul-freelo-task-authoring/references/project-mapping.md));
 GitHub label names come from one `gh label list` per session.
 

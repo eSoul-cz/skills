@@ -24,8 +24,9 @@ an agent unless anonymized.
 
 Do not read podklady and legacy files in the orchestrating session. Give
 `esoul-skills:scout` (Haiku) the file list and ask for a summary per file (sheets, chapters,
-figures, open points) with locations. The session decides what becomes a note, question or
-ADR, and verifies every number it relies on in the source.
+figures, open points) with locations, and with `path:line` (or sheet/cell) evidence for every
+number and formula. The session decides what becomes a note, question or ADR, and verifies the
+numbers it relies on by targeted reads of those locations only.
 
 ## Writing a podklad note
 

@@ -1,6 +1,6 @@
 ---
 name: esoul-data-task-guard
-description: Use on eSoul data tasks (label data-migration, legacy imports, data fixes, reports, analyses) whenever data work reveals a needed change to application code, migrations, schema, seeders or factories. Do not patch it; write the fix down and create a new issue/task pair.
+description: Use on eSoul data tasks (label data-migration, legacy imports, data fixes, reports, analyses) whenever data work reveals a needed change to application code, migrations, schema, seeders or factories. Do not change code or the data model beyond what the issue specifies (approved in-scope changes are allowed); write any other fix down and create a new issue/task pair.
 ---
 
 # Data tasks: propose, do not patch

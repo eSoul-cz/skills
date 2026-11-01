@@ -35,7 +35,7 @@ The orchestrator is the main session. In Claude Code the `esoul-skills` plugin s
 | `esoul-skills:test-runner` | `haiku` · `low` | Runs tests, builds, linters, sweep scripts; returns receipts and failures only |
 | `esoul-skills:implementer` | `sonnet` · `medium` | Builds a specified change with tests; fixes failures and findings with a clear cause |
 | `esoul-skills:reviewer` | `sonnet` · `medium` | Review lenses, catalogue and documentation audits |
-| `esoul-skills:critical-reviewer` | `opus` · `high` | Correctness and security on changes touching authorization, money, migrations, personal data or concurrency |
+| `esoul-skills:critical-reviewer` | `opus` · `high` | Correctness and security on changes touching authorization, money, migrations or destructive data scripts, personal data or concurrency |
 | `esoul-skills:uat-runner` | `sonnet` · `medium` | Executes UAT chapters in the browser and records results |
 | `esoul-skills:ops` | `haiku` · `low` | Commits, `gh`/git queries, Freelo reads and already-approved writes, work reports |
 

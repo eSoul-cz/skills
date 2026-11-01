@@ -49,7 +49,7 @@ This session is the orchestrator: it decides, writes briefs, and reviews. Mechan
 |---|---|
 | **S** | Do it directly; suggest a `sonnet` session for a run of S tasks. Delegation would cost as much as the work. |
 | **M, L, Bug** | Settle decisions here, then brief `esoul-skills:implementer` (Sonnet) per slice; `esoul-skills:test-runner` (Haiku) runs the checks; review the diff and receipts here. After two failed worker attempts, take over or escalate. |
-| **Any** | Searches → `scout`; test, build and lint runs → `test-runner`; commits, `gh` queries and approved tracker writes → `ops`; review lenses → `reviewer`, or `critical-reviewer` for authorization, money, migrations or personal data. |
+| **Any** | Searches → `scout`; test, build and lint runs → `test-runner`; commits, `gh` queries and approved tracker writes → `ops`; review lenses → `reviewer`, or `critical-reviewer` for authorization, money, migrations or destructive data scripts, personal data, concurrency. |
 
 Keep the session small: one task per session, `/clear` or a handoff between tasks, no whole logs or dumps in context, independent tool calls batched in one message. Effort `medium` is the default for this session; raise it to `high` for clarifying and planning, `xhigh` for L or security-sensitive work. The full rules, the Zeron specifics and the usage report are in `esoul-model-routing`.
 

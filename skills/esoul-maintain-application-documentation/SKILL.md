@@ -86,7 +86,7 @@ docs/documentation validate
 docs/documentation build
 ```
 
-Run both commands through `esoul-skills:test-runner`. Inspect every rendered PDF page, but not in the main session: delegate the page-by-page visual inspection of `docs/.documentation-work/rendered/` to `esoul-skills:reviewer` (or `esoul-skills:uat-runner` when a browser is needed). It returns only a defect list with page numbers. Open only the pages with reported defects. A publish-ready result requires structural validation, successful PDF builds, visual inspection, privacy and accessibility checks, plus the semantic review gate.
+Run both commands through `esoul-skills:test-runner`. Inspect every rendered PDF page, but not in the main session: delegate the page-by-page visual inspection to `esoul-skills:reviewer`, briefed to view every rendered page image in `docs/.documentation-work/rendered/` and return only a defect list with page numbers (use `esoul-skills:uat-runner` only when a browser is needed). Open only the pages with reported defects. A publish-ready result requires structural validation, successful PDF builds, visual inspection, privacy and accessibility checks, plus the semantic review gate.
 
 ## Load Focused References
 

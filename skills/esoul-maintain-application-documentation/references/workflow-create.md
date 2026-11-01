@@ -10,6 +10,6 @@ Use when no approved documentation system exists or the user asks to establish a
 4. Write `docs/documentation-spec.md`. Record substantive choices and evidence conflicts in `docs/documentation-decisions.md` as they occur.
 5. Surface unresolved evidence gaps and intended-versus-implemented mismatches.
 6. Obtain explicit specification approval.
-7. Install managed project tools and create `docs/documentation.toml`.
+7. When `docs/documentation` is missing, install managed project tools per [setup.md](setup.md), which also creates a missing `docs/documentation.toml`. When tools are already installed, only create or update `docs/documentation.toml`.
 8. Author the approved guides and optional screenshot manifest.
 9. Run mechanical, visual, privacy, accessibility, correctness, and completeness gates.

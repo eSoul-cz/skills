@@ -5,7 +5,7 @@ The main session decides, writes briefs and reviews. Mechanical work goes to sub
 - Search or reading across files, logs, exports: `esoul-skills:scout` (never Explore, it runs on the session model).
 - Tests, build, lint: `esoul-skills:test-runner`.
 - Implementation of size M and larger: `esoul-skills:implementer`.
-- Review lenses: `esoul-skills:reviewer`. Risky changes (authorization, money, migrations, personal data, concurrency): `esoul-skills:critical-reviewer`.
+- Review lenses: `esoul-skills:reviewer`. Risky changes (authorization, money, migrations or destructive data scripts, personal data, concurrency): `esoul-skills:critical-reviewer`.
 - UAT chapters: `esoul-skills:uat-runner`.
 - Commits, gh, Freelo chores: `esoul-skills:ops`.
 - Any other subagent: always pass an explicit `model` (`haiku` for search and runs, `sonnet` for implementation and review). Never a fork.
