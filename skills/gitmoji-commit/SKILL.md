@@ -15,40 +15,9 @@ Before planning commits, use the applicable `AGENTS.md` content already in conte
 2. Otherwise use the commit convention in the root `CONTEXT.md` or its `GLOSSARY.md` fallback.
 3. Otherwise establish the default convention below in the root `CONTEXT.md`.
 
-When `AGENTS.md` defines a commit convention:
+Read [references/convention-bootstrap.md](references/convention-bootstrap.md) when the convention is missing or conflicts: it covers syncing an `AGENTS.md` convention into `CONTEXT.md` and the default block to create.
 
-- copy only that convention into the root `CONTEXT.md` under `## Commit convention`, creating the file if absent;
-- move a commit-convention section found only in the `GLOSSARY.md` fallback into `CONTEXT.md` instead of duplicating it;
-- replace a conflicting commit-convention section while preserving all unrelated context;
-- make the edit idempotent;
-- commit this context synchronization separately using the effective `AGENTS.md` convention;
-- follow that convention, not Gitmoji, if it differs from this skill.
-
-When only `CONTEXT.md` or its `GLOSSARY.md` fallback defines a different convention, respect it and do not overwrite it.
-
-When none of these files defines a convention, create or update the root `CONTEXT.md` with this block, preserving all existing content:
-
-````md
-## Commit convention
-
-Use the `gitmoji-commit` skill for normal agent-authored commits.
-
-```text
-:emoji: [optional-context] imperative message
-
-optional explanatory details
-```
-
-Use one Gitmoji shortcode per commit and split commits by intention. Context is optional. Keep the complete subject line at 72 characters or fewer when practical.
-````
-
-Commit that policy separately before the task commits:
-
-```text
-:memo: [git] define gitmoji commit convention
-```
-
-Do not create a commit merely because this skill was loaded. A commit still requires user authorization, but an explicit request such as “commit your work” supplies that authorization for the whole workflow.
+Do not create a commit merely because this skill was loaded. A commit still requires user authorization.
 
 ## Inspect and delimit the work
 
@@ -79,6 +48,8 @@ Keep a change together when dividing it would make either commit unintelligible,
 Keep each commit valid and verifiable where practical. For normal work, commit implementation before its passing tests; use `:white_check_mark:` for the test commit. In an explicitly test-first workflow, a deliberately failing `:test_tube:` commit may precede the implementation and is the documented exception to independently passing checks.
 
 Briefly announce the intended commit sequence, then proceed without seeking another confirmation. Ask only when change ownership or a safe split is materially ambiguous.
+
+In an M/L session the orchestrator writes the commit plan (sequence, files/hunks, subjects) and `esoul-skills:ops` executes it; Haiku does not decide intention boundaries.
 
 ## Select the Gitmoji
 

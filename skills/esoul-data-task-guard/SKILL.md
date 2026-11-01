@@ -1,6 +1,6 @@
 ---
 name: esoul-data-task-guard
-description: On eSoul data tasks (label data-migration, imports from legacy, data fixes, reports, data analyses), never change PHP code or the data model beyond what the issue explicitly specifies; write the proposed fix down and create a new issue/task pair instead. Use whenever data work reveals a needed change to application code, migrations, schema, seeders or factories.
+description: Use on eSoul data tasks (label data-migration, legacy imports, data fixes, reports, analyses) whenever data work reveals a needed change to application code, migrations, schema, seeders or factories. Do not patch it; write the fix down and create a new issue/task pair.
 ---
 
 # Data tasks: propose, do not patch

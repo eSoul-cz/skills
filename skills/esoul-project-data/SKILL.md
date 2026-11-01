@@ -1,6 +1,6 @@
 ---
 name: esoul-project-data
-description: Project data (client files, photos, admin media, SQL dumps, backups, import files, exports) and guides for colleagues never go to gitignored folders (storage/, *.nosync, tmp/, Downloads) but into the tracked repository - data into assets/ through Git LFS, guides into docs/. Use whenever you save, back up, unpack or prepare any data file or document for handover, a backup before an import, or a dump or media for a server.
+description: Use whenever you save, back up, unpack or prepare project data (client files, photos, media, SQL dumps, backups, import files, exports) or a guide for colleagues. Data goes to assets/ via Git LFS, guides to docs/; never to gitignored storage/, *.nosync, tmp/ or Downloads.
 ---
 
 # Project data belongs in Git, not in storage

@@ -6,7 +6,7 @@ Maintain `docs/documentation-decisions.md` during work. Record assumptions, evid
 
 ## Independent reviewers
 
-Prefer two parallel sub-agents. Give them the repository, approved specification, decision log, generated guides, screenshot manifest, and raw evidence locations. Do not give them suspected findings or expected answers.
+Prefer two parallel `esoul-skills:reviewer` sub-agents. Give them the repository, approved specification, decision log, generated guides, screenshot manifest, and raw evidence locations. Do not give them suspected findings or expected answers.
 
 ### Correctness reviewer brief
 
@@ -16,7 +16,7 @@ Prefer two parallel sub-agents. Give them the repository, approved specification
 
 > Review the configured application guides for completeness for their approved audiences and scope. Independently inspect the application, tests, configuration, UI/workflows, failure modes, roles, security constraints, operations, recovery, observability, and approved intended behavior. Identify missing tasks, edge cases, prerequisites, cross-links, screenshots, warnings, glossary terms, and intended-versus-implemented mismatches. Return findings with severity, exact destination, evidence, and a proposed addition or explicit exclusion. Do not edit files.
 
-If only one sub-agent is available, combine the two briefs without revealing the authoring agent's suspected defects. If none are available, run both passes sequentially and state that independence was reduced.
+If only one `reviewer` sub-agent is available, combine the two briefs without revealing the authoring agent's suspected defects. If none are available, run both passes sequentially and state that independence was reduced.
 
 ## Findings gate
 

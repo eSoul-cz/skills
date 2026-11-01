@@ -12,8 +12,11 @@ This reference only adds what a batch from the slice table needs.
    `## Project profile › UAT dimensions`.
 3. GitHub milestones exist for every phase, and the labels from the bootstrap exist. Creating
    missing ones is part of the preview.
-4. Read every slice row, its sources (ADR, guideline, podklad, design frame) and the code it
-   touches. Unverified paths do not go into `Dotčené oblasti`.
+4. Read every slice row. Reading its sources (ADR, guideline, podklad, design frame) and the
+   code it touches goes to `esoul-skills:scout` (Haiku) with the slice rows in the brief,
+   returning verified paths with `file:line` evidence. Unverified paths do not go into
+   `Dotčené oblasti`.
+5. Load [company-rules.md](company-rules.md) once for the batch.
 
 ## Building each pair
 
@@ -47,6 +50,9 @@ cannot be written is reported; no temporary comments.
 ## Batching
 
 Preview in groups of at most 10 pairs, grouped by phase, so approval stays meaningful. After each
-approved group: write, read back, then update the slice table's Issue column in a docs PR.
+approved group: write and read back (`esoul-skills:ops` runs the approved writes verbatim and
+returns compact fields), then update the slice table's Issue column (also `ops`, from the
+read-back). One docs PR per phase is enough; add the Issue columns of every group of that
+phase to it rather than opening a PR per group.
 Finish with `audit` and a completeness review (P9): every slice has a pair, every pair maps to a
 slice, every podklad requirement maps to a slice or an explicit exclusion.

@@ -119,7 +119,7 @@ It does not change when the verified files are committed (it equals the new comm
 
 ### Review (M, L)
 
-- One local review per revision. When the PR will be finished through `final-pr-review`, its pre-push pass (CodeRabbit CLI, or `pre-pr-review` as fallback) is the review: do not also run `code-review`. `pre-pr-review`'s tests-and-contract lens already checks the change against the issue.
+- One local review per revision. A diff revision gets at most one local review; later passes review only the delta `git diff <last reviewed head>..HEAD`, unless the delta is large or touches a risk trigger (authorization, money, migrations or destructive data scripts, personal data, concurrency). When the PR will be finished through `final-pr-review`, its pre-push pass (CodeRabbit CLI, or `pre-pr-review` as fallback) is the review: do not also run `code-review`. `pre-pr-review`'s tests-and-contract lens already checks the change against the issue.
 - Run `code-review` (when installed) against the branch base only when no PR follows, or when the user asks for it. Fix valid findings.
 - Run `pre-pr-review` directly only when the PR will not be finished through `final-pr-review`, or when the user asks for a local review.
 - For documentation changes, use `esoul-maintain-application-documentation` in verify mode.

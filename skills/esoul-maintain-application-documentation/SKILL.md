@@ -9,8 +9,8 @@ Produce evidence-backed application documentation through a stable project comma
 
 ## Start Every Run
 
-1. Read [workflow.md](references/workflow.md) completely.
-2. Select `create`, `refresh`, or `verify`. Ask only when the request truly does not imply a mode.
+1. Select `create`, `refresh`, or `verify`. Ask only when the request truly does not imply a mode.
+2. Read [workflow.md](references/workflow.md) (shared policy, short), then only the mode file: [workflow-create.md](references/workflow-create.md), [workflow-refresh.md](references/workflow-refresh.md), or [workflow-verify.md](references/workflow-verify.md).
 3. Inspect the repository before asking questions that the codebase can answer.
 4. Read the documentation configuration, specification, decision log, and the guides in scope. Project instructions already in context are not read again. Look up domain terms in `GLOSSARY.md` or `GLOSSARY-MAP.md` (falling back to legacy `CONTEXT.md` or `CONTEXT-MAP.md`) as you need them; read the glossary in full only when authoring or reviewing terminology.
 5. Announce this skill and every other skill activated by the repository or task.
@@ -44,23 +44,7 @@ Do not copy executable files or renderer sources out of this skill. The installe
 
 ## Set Up and Use the Project Tool Interface
 
-When `docs/documentation` is absent and the user requested documentation setup or rendering, confirm the absolute project root and run:
-
-```bash
-curl -fsSL https://github.com/eSoul-cz/skills/releases/latest/download/install.sh |
-  sh -s -- /absolute/project/root
-```
-
-The GitHub Release bootstrap requires Docker, resolves a digest-pinned installer from the matching `release.env`, pulls the installer and renderer from the public Scaleway registry, installs the remote profile, creates a missing `docs/documentation.toml`, records the immutable renderer digest in local Git configuration, and runs `doctor`. It does not clone the tooling repository or install Go, Lua, Pandoc, or LaTeX on the host.
-
-When tooling is already installed, use the same bootstrap to preview an upgrade from the latest GitHub Release:
-
-```bash
-curl -fsSL https://github.com/eSoul-cz/skills/releases/latest/download/install.sh |
-  sh -s -- /absolute/project/root --upgrade
-```
-
-Review the plan and run it again with `--apply` only after explicit approval.
+When `docs/documentation` is absent and the user requested documentation setup or rendering, or when previewing an upgrade, follow [setup.md](references/setup.md) (Docker bootstrap and `--upgrade`). Confirm the absolute project root first.
 
 When `docs/documentation` exists, use only its stable commands:
 
@@ -73,7 +57,7 @@ docs/documentation redact docs/.documentation-work/redaction-plan.json
 docs/documentation version
 ```
 
-Read [pdf-pipeline.md](references/pdf-pipeline.md) before configuring or invoking the PDF pipeline.
+Run these commands through `esoul-skills:test-runner`; it returns the verdict and failures only. Read [pdf-pipeline.md](references/pdf-pipeline.md) only when changing the PDF pipeline configuration, theme, templates, or math, not before every render.
 
 If Docker is unavailable or setup was not requested, continue non-rendering authoring work when safe and report that project tooling is required before validation or PDF work. Do not assume this skill lives inside a tooling checkout, search its parent directories for source code, or reconstruct the renderer from the reference documents.
 
@@ -102,7 +86,7 @@ docs/documentation validate
 docs/documentation build
 ```
 
-Inspect every rendered PDF page. Use an installed PDF skill when available. Otherwise, inspect `docs/.documentation-work/rendered/` with image viewing tools. A publish-ready result requires structural validation, successful PDF builds, visual inspection, privacy and accessibility checks, plus the semantic review gate.
+Run both commands through `esoul-skills:test-runner`. Inspect every rendered PDF page, but not in the main session: delegate the page-by-page visual inspection of `docs/.documentation-work/rendered/` to `esoul-skills:reviewer` (or `esoul-skills:uat-runner` when a browser is needed). It returns only a defect list with page numbers. Open only the pages with reported defects. A publish-ready result requires structural validation, successful PDF builds, visual inspection, privacy and accessibility checks, plus the semantic review gate.
 
 ## Load Focused References
 

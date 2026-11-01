@@ -1,6 +1,6 @@
 ---
 name: pre-pr-review
-description: Stand-in for CodeRabbit when it is missing, rate-limited, or out of credits. Reviews the exact diff against the real base with .coderabbit.yaml filters and instructions, scans for credentials, reviews in four verified passes, and reports CodeRabbit-style findings; on a rate-limited PR posts them as one inline review and approves in CodeRabbit's place once resolved. Use for local or pre-push review, "CodeRabbit is out of limit", or when final-pr-review cannot use CodeRabbit. Never a GitHub approval.
+description: Local review of the exact diff against the real base, CodeRabbit-style, in four verified passes with a credential scan. Use as the CodeRabbit stand-in (missing, rate-limited, out of credits), for a local or pre-push review without a PR, or when final-pr-review cannot use CodeRabbit. Not for finishing a PR (use final-pr-review). Never a GitHub approval.
 ---
 
 # Pre-PR review
@@ -59,13 +59,17 @@ Four lenses, with checklists and stack notes in [references/review-passes.md](re
 3. **Tests and contract:** acceptance criteria and scope, tests for new behavior, a failing-first regression test for a bug fix, ADR and guideline compliance, stale documentation.
 4. **Maintainability:** duplication of existing helpers, dead code, naming, overengineering, performance traps such as N+1 queries, consistency with surrounding code, path instructions.
 
+Risk triggers: authorization, money, migrations or destructive data scripts, personal data, concurrency. If the diff hits one, the correctness and security lenses always go to `esoul-skills:critical-reviewer`, regardless of size.
+
 Size decides how the passes run:
 
 | Reviewed scope | How |
 | --- | --- |
-| Up to 15 files and 400 changed lines | Apply all four lenses yourself. |
+| Default (up to 15 files and 400 changed lines) | One `esoul-skills:reviewer` subagent with one self-contained brief covering all four lenses. |
 | Larger | One fresh subagent per lens, in parallel, each with the self-contained brief and the agent or model the reference names (`reviewer` or `critical-reviewer`, never inherited). Never fork the conversation: a fork copies the whole context. |
 | Script warns `Large change` (over 30 files or 1500 lines) | As above, per file group (module or layer), and suggest splitting the PR. |
+
+Review inline in this session only for size S changes or when subagents are unavailable.
 
 Without subagents, or when they are not allowed, run the lenses one after another and note it under **Passes** in the report. Every pass reads each hunk with enough surrounding code to understand it. Reviewing diff hunks in isolation is what produces false positives.
 
@@ -98,7 +102,7 @@ When an open PR's CodeRabbit review is blocked by its rate limit or exhausted cr
 3. Write the findings file outside the repository, in the PR's language, reusing ids of findings already on the PR.
 4. Dry-run `post`, check placement and content, then publish with `--post`: one review with event `COMMENT`, inline comments with suggestions where the lines are in the diff, the rest in the review body. Exit 3 means the head moved: review the new head.
 5. Handle the posted threads like any reviewer's: fix, reply with the commit and verification, resolve your own thread. Repeat for every new head while CodeRabbit stays limited; already open findings are not posted twice.
-6. **Approve.** Once every fallback thread is resolved, review the current head again, leave findings already answered with evidence out of the file, record body-only findings from earlier fallback reviews under `resolved` with their evidence, and post. With no finding and no open fallback thread, the review carries the approval: "✅ Approved by `pre-pr-review` (CodeRabbit substitute)". Until then it says how many findings are still open.
+6. **Approve.** Once every fallback thread is resolved, review the current head again (one review per revision, see `esoul-workflow`; when the fixes since the last reviewed head are small, review only `git diff <last reviewed head>..HEAD`), leave findings already answered with evidence out of the file, record body-only findings from earlier fallback reviews under `resolved` with their evidence, and post. With no finding and no open fallback thread, the review carries the approval: "✅ Approved by `pre-pr-review` (CodeRabbit substitute)". Until then it says how many findings are still open.
 
 The approval is posted as a `COMMENT` review, never as a GitHub approval: an author cannot approve their own PR, and an approval would count toward the required human review. It approves in CodeRabbit's place, never as CodeRabbit.
 

@@ -47,6 +47,10 @@ For each scenario and device:
    `results.json` is the run's memory. A run can stop and resume at any time:
    `uat.mjs next <run-dir>` prints the next `not-run` item.
 
+Stop a chapter after 3 consecutive `blocked` steps or scenarios (the same missing access,
+data or environment problem repeated): mark the rest of the chapter `blocked` with that
+reason, stop, and report to the parent instead of working through it.
+
 Statuses:
 
 | Status | Meaning |
@@ -92,6 +96,9 @@ rows (`design.md`).
 
 ## Report
 
+Rendering runs through `esoul-skills:test-runner` (Haiku), which returns only the verdict and
+the output paths:
+
 ```bash
 node <skill>/scripts/uat.mjs report <run-dir>     # writes <run-dir>/report.md
 ```
@@ -103,7 +110,7 @@ bugs are created so links appear.
 
 PDF: when the project has the documentation tooling (`docs/documentation`), add a guide
 entry for the run report in `docs/documentation.toml` (or reuse a `uat-report` entry whose
-sources point at the latest run) and run `docs/documentation build`. Without the tooling,
+sources point at the latest run) and run `docs/documentation build` (also through `test-runner`). Without the tooling,
 offer to install it through `esoul-maintain-application-documentation`; the Markdown report
 remains the deliverable meanwhile.
 

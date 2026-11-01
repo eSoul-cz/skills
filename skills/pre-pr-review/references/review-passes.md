@@ -58,7 +58,7 @@ Apply each item to the changed code and what it touches. A checklist item is a q
 
 ## Subagent brief
 
-Give each lens subagent a self-contained brief. It knows nothing else.
+Give each subagent (one per lens, or one for all lenses) a self-contained brief. It knows nothing else.
 
 ```text
 You review one aspect of a code change before it becomes a pull request. Do not edit files,
@@ -87,7 +87,7 @@ Report only problems you can point to in the code. For each candidate return:
 Return "no findings" when there are none. Do not pad the list with style preferences.
 ```
 
-In Claude Code start each lens in a plugin agent, whose model and effort are fixed: `esoul-skills:reviewer` (Sonnet, medium) for the maintainability and tests-and-contract lenses, and for correctness and security on ordinary changes; `esoul-skills:critical-reviewer` (Opus, high) for correctness and security when the change touches authorization, money, migrations, or personal data. Elsewhere pass the same model explicitly; without one a subagent inherits the parent's model and effort. Verification of the returned candidates (SKILL.md step 5) stays on the parent model.
+In Claude Code start the subagents in plugin agents, whose model and effort are fixed. The default is one `esoul-skills:reviewer` (Sonnet, medium) with one brief covering all four lenses (copy all four checklists into the "Your lens" part). For larger scopes use one agent per lens: `esoul-skills:reviewer` for maintainability and tests-and-contract, and for correctness and security on ordinary changes. When the change hits a risk trigger (authorization, money, migrations or destructive data scripts, personal data, concurrency), correctness and security always go to `esoul-skills:critical-reviewer` (Opus, high), regardless of size. Elsewhere pass the same model explicitly; without one a subagent inherits the parent's model and effort. Verification of the returned candidates (SKILL.md step 5) stays on the parent model.
 
 ## Report template
 

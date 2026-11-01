@@ -4,6 +4,9 @@ Audit never writes. It produces a report the user can turn into pairs or a `clie
 
 ## 1. Automated conformance
 
+Run it first, through `esoul-skills:test-runner` (Haiku), which returns only the verdict and the
+failures:
+
 ```bash
 node <skill>/scripts/conformance.mjs <repo-root> [--tier full|light] [--github owner/repo] [--json]
 ```
@@ -15,7 +18,10 @@ repository's merge and ruleset settings. Exit code 1 means errors.
 
 ## 2. Completeness review (judgement)
 
-Read and cross-check, citing evidence for every finding:
+Hand the cross-checks to `esoul-skills:reviewer` (Sonnet) with a brief that names the table
+below, the repository paths and the conformance result, and asks for verifiable findings with
+evidence. The session judges the findings and writes the report. Cross-check, citing evidence
+for every finding:
 
 | Check | Pass when |
 |---|---|

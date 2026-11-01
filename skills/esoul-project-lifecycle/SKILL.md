@@ -14,19 +14,25 @@ preparation and its upkeep. It ends when a slice exists as a ready issue with UA
 ## 1. Load context
 
 1. Use repository instructions already in context (`CLAUDE.md`, `AGENTS.md`, earlier reads);
-   do not read them again. Read the root `CONTEXT.md` conventions you need by section,
-   `docs/adr/index.md` and `docs/plan/README.md` (or `docs/plan.md`) when present. Read
+   do not read them again. Read the root `CONTEXT.md` conventions you need by section. Read
+   `docs/adr/index.md` only in `adr`, `guidelines`, `plan`, `tasking`, `audit` and `retrofit`
+   modes, and `docs/plan/README.md` (or `docs/plan.md`) only in `plan`, `tasking`, `audit`,
+   `retrofit` and `client-update` modes, when present. Read
    `GLOSSARY.md` in full only in `glossary`, `audit` and `retrofit` modes; otherwise look up
    terms on demand. Repository rules override this skill unless they contradict an approved
    company rule in section 4; report such conflicts.
 2. Resolve the **project profile** from `CONTEXT.md › ## Project profile`: stack, archetype,
    process tier (`full` or `light`), environments, UAT dimensions. When it is missing, propose
    one (see [tiers.md](references/tiers.md)), get confirmation, and write it.
-3. Read the stack profile for the recorded stack: [laravel](references/stacks/laravel.md),
+3. Read the stack profile for the recorded stack only in the modes whose row below lists
+   "stack profile" (`bootstrap`, `guidelines`, `handover`): [laravel](references/stacks/laravel.md),
    [medusa-nuxt](references/stacks/medusa-nuxt.md), [astro](references/stacks/astro.md). These
    are common eSoul stacks, not a closed list. For any other stack, follow
    [new-stack.md](references/stacks/new-stack.md).
 4. Find facts yourself (repository, `gh`, Freelo, podklady). Ask the user only for decisions.
+   In an orchestrated session, bulk reading goes to `esoul-skills:scout` and Freelo or `gh`
+   reads and approved writes to `esoul-skills:ops`, as each mode's reference says; the session
+   keeps decisions and previews.
 
 ## 2. Pick the mode
 
@@ -42,10 +48,10 @@ Pick one mode, say which in one line, and read only the references it names.
 | `adr` | A decision with real alternatives | [adr](references/adr.md), [domain-modeling](references/domain-modeling.md) |
 | `guidelines` | Engineering rules for the stack or project | [guidelines](references/guidelines.md), stack profile |
 | `design` | Design brief, Pencil, mockup review rounds | [design](references/design.md) |
-| `plan` | Phases, gates, scope, slices, risks | [plan-and-slices](references/plan-and-slices.md) |
+| `plan` | Phases, gates, scope, slices, risks | [plan-and-slices](references/plan-and-slices.md), [company-rules](references/company-rules.md) |
 | `handover` | Prepare the codebase so agents can start | [dev-handover](references/dev-handover.md), stack profile |
-| `tasking` | Turn ready slices into issue + Freelo pairs | [tasking-batch](references/tasking-batch.md) |
-| `audit` | Read-only conformance and completeness check | [audit](references/audit.md) |
+| `tasking` | Turn ready slices into issue + Freelo pairs | [tasking-batch](references/tasking-batch.md), [company-rules](references/company-rules.md) |
+| `audit` | Read-only conformance and completeness check | [audit](references/audit.md), [company-rules](references/company-rules.md) |
 | `launch` | Light tier, or any public website, before go-live | [launch](references/launch.md) |
 
 ## 3. Phases and gates
@@ -77,37 +83,21 @@ milestones agreed with the client; `G0` (ready for development) is reached at B5
 
 ## 4. Company rules this skill enforces
 
-These were approved for every eSoul project. Templates in `assets/templates/` already follow them.
-Each rule has one owning skill that holds its details; this list names the rule and the owner
-and does not repeat the details.
+Approved for every eSoul project; templates already follow them. Full wording in
+[company-rules.md](references/company-rules.md), which the `tasking`, `plan` and `audit`
+modes load. One line per rule and its owner:
 
-- **Titles** of issue, Freelo task and PR are identical: `Kontext: Akční výsledek`. No `[FE]`,
-  `[BE]`, `[DATA]` prefix and no slice ID in the title. Category is a label on both sides.
-  The slice ID goes into the issue header line and the first line of the Freelo description.
-  Owner: `esoul-tasking`.
-- **Estimates** in Freelo are human time in 15-minute steps; split above 4 h. Owner:
-  `esoul-freelo-task-authoring`. Actual time is logged as Freelo work reports of active work
-  only (`freelo` › work reports).
-- **CONTEXT.md** holds project conventions, including the `## Freelo` cache of tasklist IDs and
-  label UUIDs; **GLOSSARY.md** holds domain language only.
-- **ADRs** are English, `docs/adr/NNNN-english-slug.md`, with Implementation status and gaps.
-- **UAT** in the issue: the `## UAT` format owned by `esoul-tasking` (Role, Předpoklad, the
-  project's UAT dimensions, one checkbox per step).
-- **Dependencies**: GitHub native `blocked_by` is the source of truth, mirrored as a Freelo
-  relation. No temporary "create this relation manually" comments.
-- **Merging**: squash merge, required `Jenkins` check and one human approval on `main`, no
-  bypass for the shared `esoul-cz-user` account. Agents never merge.
-- **Freelo states**: Backlog → To Do (description, assignee, approved estimate) → In progress
-  (branch exists) → Code review (PR open, CI green) → Testing (merged and on staging or preview)
-  → Done and finished (UAT ticked). Recurring work goes to `LTT`.
-- **PR finishing** uses `final-pr-review`.
-- **Process tiers**: `full` for applications, `light` for websites; recorded in the project
-  profile. Light replaces ADRs with `docs/rozhodnuti.md`, the plan with a page table and UAT
-  with acceptance on the preview plus the launch checklist.
-- **Astro checks**: a Jenkins `Checks` stage is mandatory (`astro check`, `tsc`, lint and format
-  check, build, Playwright smoke of every route at 1440 and 390 px failing on console errors,
-  with SEO assertions). Lighthouse budgets and axe are
-  mandatory before launch.
+- Titles of issue, Freelo task and PR are identical, no prefix, no slice ID: `esoul-tasking`.
+- Freelo estimates are human time; work reports count active work only: `esoul-freelo-task-authoring`, `freelo`.
+- CONTEXT.md holds conventions and the `## Freelo` cache; GLOSSARY.md holds domain language only.
+- ADRs are English, with Implementation status and gaps: [adr.md](references/adr.md).
+- UAT in the issue uses the `## UAT` format: `esoul-tasking`.
+- Dependencies: GitHub `blocked_by` is the source of truth, mirrored in Freelo: `esoul-tasking`.
+- Merging: squash, `Jenkins` check, one human approval, no bypass; agents never merge.
+- Freelo states: Backlog, To Do, In progress, Code review, Testing, Done; recurring work in `LTT`.
+- PR finishing: `final-pr-review`.
+- Process tiers: `full` for applications, `light` for websites: [tiers.md](references/tiers.md).
+- Astro checks: mandatory Jenkins `Checks` stage; Lighthouse and axe before launch: [astro](references/stacks/astro.md).
 
 ## 5. Guardrails
 
