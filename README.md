@@ -57,7 +57,10 @@ runs), `implementer` (Sonnet, builds a specified change), `reviewer` (Sonnet, re
 lenses), `critical-reviewer` (Opus high, risky changes only), `uat-runner` (Sonnet, UAT
 chapters) and `ops` (Haiku, commits and tracker chores). The skills start them as
 `esoul-skills:<name>`; `esoul-model-routing` holds the rules, the recommended settings, and
-a usage report that shows where the weekly limit goes:
+a usage report that shows where the weekly limit goes. The plugin's hooks make this automatic:
+a SessionStart hook injects the usage rules into every session, and a PreToolUse guard denies
+Explore, forks and general-purpose agents without an explicit `model` (disable it with
+`ESOUL_AGENT_GUARD=off`). The guard needs Node 18+ on `PATH` and is skipped otherwise.
 
 ```bash
 node skills/esoul-model-routing/scripts/usage-report.mjs --days 7
@@ -122,6 +125,19 @@ npx skills add eSoul-cz/skills \
 ```
 
 `esoul-tasking` directly requires `esoul-freelo-task-authoring`, which requires `freelo`. Do not assume dependencies are installed automatically. Replace `codex` with another supported agent, or omit `--agent` to choose interactively. Omit `--global` for a project-local installation.
+
+### Codex
+
+Codex gets the same worker agents and usage rules, generated from `agents/`:
+
+```bash
+git clone https://github.com/eSoul-cz/skills && cd skills
+node codex/install.mjs                 # agents -> ~/.codex/agents, rules -> ~/.codex/AGENTS.md
+# then merge codex/config.toml into ~/.codex/config.toml by hand
+npx skills add eSoul-cz/skills --skill esoul-workflow esoul-model-routing --agent codex --global --yes
+```
+
+Re-run both after each release (`git pull` first). `node codex/install.mjs --dry-run` shows what would change; the installer never touches `config.toml`. After editing `agents/`, regenerate with `node tooling/scripts/build_codex_agents.mjs`.
 
 To work from a local checkout, replace `eSoul-cz/skills` with `.`.
 

@@ -26,7 +26,7 @@ Subagent tokens count toward the same plan limits as the main conversation; dele
 
 ## Roles
 
-The orchestrator is the main session. In Claude Code the `esoul-skills` plugin ships the worker roles as agents with their model and effort fixed in frontmatter, so routing does not depend on remembering a `model` parameter. Start them with `subagent_type: "esoul-skills:<role>"`. Where these agents are not installed (or in another harness), start a fresh general-purpose subagent with the same model and effort and paste the role's rules into the brief.
+The orchestrator is the main session. In Claude Code the `esoul-skills` plugin ships the worker roles as agents with their model and effort fixed in frontmatter, so routing does not depend on remembering a `model` parameter. The plugin's SessionStart hook injects these rules into every session, and a PreToolUse guard blocks Explore, forks and general-purpose agents without a `model` (set `ESOUL_AGENT_GUARD=off` to disable it). Start them with `subagent_type: "esoul-skills:<role>"`. Where these agents are not installed (or in another harness), start a fresh general-purpose subagent with the same model and effort and paste the role's rules into the brief.
 
 | Role | Model · effort | Does |
 |---|---|---|
@@ -56,7 +56,8 @@ A worker knows only its brief. Write it like a ticket: goal; acceptance criteria
 ## Context budget for the main session
 
 - **One task, one session.** `/clear` between unrelated tasks; when work continues elsewhere, write a handoff (`esoul-workflow` references/handoff.md) and start fresh.
-- **Auto-compact early:** keep `autoCompactWindow` for the main models around 250K (see Settings). Keep plans and decisions in files, not only in the conversation, so compaction loses nothing important.
+- **Auto-compact early:** keep `autoCompactWindow` for the main models around 250K (see Settings). It also caps 1M-context sessions (`[1m]` models, Zeron's 1M option). Keep plans and decisions in files, not only in the conversation, so compaction loses nothing important.
+- **1M context only by exception:** the window costs nothing, but every request re-reads what fills it, so a 900K request costs about 3.5 times a 250K one, on every turn. Raise the cap (`/autocompact 1m`) for one short session that must hold a large input at once and cannot split it, and end it when done. Prefer giving the large input to a subagent, which reads it once and returns a summary. Never make it the default, and never use it just to avoid compaction in a long interactive session.
 - **Keep large outputs out:** read files with offset and limit or through `scout`; never paste whole logs, `gh ... --json` dumps, test output or browser snapshots into the main session.
 - **Fewer steps:** batch independent tool calls in one message, chain related shell commands in one call, and wait with the harness's background or Monitor facility or a bundled waiter (`final-pr-review`'s `wait-pr.mjs`), never with `sleep` loops.
 - **Keep the cache warm:** do not switch the session model mid-task (each switch re-reads the whole history uncached, which is also why `opusplan` is not the default), and do not change MCP servers or `CLAUDE.md` mid-session.
@@ -105,6 +106,10 @@ Zeron chats run the Claude Code harness with the same plugins and settings, so t
 
 - **A chat's model and reasoning level set in Zeron override `settings.json`.** Keep Zeron's default for new chats at Opus 5.5 · `medium` and the title model on Haiku; raise the level per chat when the task needs it.
 - **Child chats** (`create_chat`/`create_chats`, one level deep) are full sessions with their own model and effort. Use them for long, independent work the person wants to see or steer (one plan slice per chat on `claude-sonnet-5-5` · `medium`, UAT chapters in parallel); use subagents for short jobs that return a summary. Both count toward the same limit, except work delegated to a non-Claude harness such as Codex, which uses that provider's quota.
+
+## Codex
+
+The roles map to Codex custom agents of the same name, generated from `agents/` with the models `haiku` → `gpt-6-luna`, `sonnet` → `gpt-6.1-terra`, `opus` → `gpt-6.1-sol`. From a clone of this repo run `node codex/install.mjs` (agents into `~/.codex/agents`, rules into `~/.codex/AGENTS.md`) and merge `codex/config.toml` into `~/.codex/config.toml` by hand. Codex work counts against the OpenAI quota, not Claude's.
 
 ## Measure
 
