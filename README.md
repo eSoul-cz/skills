@@ -23,6 +23,8 @@ claude plugin install frontend-design@esoul        # distinctive, non-templated 
 The same install works in the terminal and in Claude in VS Code: both read the
 same `~/.claude` configuration, so a plugin installed once is available in both.
 
+`esoul-awesome-picks` adds about 21 skill descriptions to every session. Enable it per project, only in WordPress, Laravel, SEO, or data projects, instead of user-wide: install it, then set `"enabledPlugins": { "esoul-awesome-picks@esoul": true }` in the project's `.claude/settings.json` (and leave it off in your user settings).
+
 `frontend-design` is referenced from its upstream repository, so its updates come
 from Anthropic. `esoul-skills` and `esoul-awesome-picks` are maintained here.
 
