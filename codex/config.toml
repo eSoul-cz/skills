@@ -1,0 +1,11 @@
+# Snippet for ~/.codex/config.toml. Merge by hand; codex/install.mjs never touches that file.
+# If a key or the [agents] table already exists there, edit it instead of duplicating it.
+
+model = "gpt-6.1-sol"
+model_reasoning_effort = "medium"      # raise per task: high, xhigh
+model_auto_compact_token_limit = 250000
+
+[agents]
+max_concurrent_threads_per_session = 4
+default_subagent_model = "gpt-6.1-terra"
+default_subagent_reasoning_effort = "medium"
