@@ -102,9 +102,10 @@ The person's `~/.claude/settings.json` (the person sets it, or approves the chan
 
 ## Zeron
 
-Zeron chats run the Claude Code harness with the same plugins and settings, so the roles above work there too. Two Zeron specifics:
+Zeron chats run the Claude Code harness with the same plugins and settings, so the roles above work there too. Three Zeron specifics:
 
 - **A chat's model and reasoning level set in Zeron override `settings.json`.** Keep Zeron's default for new chats at Opus 5.5 · `medium` and the title model on Haiku; raise the level per chat when the task needs it.
+- **Titles name the work item.** The title model sees only the first exchange and cannot be given its own prompt, and an existing chat cannot be renamed through the tools. So when a chat works on a GitHub issue or a Freelo task, its first reply starts with `#<issue number> <issue title>` (Freelo-only work: `Freelo <task id> <task title>`), about 60 characters at most, with the title looked up first when the prompt gives only a number or a link. When creating a child chat for an issue or task, pass the same text as `title` to `create_chat`/`create_chats` instead of leaving it to the title model.
 - **Child chats** (`create_chat`/`create_chats`, one level deep) are full sessions with their own model and effort. Use them for long, independent work the person wants to see or steer (one plan slice per chat on `claude-sonnet-5-5` · `medium`, UAT chapters in parallel); use subagents for short jobs that return a summary. Both count toward the same limit, except work delegated to a non-Claude harness such as Codex, which uses that provider's quota.
 
 ## Codex
