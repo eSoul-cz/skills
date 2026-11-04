@@ -1,6 +1,6 @@
 ---
 name: esoul-tasking
-description: Prepare, preview and create eSoul work as a Freelo task or a linked GitHub issue + Freelo task, per the repository's split/no-split convention in CONTEXT.md. Use when invoked, when pairing GitHub issues with Freelo tasks, or under a tasking convention. Requires esoul-freelo-task-authoring; needs approval before writes.
+description: Prepare, preview and create eSoul work as a Freelo task or a linked GitHub issue + Freelo task, per the repository's split/no-split convention in CONTEXT.md. Use when invoked, when pairing GitHub issues with Freelo tasks, or under a tasking convention. Requires esoul-freelo-task-authoring; needs approval before writes (except task lifecycle moves, see esoul-workflow).
 ---
 
 # eSoul tasking

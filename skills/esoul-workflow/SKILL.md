@@ -49,7 +49,7 @@ This session is the orchestrator: it decides, writes briefs, and reviews. Mechan
 |---|---|
 | **S** | Do it directly; suggest a `sonnet` session for a run of S tasks. Delegation would cost as much as the work. |
 | **M, L, Bug** | Settle decisions here, then brief `esoul-skills:implementer` (Sonnet) per slice; `esoul-skills:test-runner` (Haiku) runs the checks; review the diff and receipts here. After two failed worker attempts, take over or escalate. |
-| **Any** | Searches → `scout`; test, build and lint runs → `test-runner`; commits, `gh` queries and approved tracker writes → `ops`; review lenses → `reviewer`, or `critical-reviewer` for authorization, money, migrations or destructive data scripts, personal data, concurrency. |
+| **Any** | Searches → `scout`; test, build and lint runs → `test-runner`; commits, `gh` queries, approved tracker writes and task lifecycle moves → `ops`; review lenses → `reviewer`, or `critical-reviewer` for authorization, money, migrations or destructive data scripts, personal data, concurrency. |
 
 Keep the session small: one task per session, `/clear` or a handoff between tasks, no whole logs or dumps in context, independent tool calls batched in one message. Effort `medium` is the default for this session; raise it to `high` for clarifying and planning, `xhigh` for L or security-sensitive work. The full rules, the Zeron specifics and the usage report are in `esoul-model-routing`.
 
@@ -65,6 +65,15 @@ Keep the session small: one task per session, `/clear` or a handoff between task
 
 - Use `esoul-tasking`, which resolves the repository tasking convention (`freelo-only` or `github-freelo`) and requires approval before every remote write.
 - If the Matt Pocock plugin is installed, do not use its `to-spec`, `to-tickets`, `triage`, `wayfinder` or `setup-matt-pocock-skills` unless the repository is explicitly configured for them. eSoul tracks work in Freelo, and the setup skill renames `CONTEXT.md`, which holds eSoul conventions. The parts eSoul uses are adapted in this skill's references.
+
+### Task lifecycle (every size, when a Freelo task or issue exists)
+
+Keep the tracker true to the work; mechanical status writes are your job, not the user's. Details, commands and the after-merge rule are in [references/task-lifecycle.md](references/task-lifecycle.md).
+
+- **Start of work** (before or at branch creation): set the person the session works for as assignee on the GitHub issue and as worker on the paired Freelo task, and move the Freelo task to `In progress`.
+- **PR opened**: move the task to `Code review` and add the work report (`freelo` skill).
+- **Review finds defects**: back to `In progress`.
+- **After merge**: `Testing`, or `Done` and finish where the project has no testing step. Never leave a task with merged work in `Backlog` or `To Do`.
 
 ### Project-level work
 
@@ -134,7 +143,7 @@ It does not change when the verified files are committed (it equals the new comm
 ## 4. Guardrails
 
 - Production is read-only by default: no writes to production databases, servers, or live sites without explicit instruction for that specific action.
-- Every write to Freelo, GitHub issues, or other shared systems needs an approved preview first.
+- Every write to Freelo, GitHub issues, or other shared systems needs an approved preview first. Exception: the task lifecycle writes above (assignee, worker, state moves, finishing) for the task this session works on are mechanical status updates and need no preview; report them in the final summary. Content writes (title, description, estimate, new tasks, comments with substance) still need approval.
 - Destructive commands (reset, drop, force-push, bulk delete, search-replace on a database) need a backup or a dry run and explicit confirmation.
 - Prefer the repository's own scripts (Makefile, composer/npm scripts, `scripts/`) over ad-hoc commands.
 - Project data (client files, dumps, media, backups) goes to tracked `assets/` via Git LFS, never to `storage/` or other ignored folders: `esoul-project-data`.
