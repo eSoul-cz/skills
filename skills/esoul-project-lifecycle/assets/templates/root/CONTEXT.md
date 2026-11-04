@@ -42,6 +42,10 @@ Additional project rules:
 - Default Freelo task list: **Backlog** (IDs in *Freelo* above). The other lists are `To Do`,
   `In progress`, `Code review`, `Testing`, `Done` and `LTT` for recurring work. A task goes to
   `To Do` only with a complete description, an assignee, an approved estimate and no open blocker.
+- Task lifecycle: whoever starts the work (agent for the user, or developer) assigns themselves on
+  the issue and as Freelo worker and moves the task to `In progress`; the open PR moves it to
+  `Code review`, the merge to `Testing` (or `Done` without a testing step). Agents do these
+  status moves without a preview.
 - These rules override the defaults of `esoul-freelo-task-authoring` where they differ:
   estimates are human time in 15-minute steps (split above 4 h), relations are never replaced by
   temporary comments, and recurring work goes to `LTT`.
