@@ -61,6 +61,8 @@ A CLI failure, limit or incomplete output is not a clean review; fall back to `p
 
 Create focused commits following the effective convention. Push only authorized branches. Reuse an existing PR; otherwise create one with explicit repository, head, and base, a meaningful title, a concise summary, actual verification results, and stack dependencies. Honor PR templates and keep human-written body content. Normally the PR is ready for review; respect an explicit draft requirement. For native stacks, publish as [stacks](references/stacks.md) describes.
 
+When the PR is first opened, move its Freelo task to `Code review` per the task lifecycle in `esoul-workflow`; after merge the same lifecycle moves it on.
+
 After publishing, fetch the remote PR metadata and verify the expected remote head SHA and base. Record that revision. Local HEAD, a successful push command, or a PR URL is not completion evidence. If the remote changed unexpectedly, reconcile collaborator work before making further changes; never overwrite it.
 
 ## 4. Wait for CI and CodeRabbit independently
