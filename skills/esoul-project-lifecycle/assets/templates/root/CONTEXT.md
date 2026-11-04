@@ -45,7 +45,8 @@ Additional project rules:
 - Task lifecycle: whoever starts the work (agent for the user, or developer) assigns themselves on
   the issue and as Freelo worker and moves the task to `In progress`; the open PR moves it to
   `Code review`, the merge to `Testing` (or `Done` without a testing step). Agents do these
-  status moves without a preview.
+  status moves without a preview. Nobody starts work on a task assigned to someone else; stop
+  and ask instead of reassigning.
 - These rules override the defaults of `esoul-freelo-task-authoring` where they differ:
   estimates are human time in 15-minute steps (split above 4 h), relations are never replaced by
   temporary comments, and recurring work goes to `LTT`.

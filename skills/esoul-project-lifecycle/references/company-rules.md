@@ -26,7 +26,8 @@ owner and does not repeat the details beyond what the lifecycle needs.
   → Done and finished (UAT ticked). Recurring work goes to `LTT`. Whoever starts the work
   (agent or developer) assigns themselves on the issue and in Freelo and moves the task to
   In progress; opening the PR moves it to Code review, merging to Testing (or Done without
-  a testing step). No merged work stays in Backlog or To Do.
+  a testing step). No merged work stays in Backlog or To Do. Never start work on a task assigned to someone
+  else (worker or issue assignee); stop and ask instead of reassigning.
 - **PR finishing** uses `final-pr-review`.
 - **Process tiers**: `full` for applications, `light` for websites; recorded in the project
   profile. Light replaces ADRs with `docs/rozhodnuti.md`, the plan with a page table and UAT

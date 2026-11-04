@@ -74,6 +74,8 @@ Keep the tracker true to the work; mechanical status writes are your job, not th
 - **PR opened**: move the task to `Code review` and add the work report (`freelo` skill).
 - **Review finds defects**: back to `In progress`.
 - **After merge**: `Testing`, or `Done` and finish where the project has no testing step. Never leave a task with merged work in `Backlog` or `To Do`.
+- **Assigned-task guard**: never start work on a task assigned to someone else (Freelo worker or issue assignee); stop and tell the user.
+- **Session start**: once per session, have `esoul-skills:ops` sweep `Code review` and `In progress` tasks whose PR is already merged and move them (one pass, compact output); see the sweep in the reference.
 
 ### Project-level work
 

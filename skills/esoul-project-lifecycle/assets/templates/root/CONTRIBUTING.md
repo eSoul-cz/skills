@@ -168,7 +168,7 @@ you ran, with its result, in the pull request.
 |---|---|
 | `Backlog` | Založený pár, ještě nepřipravený k práci. |
 | `To Do` | Má popis, řešitele a schválený odhad; nemá otevřený blokující úkol. |
-| `In progress` | Existuje větev; řešitel je přiřazený na issue i ve Freelu. Při začátku práce se přiřaď na issue i ve Freelu a přesuň úkol sem. |
+| `In progress` | Existuje větev; řešitel je přiřazený na issue i ve Freelu. Při začátku práce se přiřaď na issue i ve Freelu a přesuň úkol sem; na úkolu přiřazeném jinému nezačínej, zeptej se. |
 | `Code review` | PR je otevřený a CI zelené. Po otevření PR přesuň úkol sem a přidej výkaz; při nalezených vadách ho vrať do `In progress`. |
 | `Testing` | PR je mergnutý a nasazený na staging nebo preview; čeká na UAT. Po mergi přesuň úkol sem (bez testování rovnou `Done`). |
 | `Done` | UAT z issue je odškrtané; úkol je ve Freelu označený jako dokončený. |
