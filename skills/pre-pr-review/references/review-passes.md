@@ -16,11 +16,13 @@ Apply each item to the changed code and what it touches. A checklist item is a q
 - Idempotency and concurrency: a job, webhook, or listener that may run twice; check-then-act races; missing unique constraint or lock; duplicate writes to an external system (invoice, payment, e-mail, ERP).
 - Data changes: migrations that lock big tables, non-nullable columns without defaults, irreversible down migrations, backfills that load everything into memory, renamed columns still used elsewhere.
 - Contracts: changed signatures, return shapes, events, API payloads, config keys, or routes, and every caller or consumer of them.
+- Queries on real data: a sorted or paginated list without a unique tiebreaker or a decided `NULL` order; a correlated subquery or mapping join that can match more than one row (watch `_ci` collations); counts reported from a precomputed total instead of affected rows; partial updates that cannot clear a field because `null` means "unchanged".
+- Root cause: for a bug fix, is the cause fixed where it lives, or only bypassed in a caller (an extra prop or parameter, a special case) without a stated reason?
 
 ### 2. Security and data boundaries
 
 - Authorization on every new route, controller action, Livewire or Inertia action, GraphQL resolver, admin screen, signed URL, queued job input, and WordPress AJAX or REST endpoint. Authentication alone is not authorization.
-- Scoping: queries filtered by tenant, customer, role, or sales channel on the server; IDs from the request checked for ownership (IDOR). Filtering in the browser is not a boundary.
+- Scoping: queries filtered by tenant, customer, role, or sales channel on the server; IDs from the request checked for ownership (IDOR). Filtering in the browser is not a boundary, and neither is hiding a button or tab: every rule the UI expresses (deadline, permission, state) needs a server check and a test against the endpoint or handler.
 - Injection: raw SQL with interpolation, `whereRaw`, `DB::raw`, `$wpdb->query` without `prepare`; shell commands built from input; path traversal in file names; unescaped output (`{!! !!}`, `v-html`, `innerHTML`, `echo` without `esc_html`/`esc_attr`); SSRF through user-supplied URLs; unsafe deserialization.
 - Mass assignment: `$guarded = []`, `fill($request->all())`, spreading request bodies into models or DTOs.
 - CSRF and nonces on state-changing requests; open redirects; file uploads (type, size, storage location, public access).
@@ -29,7 +31,7 @@ Apply each item to the changed code and what it touches. A checklist item is a q
 
 ### 3. Tests and contract
 
-- Each acceptance criterion and the `## UAT` scenario map to code that implements it. Unrelated refactoring or features mixed in is a finding.
+- Each acceptance criterion and the `## UAT` scenario map to code that implements it. Unrelated refactoring or features mixed in is a finding: report each unrelated change (config, `.gitignore`, another domain, docs counters, a changed default) with the proposal to move it to its own PR. A diff over about 400 production lines that could ship in parts is a finding with a proposed split.
 - New or changed behavior has a test at a meaningful seam. A bug fix has a regression test that fails without the fix.
 - Tests assert behavior through the module's interface, not implementation details or the text of an error message; a test that reaches past the interface (mocked internal collaborators, private methods, querying the database instead of the interface) is a finding. Expected values come from an independent source, not recomputed the way the code does. No sleeping, real network, or order dependence.
 - Accepted ADRs and `AGENTS.md` MUST rules are respected; a changed target contract comes with an ADR update.
@@ -44,6 +46,10 @@ Apply each item to the changed code and what it touches. A checklist item is a q
 - Overengineering: abstractions with one implementation and no planned second (production plus a test fake counts as two), options nobody passes.
 - Pass-through layers (deletion test): a class whose removal would make the complexity vanish rather than reappear in its callers, such as a service that only forwards to a repository that only forwards to the model. Report it only where the project's guidelines do not prescribe the layer.
 - Performance: N+1 queries (relations used in loops without eager loading), unbounded queries or collections, work inside loops that could run once, missing indexes for new query patterns, synchronous external calls in a request path.
+- One source of truth: the same visibility, scoping or eligibility branching in two methods, or the same component copied into each template branch, instead of one scope, policy, enum method or composable.
+- Layering: schema changes (create, alter, drop) outside migrations, for example a work table built inside a command handler.
+- Vue state: a prop named like a local `computed` or variable, props destructured or copied into constants where reactivity is needed.
+- Comments: long rationale blocks that belong in the PR or an ADR; comment language or missing Czech diacritics that differ from the surrounding code.
 - Consistency with the surrounding code's patterns, error handling, and style.
 - The file's `path_instructions` from `.coderabbit.yaml`, applied as written.
 

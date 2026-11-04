@@ -80,6 +80,7 @@ Use `esoul-project-lifecycle` instead of this flow when the task is about the pr
 ### Build (S, M)
 
 - Work in vertical slices: one behavior end to end, verified, before the next.
+- Hold every M, L and Bug slice to [references/quality-bar.md](references/quality-bar.md): one intention per PR within about 400 production lines, rules enforced on the server, the root cause fixed, one source of truth per rule, deterministic queries. Copy its rules and self-check into each implementer brief, and check the returned self-check before review.
 - Test-first at seams agreed with the user ([references/tdd.md](references/tdd.md)) when the project has a test suite and the logic is non-trivial (domain rules, calculations, parsers, pricing, permissions). Skip ceremony for markup, copy, and styling changes; verify those visually instead.
 - When the shape of an interface is in question (where a seam goes, whether a class earns its place, how an integration is faked), use [references/design-principles.md](references/design-principles.md) after the stack profile and project guidelines.
 - Keep changes minimal and in the style of the surrounding code. No drive-by refactors; note them for later instead.
@@ -88,6 +89,7 @@ Use `esoul-project-lifecycle` instead of this flow when the task is about the pr
 ### Diagnose (Bug)
 
 - Follow [references/diagnosing-bugs.md](references/diagnosing-bugs.md). Its core rule: build a fast, deterministic command that goes red on the reported symptom *before* forming hypotheses, then rank 3 to 5 falsifiable hypotheses, change one variable at a time, and tag temporary debug logs with a unique prefix so they can be removed with one grep.
+- Name the root cause in one sentence and fix it where it lives. A workaround in a caller needs a stated reason and a follow-up task.
 - Finish with a regression test at a seam that reproduces the real bug pattern, or state explicitly that no such seam exists.
 
 ### Verify (always)
