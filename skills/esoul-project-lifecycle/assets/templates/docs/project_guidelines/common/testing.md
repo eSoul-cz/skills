@@ -37,7 +37,8 @@ them into a behavioural test when the behaviour behind them matters:
 
 Architecture and structure checks are a stack or project choice, not a default. A check that
 guards a boundary review alone does not hold MAY stay in the suite when this list names it and
-the accepted ADR or stack profile that requires it:
+the accepted ADR or stack profile that requires it. A check the stack profile requires (for
+Laravel, the layer-dependency test and its detection test) is listed here from the first commit:
 
 <!-- optional: named exceptions; delete the block when there are none -->
 | Test | Guards | Decided by |
@@ -73,6 +74,13 @@ with the same text. Callers depend on the type, the keys and the codes; those ar
 The rule covers error text only. Text users read in normal operation (labels, notification and
 e-mail copy, page props) is product content and stays testable where it is the behaviour under
 test. Text a test supplies itself and expects to be forwarded unchanged is test data.
+
+## Every behaviour change carries a test
+
+A pull request that changes behaviour MUST contain a test that fails without the change, or one
+line in its description: `Bez testu: <reason>` (markup or copy only, configuration, a data task
+verified by its own checks, behaviour no seam can reach). A reviewer reports a behaviour change
+with neither. Documentation-only and dependency-only pull requests need no line.
 
 ## Regression tests
 
@@ -122,6 +130,28 @@ eSoul project shares one Jenkins, so a slow run blocks every other project too.
 Suites that break these rules are merged or moved to a cheaper layer in their own issue, not in
 passing.
 
+## Test groups
+
+The default run (local and CI) excludes these groups; they run on a schedule or on demand
+([tools.md](tools.md)). A test joins a group only for the reason named here.
+
+| Group | For | Runs |
+|---|---|---|
+| `db-engine` | a test whose outcome depends on the production database engine: collations and case-insensitive uniqueness, `NULL` ordering, JSON functions, raw SQL, locking, strict mode | in the default run on the test engine, and again on the production engine on schedule |
+| `sandbox` | contract tests against a provider's test API or a recorded cassette refresh; they skip themselves when credentials are missing | on demand and on schedule |
+| `quarantine` | a flaky test whose cause is not fixed yet; the attribute links its issue | on schedule only, until fixed or deleted within that issue |
+
+`db-engine` is the only group that also stays in the default run; a suite already on the
+production engine needs no second run. A defect found on the production engine gets a regression
+test in `db-engine`, never a workaround that only satisfies the test engine.
+
+## Flaky tests
+
+A test that fails and passes on the same code is a defect. Do not rerun the build until it is
+green and do not add sleeps or wider timeouts. Find the cause (clock, order dependence, shared
+state, parallel workers, network) and fix it; when that is not quick, quarantine the test with an
+issue as above.
+
 ## Mutation testing
 
 Mutation testing checks that tests are useful, not only that they pass. The stack's tool
@@ -145,11 +175,15 @@ useful; rework it.
 ## Testing workflow
 
 1. Write or adjust the behavioural tests for the change, test-first where practical, and run them
-   narrowly.
+   narrowly: the one test file while editing, the test directories of the touched area before a
+   commit.
 2. Delete temporary tests and anything else that does not belong in the suite.
-3. Run the whole suite and the stack's checks ([tools.md](tools.md)).
+3. Run the whole suite and the stack's checks ([tools.md](tools.md)) once, on the code that will
+   be pushed. Skip what the change cannot affect: a documentation-only change runs no tests.
 4. Run mutation testing on the changed lines and work through the escaped mutants.
-5. List the checks you ran and the accepted mutants in the pull request.
+5. List the checks you ran and the accepted mutants in the pull request, or the `Bez testu:` line.
+6. Push review fixes together, after they pass locally: every push is a full CI build. A red
+   build is reproduced locally before its fix is pushed.
 
 <!-- optional: client calculations exist in spreadsheets -->
 ## Parity tests against client workbooks

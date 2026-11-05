@@ -35,6 +35,11 @@ for every finding:
 | Guidelines → checks | Every MUST rule has a check, or is listed as manual review |
 | Staleness | Plan status date, „Hotovo.“ markers and phase table reflect reality |
 | Data safety | No real personal data in tests, fixtures, issues or PRs |
+| Checks → CI | The commands in `README.md`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md` and `tools.md` match what the `Jenkinsfile` runs; framework versions named there match `composer.json`/`package.json` |
+| Agent rules → testing | `AGENTS.md`/`CLAUDE.md` say nothing about tests that contradicts `testing.md` (asking before the full suite, never deleting tests, other run rules) |
+| Suite → testing.md | No committed tests of an excluded kind (performance, migration and schema, data-definition, tests reading local data files) unless named exceptions; every architecture test is a named exception |
+| Test groups | `phpunit.xml` (or the stack equivalent) excludes `sandbox` and `quarantine`; every quarantined test links an open issue; `db-engine` tests exist where queries depend on the production engine |
+| CI cost | Push builds run only the read-only checks of `tools.md` (no scheduled groups, no mutation); the release-image test build is limited to image inputs; serial runners (`--maxWorkers=1`) are justified in the `Jenkinsfile` |
 
 ## 3. Report
 

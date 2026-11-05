@@ -37,8 +37,8 @@ Closes #
 
 - [ ] Kód dodržuje `AGENTS.md` a `docs/project_guidelines/`.
 - [ ] `{{CHECK_COMMAND}}` prošel lokálně a check `Jenkins` je zelený.
-- [ ] Nová nebo změněná doménová logika má test; oprava chyby má regresní test, který bez opravy
-      padá. Testy netestují text chybových hlášek.
+- [ ] Nová nebo změněná doménová logika má test, jinak je tu řádek `Bez testu: <důvod>`; oprava
+      chyby má regresní test, který bez opravy padá. Testy netestují text chybových hlášek.
 - [ ] Nový nebo změněný výpočet je ověřený proti zdroji v `docs/podklady/` a test ho pojmenovává.
 - [ ] V kódu, testech, fixtures ani v tomto PR nejsou reálná data klienta.
 - [ ] Názvosloví odpovídá `GLOSSARY.md`; nový pojem je doplněný v tomto PR.

@@ -67,7 +67,8 @@ every branch and pull request.
      the build fails on critical advisories;
    - **JS tests** — the shared `fullNodeTest` step: install, ESLint, Prettier check, TypeScript,
      Vitest, the structure scripts and their own tests, the production build;
-   - **Test Docker build** — on pull requests, a no-cache build of every release image.
+   - **Test Docker build** — on pull requests that touch the image inputs, a build of every
+     release image (see the build-time rules below).
 2. **Build and push**, on `main`: multi-architecture images tagged `latest` and with any Git tag
    on the commit, pushed to `rg.fr-par.scw.cloud/app-images/`.
 3. **Deploy** — the Komodo stack `{{KOMODO_STACK}}` is redeployed. `SKIP_DEPLOY = 'true'` keeps
@@ -89,6 +90,21 @@ Jenkins is shared by every eSoul project, so build time matters:
   Do not skip stages in one of the two jobs instead: the one that finishes last decides the
   required check.
 - Integration tests follow [testing.md](testing.md#keeping-the-integration-run-short).
+- A red build is reproduced locally before its fix is pushed; never push to see whether CI agrees.
+- The release-image test build is the slowest stage. Run it on pull requests that touch what the
+  image is built from (`Dockerfile`, `docker/**`, `composer.json`, `composer.lock`,
+  `package.json`, `pnpm-lock.yaml`), and with the registry layer cache rather than `--no-cache`
+  unless a cache problem is being ruled out. Changes elsewhere are proven by the test stages and
+  `pnpm build`.
+- Vitest worker count and Paratest processes match the Jenkins agent; a value of 1 has a comment
+  saying why.
+
+<!-- optional: scheduled job -->
+**Scheduled job.** A separate Jenkins job (`cron('H 2 * * *')` on `main`) runs what the push build
+does not: the `db-engine` group on the production engine and the `sandbox` and `quarantine`
+groups ([tools.md](tools.md#test-groups)), plus the E2E or UAT sweep when the project has one.
+It does not report the required `Jenkins` check, and every failure becomes an issue. Mutation
+testing stays local ([testing.md](testing.md#mutation-testing)).
 
 ## Environments
 
