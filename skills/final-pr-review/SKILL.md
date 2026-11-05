@@ -48,7 +48,7 @@ Record a compact work ledger in task state, not a repository document: each PR's
 
 Run the project's appropriate checks for the actual changes. Fix real failures at their source; do not remove assertions or skip CI to achieve green status.
 
-Reuse what already ran: a check with a receipt for the current worktree tree (compute it as in `esoul-workflow`) is not run again, here or in the local review. After a fix, re-run only the checks the fix can affect, plus the full suite once on the tree that will be pushed.
+Reuse what already ran: a check with a receipt for the current worktree tree (compute it as in `esoul-workflow`) is not run again, here or in the local review. After a fix, re-run only the checks the fix can affect, plus the full suite once on the tree that will be pushed. Run levels, what to skip and the flaky-test rule: `esoul-workflow` [test-runs](../esoul-workflow/references/test-runs.md). Push all fixes of a round together; every push is a full Jenkins build. A red CI build is reproduced locally before the fix is pushed.
 
 Local review is a pre-push pass, never a substitute for remote review. It follows the one-local-review-per-revision rule in `esoul-workflow` (Review step): do not also run `code-review`, and review only the delta after later fixes.
 

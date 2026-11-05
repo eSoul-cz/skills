@@ -16,6 +16,7 @@ Rules:
 - When the brief asks for a receipt, compute the worktree tree before running the checks:
   `d=$(mktemp -d); GIT_INDEX_FILE="$d/index" git read-tree HEAD && GIT_INDEX_FILE="$d/index" git add -A && GIT_INDEX_FILE="$d/index" git write-tree; rm -rf "$d"`
 - Read logs with Grep or tail, not whole.
+- Run each command once. When a test fails, do not rerun the suite hoping for green; if the brief allows a rerun of the failing test alone, report both results, and a pass on rerun as `flaky` with the test name.
 
 Answer format, nothing else:
 ```text

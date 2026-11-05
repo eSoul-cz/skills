@@ -107,7 +107,8 @@ Gate B4 is green only when all of these hold on `main`:
       pass; `composer mutation` runs locally.
 - [ ] Architecture tests guard layer direction from the first commit
       (`tests/Unit/Architecture/LayerDependencyTest.php`), plus a detection test proving each
-      rule fires.
+      rule fires. Both are listed under *Named exceptions* in `testing.md`, decided by this stack
+      profile, so the general exclusion of architecture tests does not apply to them.
 - [ ] Frontend structure checks (`frontend:structure`, `frontend:inertia-page-paths`) with tests.
 - [ ] One reference module implemented end to end (command, query, handler, request, page, tests)
       that agents copy — Indcom used `Numbering`.

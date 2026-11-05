@@ -108,7 +108,8 @@ Use `esoul-project-lifecycle` instead of this flow when the task is about the pr
 Do not claim done without evidence. Run what applies and report the actual results:
 
 - Type checks, linters, and formatters the repository defines.
-- The single affected test file while iterating; the full suite once at the end. Outside S tasks, run them through `esoul-skills:test-runner` so only receipts and failures come back.
+- Tests by run level ([references/test-runs.md](references/test-runs.md)): the affected test file while iterating, the touched area before a commit, the full suite and mutation testing once per tree that will be pushed; skip what the change cannot affect. Outside S tasks, run them through `esoul-skills:test-runner` so only receipts and failures come back.
+- A behaviour change carries a test, or its PR says `Bez testu: <reason>`.
 - When the machine runs `test-queue`, test, E2E and build commands wait in a shared queue: run long suites in the background and read `[testq]` lines as queue state, not failures.
 - For UI: load the page in a browser (Playwright or the available browser tool) at desktop 1440px and mobile 390px, check the console for errors, and look at the result.
 - For acceptance of a whole module or release, use `esoul-uat`: it runs the project's UAT scenarios across roles and devices, checks layout and design, and files approved bugs.

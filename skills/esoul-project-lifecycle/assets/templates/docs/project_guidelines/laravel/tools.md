@@ -68,6 +68,36 @@ pnpm frontend:check   # all of the above plus the structure and page-path checks
 composer mutation     # Infection on the app/ lines changed against main (local soft gate)
 ```
 
+### Narrow runs
+
+```bash
+php artisan test --parallel tests/Feature/<Area> tests/Unit/<Area>   # the touched area, before a commit
+php artisan test --filter=<TestName>                                  # one behaviour while editing
+```
+
+The whole suite runs once on the code that will be pushed, not after every edit
+([testing.md](testing.md#testing-workflow)).
+
+## Test groups
+
+`phpunit.xml` excludes the groups `sandbox` and `quarantine` from the default run
+([testing.md](testing.md#test-groups)); a test joins one with `#[Group('sandbox')]`, and a
+quarantined test carries its issue URL in a comment on the attribute.
+
+```bash
+php artisan test --group=sandbox      # provider test APIs; skips without credentials
+php artisan test --group=quarantine   # flaky tests waiting for their fix
+```
+
+<!-- optional: tests on in-memory SQLite, production on MariaDB/MySQL/Postgres -->
+Tests marked `#[Group('db-engine')]` run in the default SQLite run and again on the production
+engine, against a throwaway database in the `laravel` container, never the development one:
+
+```bash
+docker compose exec -e DB_CONNECTION={{PRODUCTION_DB_CONNECTION}} -e DB_DATABASE=testing laravel \
+  php artisan test --group=db-engine
+```
+
 ## Static analysis
 
 - PHPStan runs at **level 10** with `bleedingEdge` and Larastan; `phpstan/phpstan-phpunit` covers
