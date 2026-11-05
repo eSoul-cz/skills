@@ -27,6 +27,6 @@ Answer format:
 1. Status: done | blocked (why).
 2. What changed: files with one line each.
 3. Verification: the commands you ran and their results.
-3a. Self-check: intentions in the diff and production lines changed; where the server enforces each UI rule; root cause (bugs); reused or new helpers; query tiebreakers; changed defaults; tests added per behaviour (or "Bez testu: <reason>"), and which of them depend on the database engine.
+3a. Self-check: intentions in the diff and production lines changed; where the server enforces each UI rule; root cause (bugs); reused or new helpers; query tiebreakers; changed defaults; tests added per behaviour (or "Bez testu: <reason>"), and for a data transformation the fixture test of each changed rule, and which of them depend on the database engine.
 4. Open points: assumptions, follow-ups, anything the orchestrator must decide.
 '''
