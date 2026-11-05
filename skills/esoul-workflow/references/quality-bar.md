@@ -74,6 +74,24 @@ project's `AGENTS.md`, guidelines and ADRs take precedence.
 - Comments and user-facing text follow the language of the surrounding code; Czech text keeps
   its diacritics.
 
+## 9. Data transformations are tested like code
+
+ETL steps, legacy imports, data fixes and mapping rules are production code: blind reviews
+scored agent-written ETL PRs lowest of all on tests, and the large bundled ones lowest overall.
+
+- Every new or changed transformation rule (mapping, normalisation, deduplication, matching,
+  derived value) has an automated test: a small fixture of source rows in, the expected target
+  rows or values out. Expected values come from the source data or the client's specification,
+  not recomputed the way the code does.
+- Include the edge rows that broke or could break the rule: empty and `NULL` values, duplicates,
+  case and diacritics variants, unknown codes, and rows the rule must skip.
+- A fix of a data defect adds the offending source row to the fixture, so the test fails without
+  the fix.
+- A manual check on the real dump (counts, spot checks) is evidence in the PR description, not
+  a replacement for the test.
+- One ETL PR changes one rule or one step. Collecting several fixes or retests into one PR,
+  or stacking PRs that repeat each other's content, breaks rule 1.
+
 ## Self-check before review
 
 Answer each line in the handoff to the reviewer or orchestrator, with evidence:
@@ -84,3 +102,5 @@ Answer each line in the handoff to the reviewer or orchestrator, with evidence:
 4. New conditions or helpers, and the existing one searched for.
 5. New or changed queries: tiebreaker, `NULL` order, uniqueness of joins.
 6. Changed defaults, if any.
+7. For a data transformation: each changed rule and the test (fixture in, expected rows out)
+   that covers it.
