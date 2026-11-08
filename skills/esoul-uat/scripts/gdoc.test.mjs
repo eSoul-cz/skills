@@ -313,6 +313,12 @@ test('call: chyby (HTML místo JSON, ok:false, síť) nikdy neobsahují token an
         throw new Error('getaddrinfo ENOTFOUND');
     };
     await assert.rejects(call(config, { action: 'ping' }, { fetchImpl: network }), (error) => /neodpověděl/.test(error.message) && !/sekret/.test(error.message));
+    const echo = async (url) => {
+        throw new TypeError(`Failed to parse URL from ${url} with sekret-token`);
+    };
+    await assert.rejects(call(config, { action: 'ping' }, { fetchImpl: echo }), (error) => /neodpověděl/.test(error.message) && !/sekret|secret-deployment/.test(error.message));
+    const invalid = { url: 'script.example/secret-deployment/exec', token: 'sekret-token' };
+    await assert.rejects(call(invalid, { action: 'ping' }, { fetchImpl: network }), (error) => /není platná URL/.test(error.message) && !/secret-deployment/.test(error.message));
 });
 
 /* --------------------------------------------------------------- příkazy */

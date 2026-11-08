@@ -141,6 +141,13 @@ const MAX_REDIRECTS = 5;
  * request must be a GET without a body, so redirects are followed by hand. Errors never contain the URL or the token.
  */
 export async function call(config, body, { fetchImpl = globalThis.fetch } = {}) {
+    try {
+        new URL(config.url);
+    } catch {
+        throw new Error('UAT_GDOC_URL není platná URL (hodnota se z bezpečnostních důvodů nevypisuje).');
+    }
+    const redact = (text) =>
+        [config.url, config.token].filter(Boolean).reduce((acc, secret) => acc.split(secret).join('…'), String(text ?? ''));
     const signal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
     let response;
     try {
@@ -157,7 +164,7 @@ export async function call(config, body, { fetchImpl = globalThis.fetch } = {}) 
             response = await fetchImpl(location, { method: 'GET', redirect: 'manual', signal });
         }
     } catch (error) {
-        throw new Error(`Web App neodpověděl (${error.name === 'TimeoutError' ? `limit ${REQUEST_TIMEOUT_MS / 1000} s` : error.message}).`);
+        throw new Error(`Web App neodpověděl (${error.name === 'TimeoutError' ? `limit ${REQUEST_TIMEOUT_MS / 1000} s` : redact(error.message)}).`);
     }
     const text = await response.text();
     let data;

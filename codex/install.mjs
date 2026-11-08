@@ -33,7 +33,7 @@ const agentsOut = join(home, 'agents');
 if (!dryRun) {
     mkdirSync(agentsOut, { recursive: true });
 }
-const agents = readdirSync(join(here, 'agents')).filter((f) => f.endsWith('.toml')).sort();
+const agents = readdirSync(join(here, 'agents')).filter((f) => f.endsWith('.toml') && !f.startsWith('.')).sort();
 for (const file of agents) {
     if (!dryRun) {
         copyFileSync(join(here, 'agents', file), join(agentsOut, file));
