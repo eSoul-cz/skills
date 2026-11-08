@@ -43,7 +43,7 @@ would overwrite the document title.
 
 | Field | Values | Meaning |
 |---|---|---|
-| `Kapitola` (under the `#` title) | 2–4 capital letters | chapter prefix, stable |
+| `Kapitola` (under the `#` title) | 2–4 capital letters or digits (`ZV`, `B2B`) | chapter prefix, stable; scenario IDs are `<prefix>-NN` |
 | `Část` (under the `#` title) | `A`, `B` | A = testable today, B = specified or backend without screens |
 | `Role` | role codes from `environment.md`, several with `/` | who performs the steps |
 | `Typ` | `happy`, `validace`, `opravneni`, `negativni`, `okrajovy`, `vykon`, `design`, `priprava` | scenario type |
@@ -58,6 +58,11 @@ would overwrite the document title.
 
 The step table has `#`, `Akce`, `Očekávaný výsledek`. For a deviation add a fourth column
 `Dle kódu dnes` and fill it only in the affected steps.
+
+Chapter prose between the header and the first scenario (paragraphs, and bullets under
+`**Předpoklady:**`) is carried into the Google Doc by the bridge ([gdoc.md](gdoc.md)).
+Automated tests (Playwright) refer to a scenario by its ID at the start of the test title,
+`[ZV-01] …`.
 
 Project-specific dimensions from the profile (for example `Prodejní kanál`, `Jazyk`,
 `Měna`) are added as further bullet fields with concrete values.
