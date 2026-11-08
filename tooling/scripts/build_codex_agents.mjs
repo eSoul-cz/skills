@@ -58,7 +58,7 @@ const expected = new Map(
 );
 const problems = [];
 if (check) {
-    const present = existsSync(outDir) ? readdirSync(outDir).filter((f) => f.endsWith('.toml')) : [];
+    const present = existsSync(outDir) ? readdirSync(outDir).filter((f) => f.endsWith('.toml') && !f.startsWith('.')) : [];
     for (const [file, text] of expected) {
         if (!existsSync(join(outDir, file))) {
             problems.push(`missing ${file}`);
@@ -81,7 +81,7 @@ if (check) {
         writeFileSync(join(outDir, file), text);
     }
     // Remove stale generated files whose source agent is gone; hand-written files stay.
-    for (const file of readdirSync(outDir).filter((f) => f.endsWith('.toml') && !expected.has(f))) {
+    for (const file of readdirSync(outDir).filter((f) => f.endsWith('.toml') && !f.startsWith('.') && !expected.has(f))) {
         if (readFileSync(join(outDir, file), 'utf8').startsWith(GENERATED)) {
             unlinkSync(join(outDir, file));
             console.log(`Removed stale ${file}`);
