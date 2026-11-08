@@ -122,7 +122,7 @@ test('skills do not route to retired project-local skills', () => {
 // without them silently inherits the caller's (usually most expensive) model.
 test('every plugin agent pins its model and effort, and skills route only to existing agents', () => {
     const agentsDir = join(root, 'agents');
-    const agents = readdirSync(agentsDir).filter((name) => name.endsWith('.md'));
+    const agents = readdirSync(agentsDir).filter((name) => name.endsWith('.md') && !name.startsWith('.'));
     for (const file of agents) {
         const match = readFileSync(join(agentsDir, file), 'utf8').match(/^---\n([\s\S]*?)\n---\n/);
         assert.ok(match, `${file}: no frontmatter`);

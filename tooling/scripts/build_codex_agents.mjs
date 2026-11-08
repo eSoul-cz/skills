@@ -54,7 +54,7 @@ ${body}
 
 const check = process.argv.includes('--check');
 const expected = new Map(
-    readdirSync(agentsDir).filter((f) => f.endsWith('.md')).sort().map((f) => [f.replace(/\.md$/, '.toml'), convert(f)]),
+    readdirSync(agentsDir).filter((f) => f.endsWith('.md') && !f.startsWith('.')).sort().map((f) => [f.replace(/\.md$/, '.toml'), convert(f)]),
 );
 const problems = [];
 if (check) {
