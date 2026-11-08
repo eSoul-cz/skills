@@ -58,6 +58,9 @@ repository already uses another location (then keep it and record it in `README.
 | `design-map.md` | Screen + state + device → design frame, when a design exists |
 | `runs/<YYYY-MM-DD>-<env>[-<n>]/` | `results.json`, `report.md`, `screenshots/` (stored like the repository's other images) |
 
+Optional: a living Google Doc for clients and testers, fed from the same Markdown, with agent and
+Playwright results written back, is described in [gdoc](references/gdoc.md).
+
 A project may generate `scenarios/*.md` from another source (SCHOK generates them from
 `content/*.mjs`). The Markdown is then a build output that is committed, and the generator
 remains the place to edit.
