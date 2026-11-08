@@ -1,5 +1,7 @@
 {
   "project": "{{REPOSITORY}}",
+  "projectKey": "{{REPOSITORY}}",
+  "automatedColumn": false,
   "locale": "cs-CZ",
   "devices": {},
   "fieldDevices": [],

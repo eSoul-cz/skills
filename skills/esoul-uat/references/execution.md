@@ -44,6 +44,18 @@ For each scenario and device:
      --evidence screenshots/ZV-01-desktop-2.png
    ```
 
+   When the project has the Google Doc bridge configured ([gdoc.md](gdoc.md)), also write the step
+   result into the Doc right after `record`:
+
+   ```bash
+   node <skill>/scripts/gdoc.mjs result --id ZV-01 --step 2 --result "❌ Tabulka obsahuje i cizí zvíře SK123." --if-configured
+   ```
+
+   Write `✅ OK` to each step of a passed scenario and the actual result to the failing step (`--append`
+   when another device already wrote into the cell, prefixed with the device, for example `[mobile] …`).
+   `--if-configured` makes the call a silent no-op in projects without the bridge. A failed write
+   (non-zero exit with an error) does not stop the run: keep going and mention it in the final report.
+
    `results.json` is the run's memory. A run can stop and resume at any time:
    `uat.mjs next <run-dir>` prints the next `not-run` item.
 

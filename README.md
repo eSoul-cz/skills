@@ -354,11 +354,13 @@ It checks that bundle JavaScript still executes, cannot modify the control UI, a
 
 Plans, verifies, runs, and reports user acceptance testing of eSoul applications, e-shops, and websites as an end user. The scenario catalogue is Markdown in `docs/testing/uat/` of the project, built from the product type in the project profile (`esoul-project-lifecycle`). Runs use Claude in Chrome in a dedicated Chrome profile for functional scenarios and Playwright with the installed Google Chrome for device emulation, screenshots, and a layout audit (overflow, overlaps, clipped text, tap targets, broken images, font fallback). When a `.pen`, Figma, or mockup design exists, screens are compared with it. Failed scenarios become approved work through the repository's tasking skill (GitHub issue + Freelo pairs, or Freelo tasks only in `freelo-only` projects), with URL, screenshot, reproduction, and proposed fix. Credentials stay in `~/.config/esoul-uat/`, never in the repository.
 
+Optionally, a bridge (`scripts/gdoc.mjs` and `assets/gdoc/Code.gs`, Node.js 22+) keeps the scenarios and their results in a living Google Doc and writes Playwright results (`[ABC-01] …` test titles) into an `Automatický test` column; setup in `references/gdoc.md`.
+
 Requires Node.js 18+. The sweep needs `playwright` (`npm install --prefix ~/.cache/esoul-uat playwright@1`) and Google Chrome; the catalogue and run tool has no dependencies.
 
 ```bash
 npx skills add eSoul-cz/skills --skill esoul-uat --agent codex --global --yes
-node --test skills/esoul-uat/scripts/uat.test.mjs
+node --test skills/esoul-uat/scripts/uat.test.mjs skills/esoul-uat/scripts/gdoc.test.mjs
 ```
 
 Usage:

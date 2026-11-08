@@ -16,6 +16,9 @@ import { randomUUID } from 'node:crypto';
 import { basename, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+// Scenario ID prefix: 2–4 capital letters or digits (ZV, B2B); shared with gdoc.mjs.
+export const ID_PREFIX = '[A-Z0-9]{2,4}';
+
 const DEVICES = ['desktop', 'laptop', 'tablet', 'mobile', 'mobile-s'];
 const TYPES = ['happy', 'validace', 'opravneni', 'negativni', 'okrajovy', 'vykon', 'design', 'priprava'];
 const BASES = ['kod', 'zadani'];
@@ -92,6 +95,38 @@ function splitRow(line) {
     return cells;
 }
 
+/**
+ * Prose between the chapter header and the first scenario: paragraphs become `intro`,
+ * bullets under "**Předpoklady:**" become `preconditions` (used by the Google Doc bridge).
+ */
+function chapterPreamble(lines) {
+    const intro = [];
+    const preconditions = [];
+    let paragraph = [];
+    let inPreconditions = false;
+    const flush = () => {
+        if (paragraph.length) intro.push(paragraph.join(' '));
+        paragraph = [];
+    };
+    for (const line of lines) {
+        if (/^#\s/.test(line) || /^\s*-\s+\*\*(Kapitola|Část):\*\*/.test(line)) continue;
+        if (/^\*\*Předpoklady:\*\*\s*$/.test(line.trim())) {
+            flush();
+            inPreconditions = true;
+            continue;
+        }
+        if (!line.trim()) {
+            flush();
+            continue;
+        }
+        const bullet = line.match(/^\s*-\s+(.+)$/);
+        if (inPreconditions && bullet) preconditions.push(bullet[1].trim());
+        else if (!inPreconditions) paragraph.push(line.trim());
+    }
+    flush();
+    return { intro, preconditions };
+}
+
 export function parseChapter(text, file = 'chapter') {
     const lines = text.replace(/\r\n/g, '\n').split('\n');
     const chapter = { file, meta: {}, scenarios: [], errors: [] };
@@ -104,12 +139,13 @@ export function parseChapter(text, file = 'chapter') {
         const field = lines[i].match(/^\s*-\s+\*\*(Kapitola|Část):\*\*\s*(.*)$/);
         if (field) chapter.meta[field[1] === 'Kapitola' ? 'id' : 'part'] = field[2].trim().replace(/^`|`$/g, '');
     }
+    Object.assign(chapter, chapterPreamble(lines.slice(0, i)));
     if (!chapter.meta.id) chapter.errors.push(`${file}: chybí „- **Kapitola:** ID“ pod nadpisem`);
     let current = null;
     let headerSeen = false;
     for (; i < lines.length; i++) {
         const line = lines[i];
-        const heading = line.match(/^##\s+([A-Z]{2,4}-\d{2,3})\s+(.+?)\s*$/);
+        const heading = line.match(new RegExp(`^##\\s+(${ID_PREFIX}-\\d{2,3})\\s+(.+?)\\s*$`));
         if (!heading && /^##\s+[A-Za-z]{1,6}-?\d/.test(line)) {
             chapter.errors.push(`${file}:${i + 1}: nadpis „${line.trim()}“ vypadá jako scénář, ale neodpovídá tvaru „## ABC-01 Název“`);
             current = null;
@@ -157,6 +193,8 @@ function normalise(scenario) {
         priority: f[FIELD_KEYS.priority] ?? 'P2',
         data: f[FIELD_KEYS.data] ?? '',
         deviation: f[FIELD_KEYS.deviation] ?? '',
+        precondition: f[FIELD_KEYS.precondition] ?? '',
+        ui: f[FIELD_KEYS.ui] !== 'ne',
         cancelled: f[FIELD_KEYS.cancelled] ?? '',
         steps: scenario.steps,
         line: scenario.line,
@@ -180,7 +218,7 @@ export function validate(chapters, devices = DEVICES) {
     for (const chapter of chapters) {
         const { file, meta } = chapter;
         errors.push(...chapter.errors);
-        if (meta.id && !/^[A-Z]{2,4}$/.test(meta.id)) errors.push(`${file}: Kapitola musí být 2–4 velká písmena`);
+        if (meta.id && !new RegExp(`^${ID_PREFIX}$`).test(meta.id)) errors.push(`${file}: Kapitola musí být 2–4 velká písmena nebo číslice`);
         if (!meta.title) errors.push(`${file}: chybí nadpis kapitoly „# …“`);
         if (!['A', 'B'].includes(meta.part)) errors.push(`${file}: Část musí být A nebo B`);
         if (chapter.scenarios.length === 0) errors.push(`${file}: kapitola nemá žádný scénář`);
