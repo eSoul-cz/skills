@@ -144,9 +144,13 @@ declare(strict_types=1);
 namespace Tests\Feature\Architecture;
 
 use ArrayObject;
+use Closure;
+use Illuminate\Database\Connection;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schema;
+use LogicException;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -166,7 +170,7 @@ final class DatabaseIdentifierLengthTest extends TestCase
     {
         $names = $this->recordIdentifiers();
 
-        $this->artisan('migrate:fresh')->assertSuccessful();
+        self::assertSame(0, Artisan::call('migrate:fresh'));
 
         self::assertSame([], $this->tooLong($names), 'Identifiers longer than 64 characters.');
     }
@@ -200,8 +204,15 @@ final class DatabaseIdentifierLengthTest extends TestCase
         /** @var ArrayObject<int, array{string, string}> $names */
         $names = new ArrayObject();
 
-        $this->app->bind(Blueprint::class, static function ($app, array $parameters) use ($names): Blueprint {
-            $blueprint = new class($parameters['connection'], $parameters['table'], $parameters['callback'] ?? null) extends Blueprint
+        $this->app->bind(Blueprint::class, static function (mixed $app, array $parameters) use ($names): Blueprint {
+            $connection = $parameters['connection'] ?? null;
+            $table = $parameters['table'] ?? null;
+            $callback = $parameters['callback'] ?? null;
+            if ( ! $connection instanceof Connection || ! is_string($table) || ($callback !== null && ! $callback instanceof Closure)) {
+                throw new LogicException('Unexpected Blueprint constructor parameters.');
+            }
+
+            $blueprint = new class($connection, $table, $callback) extends Blueprint
             {
                 /** @var ArrayObject<int, array{string, string}>|null */
                 public ?ArrayObject $names = null;
@@ -210,23 +221,30 @@ final class DatabaseIdentifierLengthTest extends TestCase
                 {
                     $statements = $this->toSql();
                     $table = $this->getTable();
-                    $this->names?->append([$table, $table]);
+                    $this->record($table, $table);
                     foreach ($this->getAddedColumns() as $column) {
-                        $this->names?->append([$table, (string) $column->name]);
+                        $this->record($table, $column->get('name'));
                     }
                     foreach ($this->getCommands() as $command) {
+                        $name = $command->get('name');
                         // MariaDB and MySQL ignore the primary key name; it is always PRIMARY.
-                        if ($command->name === 'primary' || str_starts_with((string) $command->name, 'drop')) {
+                        if ( ! is_string($name) || $name === 'primary' || str_starts_with($name, 'drop')) {
                             continue;
                         }
-                        foreach (['index', 'to'] as $key) {
-                            if (is_string($command->{$key} ?? null)) {
-                                $this->names?->append([$table, $command->{$key}]);
-                            }
-                        }
+                        $this->record($table, $command->get('index'));
+                        $this->record($table, $command->get('to'));
                     }
                     foreach ($statements as $statement) {
-                        $this->connection->statement($statement);
+                        if (is_string($statement)) {
+                            $this->connection->statement($statement);
+                        }
+                    }
+                }
+
+                private function record(string $table, mixed $identifier): void
+                {
+                    if (is_string($identifier)) {
+                        $this->names?->append([$table, $identifier]);
                     }
                 }
             };
