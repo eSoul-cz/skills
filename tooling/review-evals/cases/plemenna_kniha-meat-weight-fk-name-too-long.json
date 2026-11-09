@@ -1,0 +1,18 @@
+{
+  "id": "plemenna_kniha-meat-weight-fk-name-too-long",
+  "kind": "bug",
+  "repository": "eSoul-cz/plemenna_kniha",
+  "base": "b4047872287301a758d062234f027196f7299948",
+  "head": "c4ed3dd113c7a4aebc1d11e57ef78a642296b8f9",
+  "intent": "Add backend recalculation of locked normalized meat weights with an append-only audit table of confirmed changes.",
+  "expected": [
+    {
+      "path": "database/migrations/2026_10_11_090000_create_meat_weight_snapshot_changes_table.php",
+      "line": 25,
+      "defect": "The auto-generated foreign key name for source_meat_utility_version_id is 67 characters, over the 64-character MariaDB limit, so the migration fails.",
+      "blocking": true
+    }
+  ],
+  "fix": "eSoul-cz/plemenna_kniha#802",
+  "confirmedBy": "Tomáš Drvota"
+}

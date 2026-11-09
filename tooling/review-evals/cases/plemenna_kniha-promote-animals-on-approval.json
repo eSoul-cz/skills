@@ -1,0 +1,11 @@
+{
+  "id": "plemenna_kniha-promote-animals-on-approval",
+  "kind": "clean",
+  "repository": "eSoul-cz/plemenna_kniha",
+  "base": "676e92f91a30709ff962ce1216a89a701aec9495",
+  "head": "64d3ef74ab8caadac627bc4197b2c2f3c49c9a17",
+  "intent": "Promote evaluated animals to adult when results are approved.",
+  "expected": [],
+  "fix": null,
+  "confirmedBy": "Tomáš Drvota"
+}

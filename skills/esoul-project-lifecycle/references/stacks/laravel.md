@@ -109,6 +109,9 @@ Gate B4 is green only when all of these hold on `main`:
       (`tests/Unit/Architecture/LayerDependencyTest.php`), plus a detection test proving each
       rule fires. Both are listed under *Named exceptions* in `testing.md`, decided by this stack
       profile, so the general exclusion of architecture tests does not apply to them.
+- [ ] Schema identifier test (`tests/Feature/Architecture/DatabaseIdentifierLengthTest.php`,
+      see [Schema identifier test](#schema-identifier-test)) with its detection test, listed
+      under *Named exceptions* in `testing.md` like the layer test.
 - [ ] Frontend structure checks (`frontend:structure`, `frontend:inertia-page-paths`) with tests.
 - [ ] One reference module implemented end to end (command, query, handler, request, page, tests)
       that agents copy — Indcom used `Numbering`.
@@ -117,6 +120,145 @@ Gate B4 is green only when all of these hold on `main`:
       implementing agent fills them in (VONO `*ParityTest.php` + `AssertsWorkbookParity`).
 - [ ] Anonymized database dump or seeders available; agents never get a real dump.
 - [ ] `docs/project_guidelines/` filled, Boost block regenerated, `skills-lock.json` current.
+
+## Schema identifier test
+
+MariaDB and MySQL reject identifiers longer than 64 characters. Laravel builds index and foreign
+key names from the table and column names (`<table>_<columns>_foreign`), and SQLite accepts any
+length, so the migration passes the suite and fails on production, often half-applied. Three
+eSoul projects shipped this bug in autumn 2026 (plemenna_kniha, indcom_eshop,
+forecom-tw-to-abra). Add the test to new Laravel projects and to existing ones during a retrofit
+or audit.
+
+The test swaps in a blueprint that records every table, column, index and key name while
+`migrate:fresh` runs, so it sees the names the migrations really use, explicit or generated, on
+whichever engine the suite uses. Reading the finished schema does not work: SQLite keeps no
+foreign key names, and rebuilding them from the columns flags keys that have an explicit short
+name.
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Feature\Architecture;
+
+use ArrayObject;
+use Illuminate\Database\QueryException;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
+
+/**
+ * MariaDB and MySQL reject identifiers longer than 64 characters; SQLite accepts them. Laravel
+ * generates index and foreign key names from the table and column names, so a migration can
+ * pass the suite and fail on production. The test records every name the migrations really
+ * use (explicit or generated) while they run, on whichever engine the suite uses. Fix a hit by
+ * passing a short name to index(), unique(), foreign() or constrained(indexName: ...).
+ */
+final class DatabaseIdentifierLengthTest extends TestCase
+{
+    private const int MAX_LENGTH = 64;
+
+    #[Test]
+    public function every_identifier_the_migrations_create_fits_mariadb(): void
+    {
+        $names = $this->recordIdentifiers();
+
+        $this->artisan('migrate:fresh')->assertSuccessful();
+
+        self::assertSame([], $this->tooLong($names), 'Identifiers longer than 64 characters.');
+    }
+
+    #[Test]
+    public function the_check_detects_a_generated_name_that_is_too_long(): void
+    {
+        $names = $this->recordIdentifiers();
+        $table = 'identifier_length_probe_with_a_long_table_name';
+
+        try {
+            Schema::create($table, static function (Blueprint $blueprint): void {
+                $blueprint->string('a_rather_long_column_name_for_the_probe')->index();
+            });
+        } catch (QueryException) {
+            // MariaDB and MySQL reject the index themselves; the name was recorded before.
+        } finally {
+            Schema::dropIfExists($table);
+        }
+
+        self::assertNotSame([], $this->tooLong($names));
+    }
+
+    /**
+     * Swaps in a blueprint that records the table, column, index and key names it creates.
+     *
+     * @return ArrayObject<int, array{string, string}>
+     */
+    private function recordIdentifiers(): ArrayObject
+    {
+        /** @var ArrayObject<int, array{string, string}> $names */
+        $names = new ArrayObject();
+
+        $this->app->bind(Blueprint::class, static function ($app, array $parameters) use ($names): Blueprint {
+            $blueprint = new class($parameters['connection'], $parameters['table'], $parameters['callback'] ?? null) extends Blueprint
+            {
+                /** @var ArrayObject<int, array{string, string}>|null */
+                public ?ArrayObject $names = null;
+
+                public function build(): void
+                {
+                    $statements = $this->toSql();
+                    $table = $this->getTable();
+                    $this->names?->append([$table, $table]);
+                    foreach ($this->getAddedColumns() as $column) {
+                        $this->names?->append([$table, (string) $column->name]);
+                    }
+                    foreach ($this->getCommands() as $command) {
+                        if (str_starts_with((string) $command->name, 'drop')) {
+                            continue;
+                        }
+                        foreach (['index', 'to'] as $key) {
+                            if (is_string($command->{$key} ?? null)) {
+                                $this->names?->append([$table, $command->{$key}]);
+                            }
+                        }
+                    }
+                    foreach ($statements as $statement) {
+                        $this->connection->statement($statement);
+                    }
+                }
+            };
+            $blueprint->names = $names;
+
+            return $blueprint;
+        });
+
+        return $names;
+    }
+
+    /**
+     * @param  ArrayObject<int, array{string, string}>  $names
+     * @return list<string>
+     */
+    private function tooLong(ArrayObject $names): array
+    {
+        $tooLong = [];
+        foreach ($names as [$table, $identifier]) {
+            if (mb_strlen($identifier) > self::MAX_LENGTH) {
+                $tooLong[] = sprintf('%s: %s (%d)', $table, $identifier, mb_strlen($identifier));
+            }
+        }
+
+        return array_values(array_unique($tooLong));
+    }
+}
+```
+
+The blueprint constructor matches Laravel 12 and newer, which resolve `Blueprint` from the
+container with the connection, table and callback. A project that loads a schema dump
+(`database/schema/*.sql`) before migrating records only the migrations after the dump; check the
+dump's names once by hand.
 
 ## Typical ADR topics
 
@@ -138,6 +280,10 @@ Gate B4 is green only when all of these hold on `main`:
 
 - Tests on SQLite while production is MariaDB/MySQL silently test different decimal and collation
   behaviour (VONO ADR-0012 moved CI to MySQL). Decide early; switching later is costly.
+- Migrations that pass on SQLite and fail on MariaDB/MySQL: generated index or foreign key names
+  over 64 characters (guarded by the [schema identifier test](#schema-identifier-test)), a
+  `timestamp()` column without `nullable()` or a default under strict mode (error 1067), and
+  `ONLY_FULL_GROUP_BY` rejecting a SELECT expression that differs from the GROUP BY one.
 - PHPStan fails with "no files to analyse" on an empty `app/` — guard it instead of disabling it.
 - Editing the generated Boost block in `AGENTS.md` by hand; it is overwritten by `boost:update`.
 - Wayfinder routes not generated before the frontend build or typecheck in CI

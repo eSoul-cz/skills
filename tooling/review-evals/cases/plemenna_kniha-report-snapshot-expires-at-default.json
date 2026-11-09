@@ -1,0 +1,18 @@
+{
+  "id": "plemenna_kniha-report-snapshot-expires-at-default",
+  "kind": "bug",
+  "repository": "eSoul-cz/plemenna_kniha",
+  "base": "8e8544ef514a80908d713bed51d4a4f7900f4c21",
+  "head": "0e9907bcc01c128f914721c9c7e0aab341e06451",
+  "intent": "Add the report engine with a paginated preview backed by stored report run snapshots.",
+  "expected": [
+    {
+      "path": "database/migrations/2026_10_30_100000_create_report_run_snapshots_tables.php",
+      "line": 21,
+      "defect": "The non-nullable timestamp('expires_at') column gets an implicit zero default that MySQL strict mode rejects (error 1067), so the migration fails.",
+      "blocking": true
+    }
+  ],
+  "fix": "eSoul-cz/plemenna_kniha#1116",
+  "confirmedBy": "Tomáš Drvota"
+}

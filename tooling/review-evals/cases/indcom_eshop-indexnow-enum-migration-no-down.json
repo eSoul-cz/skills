@@ -1,0 +1,18 @@
+{
+  "id": "indcom_eshop-indexnow-enum-migration-no-down",
+  "kind": "bug",
+  "repository": "eSoul-cz/indcom_eshop",
+  "base": "e36ce0630a31315fcbac8f1a6afefcaa36186c16",
+  "head": "a93a0016e426f6226cfa19865e771c36b018f5b2",
+  "intent": "Generate sitemaps per channel and language and notify search engines through IndexNow.",
+  "expected": [
+    {
+      "path": "database/migrations/2026_11_06_200001_add_indexnow_to_integration_enums.php",
+      "line": 14,
+      "defect": "The migration has no down() method (line is the up() declaration), so a rollback does not shrink the widened outbox target and integration system enums.",
+      "blocking": true
+    }
+  ],
+  "fix": "eSoul-cz/indcom_eshop#628",
+  "confirmedBy": "Tomáš Drvota"
+}

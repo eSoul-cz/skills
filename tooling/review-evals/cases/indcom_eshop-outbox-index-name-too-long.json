@@ -1,0 +1,18 @@
+{
+  "id": "indcom_eshop-outbox-index-name-too-long",
+  "kind": "bug",
+  "repository": "eSoul-cz/indcom_eshop",
+  "base": "05aa34bd82494f971deee4efa058696f1da0ec1e",
+  "head": "bd27bd873d66545120cc5589c4969356a7852eb9",
+  "intent": "Introduce a generic transactional outbox with per-aggregate and per-target ordering.",
+  "expected": [
+    {
+      "path": "database/migrations/2026_10_13_100000_create_outbox_messages_table.php",
+      "line": 53,
+      "defect": "The auto-generated name of this composite index is 68 characters, over the 64-character MariaDB limit, so the migration fails.",
+      "blocking": true
+    }
+  ],
+  "fix": "eSoul-cz/indcom_eshop#400",
+  "confirmedBy": "Tomáš Drvota"
+}

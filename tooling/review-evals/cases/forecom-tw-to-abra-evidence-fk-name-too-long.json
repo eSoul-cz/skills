@@ -1,0 +1,18 @@
+{
+  "id": "forecom-tw-to-abra-evidence-fk-name-too-long",
+  "kind": "bug",
+  "repository": "eSoul-cz/forecom-tw-to-abra",
+  "base": "5f63f1d9084fe5216c7add9164101593a83017ae",
+  "head": "aa64ffde5f0c2758983005afb2821d618095ce19",
+  "intent": "Accept ABRA change batches via webhooks and store them with payment refresh backlog evidence.",
+  "expected": [
+    {
+      "path": "database/migrations/2026_08_03_193702_create_payment_refresh_backlog_evidence_table.php",
+      "line": 15,
+      "defect": "The auto-generated foreign key name for payment_refresh_backlog_item_id is 72 characters, over the 64-character MariaDB limit, so the migration fails.",
+      "blocking": true
+    }
+  ],
+  "fix": "eSoul-cz/forecom-tw-to-abra#57",
+  "confirmedBy": "Tomáš Drvota"
+}

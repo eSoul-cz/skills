@@ -1,0 +1,18 @@
+{
+  "id": "eywo-payload-390-object-key-column",
+  "kind": "bug",
+  "repository": "eSoul-cz/eywo",
+  "base": "fb50f185d6699756258f050e282cfb8011057205",
+  "head": "8fcec5c736d88428b9e43572ae09c6236cffeb7c",
+  "intent": "Upgrade dependencies to clear all audit advisories, including two critical Next.js RCEs.",
+  "expected": [
+    {
+      "path": "package.json",
+      "line": 36,
+      "defect": "The Payload 3.90 upgrade makes the S3 storage plugin add a hidden _objectKey column to media, but no migration is included, so production pages return 500.",
+      "blocking": true
+    }
+  ],
+  "fix": "eSoul-cz/eywo#108",
+  "confirmedBy": "Tomáš Drvota"
+}

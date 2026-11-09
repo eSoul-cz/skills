@@ -1,0 +1,11 @@
+{
+  "id": "plemenna_kniha-veterinary-records-animal-filter",
+  "kind": "clean",
+  "repository": "eSoul-cz/plemenna_kniha",
+  "base": "3b216fe28ac31aab3b128b166a8185e1c8645ca9",
+  "head": "2f0f08e2342fc8036d157964943d93510e5e183c",
+  "intent": "Add an animal filter to the veterinary records list.",
+  "expected": [],
+  "fix": null,
+  "confirmedBy": "Tomáš Drvota"
+}

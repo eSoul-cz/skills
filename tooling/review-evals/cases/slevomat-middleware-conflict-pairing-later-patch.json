@@ -1,0 +1,18 @@
+{
+  "id": "slevomat-middleware-conflict-pairing-later-patch",
+  "kind": "bug",
+  "repository": "eSoul-cz/slevomat-middleware",
+  "base": "d2d5b169dcb7ee5d391ae2a06bd0d0c911c88ff9",
+  "head": "61f388c39a682efeb3fcbfe3d846187061feb956",
+  "intent": "Resolve a 409 on HubSpot company creation by pairing with the existing Admin Partner, and gate creation on the duplicate check.",
+  "expected": [
+    {
+      "path": "app/Services/Integration/Handlers/HubSpotToAdmin/SyncHubSpotCompanyToAdminHandler.php",
+      "line": 180,
+      "defect": "After a 409 legacy pairing, later jobs of the same webhook burst still PATCH the Partner to Admin, overwriting the salesman with the HubSpot creator.",
+      "blocking": true
+    }
+  ],
+  "fix": "eSoul-cz/slevomat-middleware#116",
+  "confirmedBy": "Tomáš Drvota"
+}

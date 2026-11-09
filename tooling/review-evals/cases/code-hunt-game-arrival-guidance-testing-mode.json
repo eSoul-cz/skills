@@ -1,0 +1,11 @@
+{
+  "id": "code-hunt-game-arrival-guidance-testing-mode",
+  "kind": "clean",
+  "repository": "eSoul-cz/code-hunt-game",
+  "base": "6b98150b4feb514030de173e83e932b57ade6d69",
+  "head": "5f48be4b782a39c6f1ca27e6788dce3072b464a4",
+  "intent": "Apply arrival guidance in round testing mode.",
+  "expected": [],
+  "fix": null,
+  "confirmedBy": "Tomáš Drvota"
+}

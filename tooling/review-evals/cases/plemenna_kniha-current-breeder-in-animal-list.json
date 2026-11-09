@@ -1,0 +1,11 @@
+{
+  "id": "plemenna_kniha-current-breeder-in-animal-list",
+  "kind": "clean",
+  "repository": "eSoul-cz/plemenna_kniha",
+  "base": "80cd8e23d2d905189cc903add99e15e5cf8b52f1",
+  "head": "b59fd4dffc94b3b442c602b0142004d9c3e3bc4d",
+  "intent": "Show the current breeder in the animal list.",
+  "expected": [],
+  "fix": null,
+  "confirmedBy": "Tomáš Drvota"
+}
