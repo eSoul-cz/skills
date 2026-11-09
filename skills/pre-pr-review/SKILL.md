@@ -40,7 +40,7 @@ Do what `coderabbit review` does before a push, with the agent's own model: no c
 Only what is not in context yet:
 
 - **Intent.** The linked issue (from branch name, PR body, or commits) with its acceptance criteria and `## UAT` section. Without an issue, PR, or commits, ask the user for the intent in one sentence; if there is none, review the change on its own and say the contract was missing.
-- **Rules.** `AGENTS.md`; `docs/project_guidelines/common/code-review.md` for severity and default Blockers when present; `accepted` ADRs for the touched areas; glossary terms used in new names.
+- **Rules.** `AGENTS.md`; `docs/project_guidelines/common/code-review.md` for severity, default Blockers, what failure looks like in this project, and paths the review skips, when present; `accepted` ADRs for the touched areas; glossary terms used in new names.
 - **CodeRabbit configuration** (already parsed in `config`): `profile: assertive` includes nitpicks; `chill` or unset omits them. `inheritance: true` means organization settings also apply that this review cannot see; say so.
 - **Blast radius.** Callers of changed signatures and contracts, through `codegraph_explore` when available, otherwise search.
 
@@ -59,17 +59,27 @@ Four lenses, with checklists and stack notes in [references/review-passes.md](re
 3. **Tests and contract:** acceptance criteria and scope, tests for new behavior, a failing-first regression test for a bug fix, ADR and guideline compliance, stale documentation.
 4. **Maintainability:** duplication of existing helpers, dead code, naming, overengineering, performance traps such as N+1 queries, consistency with surrounding code, path instructions.
 
-Risk triggers: authorization, money, migrations or destructive data scripts, personal data, concurrency. If the diff hits one, the correctness and security lenses always go to `esoul-skills:critical-reviewer`, regardless of size.
+**Depth follows the risk of the change, not its author or size.** Pick it before the passes and state it in the report:
 
-Size decides how the passes run:
+| Depth | When | Passes |
+| --- | --- | --- |
+| Quick | Only documentation, copy, translations, tests, or an additive change behind a feature flag, with no risk trigger | Correctness and tests-and-contract only, in one `esoul-skills:reviewer` brief. |
+| Standard | Everything else without a risk trigger | All four lenses. |
+| Deep | Risk triggers: authorization, money, migrations or destructive data scripts, personal data, concurrency; or the user asks for it | All four lenses; correctness and security always go to `esoul-skills:critical-reviewer`; blocking candidates get independent verification (step 5). |
+
+A change that touches CI workflows, deployment, or dependency manifests is at least Standard. When in doubt, go one level deeper.
+
+Size then decides how the passes run:
 
 | Reviewed scope | How |
 | --- | --- |
-| Default (up to 15 files and 400 changed lines) | One `esoul-skills:reviewer` subagent with one self-contained brief covering all four lenses. |
+| Default (up to 15 files and 400 changed lines) | One `esoul-skills:reviewer` subagent with one self-contained brief covering the depth's lenses; under Deep, correctness and security go to a separate `critical-reviewer`. |
 | Larger | One fresh subagent per lens, in parallel, each with the self-contained brief and the agent or model the reference names (`reviewer` or `critical-reviewer`, never inherited). Never fork the conversation: a fork copies the whole context. |
 | Script warns `Large change` (over 30 files or 1500 lines) | As above, per file group (module or layer), and suggest splitting the PR. |
 
 Review inline in this session only for size S changes or when subagents are unavailable.
+
+**Re-reviews** (fix loop, new head, `final-pr-review` round) cover only the delta since the last reviewed revision and what it touches, never the whole change again. Their brief lists every finding already decided on this change (fixed, rejected with reason, accepted), so the reviewer does not raise them again.
 
 Without subagents, or when they are not allowed, run the lenses one after another and note it under **Passes** in the report. Every pass reads each hunk with enough surrounding code to understand it. Reviewing diff hunks in isolation is what produces false positives.
 
@@ -77,21 +87,29 @@ Without subagents, or when they are not allowed, run the lenses one after anothe
 
 Noise is CodeRabbit's biggest cost; do not reproduce it.
 
-- Confirm every candidate in the current worktree: the problem exists, it is reachable, and this diff introduced or touched it. Drop it when the code handles the case elsewhere (check there), when it is speculative, or when it contradicts a repository rule. Report pre-existing problems outside the diff only at the two highest severities, under "Outside the diff".
-- Merge candidates with one root cause or one remediation into one finding.
+With an agent as the author, noise costs more than with a person: a person waves off a nit in seconds, an agent fixes it, which means another commit and another review round.
+
+- Confirm every candidate in the current worktree: the problem exists, it is reachable, and this diff introduced or touched it. Drop it when the code handles the case elsewhere (check there), when it is speculative, or when it contradicts a repository rule. Report pre-existing problems outside the diff only at the two highest severities, under "Outside the diff", tagged **Pre-existing** so they do not read as the author's fault.
+- **Independent verification under Deep.** For every blocking candidate, start one fresh verifier subagent (`esoul-skills:critical-reviewer`, or `reviewer` when the candidate is not in a risk area) with the brief "Verify a claimed defect" in [references/review-passes.md](references/review-passes.md#verifier-brief): the code location and the claim, never this session's opinion of it. Keep the candidate as blocking only when the verifier confirms it; when it refutes it, check its evidence yourself, then drop the candidate or lower it to a question. Run the verifiers in parallel.
+- Merge candidates with one root cause or one remediation into one finding. When the root cause is a pattern, report it as **one finding for the class of bug** and list every instance (or the search that finds them), so one fix covers all of them instead of one per round.
+- Drop findings that are only style, only diagnostics (logging, comments), or cleanup the repository rules do not ask for. Report at most three nitpick-level findings (Low or Nitpick) per review, the most useful ones; mention how many more were left out. They never block.
+- Never repeat a finding already decided on this change (fixed, rejected with a reason, or accepted). Raise it again only with new evidence that the decision was wrong, and say so.
 - Use the project's severity scale when its code-review guideline defines one (eSoul: Blocker, High, Medium, Low, including its default Blockers; Blocker and High block the merge). Otherwise use Critical, Major, Minor, Nitpick, where Critical and Major are blocking.
 - Something that needs a product decision is a question, not a finding.
 
 ## 6. Report
 
-Use the template in the reference: scope header (base ref and SHA, head SHA, scope type, reviewed and excluded files, checks run with results, how the passes ran), a short walkthrough with a changes table that can serve as the PR description draft, findings ordered by severity (location, evidence, expected behavior with its source, proposed fix as a minimal diff, verification), questions, and a verdict. Keep the template's headings and severity labels in English; write the prose in the conversation's language and quote code verbatim.
+Use the template in the reference. It opens with the result as a count ("2 findings, 1 blocking", or plainly "Nothing to fix" when there is none), then the scope header (base ref and SHA, head SHA, scope type, depth, reviewed and excluded files, checks run with results, how the passes ran), a short walkthrough with a changes table that can serve as the PR description draft, findings ordered by severity (location, evidence, expected behavior with its source, proposed fix as a minimal diff, verification), questions, prevention, and a verdict. Keep the template's headings and severity labels in English; write the prose in the conversation's language and quote code verbatim.
+
+**Prevention: fix recurring findings at the source.** When a finding is the kind a tool or a written rule would catch every time (it recurred in this review loop, matches an earlier rejected or fixed finding of the same class in this session, or a linter, static analysis rule, or architecture test could detect it), add a "Prevention" line proposing that rule: a lint or PHPStan rule, an architecture test, a line in `AGENTS.md`, or an item in `docs/project_guidelines/common/code-review.md`. Propose; change the rule only when the user or the calling workflow authorizes it, in its own commit.
 
 ## 7. Fix loop (only when fixing is authorized)
 
 1. Before fixing, record a snapshot: `git stash create` (prints a commit for a dirty worktree, nothing when clean; then use `HEAD`).
-2. Fix valid findings in severity order with the smallest correct change. Add a regression test for a bug where a seam exists. No style churn for findings the user did not want.
-3. Re-run the affected checks and the scope script (for credentials), then review `git diff <snapshot>` plus untracked files created since, and whatever those changes touch, like CodeRabbit's incremental review.
-4. Repeat until no valid actionable finding remains. If one finding survives two fix attempts, or a fix needs a decision, stop and ask.
+2. Fix valid findings in severity order with the smallest correct change. For a class-of-bug finding, fix every instance in one go. Add a regression test for a bug where a seam exists. No style churn for findings the user did not want.
+3. Re-run the affected checks and the scope script (for credentials), then review `git diff <snapshot>` plus untracked files created since, and whatever those changes touch, like CodeRabbit's incremental review. Pass the decided findings to the re-review brief (step 4, Re-reviews).
+4. Repeat until no blocking finding remains. A round that finds only non-blocking findings is the last one: fix them in that batch without another review, or record why not. If one finding survives two fix attempts, or a fix needs a decision, stop and ask.
+5. After three rounds on one change, stop fixing line by line. Step back and say whether the approach itself is wrong (wrong layer, missing abstraction, a design that keeps producing the same class of bug), propose the alternative, and ask before a fourth round.
 
 ## 8. Post to the PR when CodeRabbit is limited
 
@@ -105,6 +123,10 @@ When an open PR's CodeRabbit review is blocked by its rate limit or exhausted cr
 6. **Approve.** Once every fallback thread is resolved, review the current head again (one review per revision, see `esoul-workflow`; when the fixes since the last reviewed head are small, review only `git diff <last reviewed head>..HEAD`), leave findings already answered with evidence out of the file, record body-only findings from earlier fallback reviews under `resolved` with their evidence, and post. With no finding and no open fallback thread, the review carries the approval: "✅ Approved by `pre-pr-review` (CodeRabbit substitute)". Until then it says how many findings are still open.
 
 The approval is posted as a `COMMENT` review, never as a GitHub approval: an author cannot approve their own PR, and an approval would count toward the required human review. It approves in CodeRabbit's place, never as CodeRabbit.
+
+## Measuring the reviewer
+
+A change to this skill's lenses, briefs, filters, or reviewer agents (models included) is scored against the regression eval set before it ships: past changes that caused a revert, hotfix, or incident must still be caught, and known-clean changes must not get blocking findings. Procedure and case format: [references/evals.md](references/evals.md).
 
 ## Use from final-pr-review
 

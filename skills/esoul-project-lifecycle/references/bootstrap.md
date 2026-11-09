@@ -92,6 +92,8 @@ Templates use `{{UPPER_SNAKE_CASE}}`. Common ones:
 | `{{STACK_AGENT_RULES}}`, `{{STACK_GENERATED_BLOCK}}` | Stack bullets for `AGENTS.md`; generated block (e.g. Laravel Boost) or empty |
 | `{{DOD_STACK_ITEMS}}` | Extra Definition of Done lines from the stack profile, or delete the line |
 | `{{DESIGN_PEN_PATH}}` | Path to the `.pen` file |
+| `{{FAILURE_MODES}}` | `code-review.md › What failure looks like here`: the project's worst failures as bullets, from podklady and the domain (wrong price, duplicate ERP write, dropped import rows); `TBD` plus a question when unknown |
+| `{{SKIPPED_PATHS}}` | `code-review.md › Not reviewed`: generated or vendored paths, as bullets; `none` when there are none |
 | `{{LEAD_OWNERS}}` | GitHub handles for contract files |
 | `{{DEPENDABOT_ECOSYSTEM}}`, `{{FRAMEWORK_PACKAGE}}` | Dependabot ecosystem (repeat per ecosystem); framework whose majors are ignored |
 | `{{DATE}}` | ISO date of the change |

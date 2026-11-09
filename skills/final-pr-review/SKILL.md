@@ -53,13 +53,13 @@ Reuse what already ran: a check with a receipt for the current worktree tree (co
 Local review is a pre-push pass, never a substitute for remote review. It follows the one-local-review-per-revision rule in `esoul-workflow` (Review step): do not also run `code-review`, and review only the delta after later fixes.
 
 1. Honor explicit local-review/skip instructions and repository policy. Otherwise run local review when CodeRabbit is installed and authenticated ([CodeRabbit CLI](references/coderabbit-cli.md)). When it is missing, unauthenticated, limited, or the user wants to save CodeRabbit quota, run `pre-pr-review` instead and record the mode. If neither can run, disclose that the optional pass was skipped; an explicitly requested or repository-required pass is then a blocker (`pre-pr-review` satisfies it unless the repository names CodeRabbit).
-2. Triage local findings as in step 5, fix valid ones, and re-review the delta until no valid finding remains. Keep reasons for rejected findings in the ledger; never post local-only findings as fake remote threads. Stop after three local rounds on one revision, or when a finding survives two fix attempts: record the open findings, report the pass as blocked, and ask for a decision.
+2. Triage local findings as in step 5, fix valid ones, and re-review only the delta, passing the ledger's decided findings so they are not raised again, until no blocking finding remains. Keep reasons for rejected findings in the ledger; never post local-only findings as fake remote threads. Stop after three local rounds on one revision, or when a finding survives two fix attempts: record the open findings, say whether the approach itself should change (`pre-pr-review` step 7), report the pass as blocked, and ask for a decision.
 
 A CLI failure, limit or incomplete output is not a clean review; fall back to `pre-pr-review`. If neither can complete an optional local review, report the gap; never silently skip a required pass.
 
 ## 3. Publish the intended revision
 
-Create focused commits following the effective convention. Push only authorized branches. Reuse an existing PR; otherwise create one with explicit repository, head, and base, a meaningful title, a concise summary, actual verification results, and stack dependencies. Honor PR templates and keep human-written body content. Normally the PR is ready for review; respect an explicit draft requirement. For native stacks, publish as [stacks](references/stacks.md) describes.
+Create focused commits following the effective convention. Push only authorized branches. Reuse an existing PR; otherwise create one with explicit repository, head, and base, a meaningful title, a concise summary, actual verification results, the risk (low, ordinary, or high with the risk trigger it hits), how to revert the change (a plain revert, a flag, a down migration, a data fix; or that it cannot be undone), and stack dependencies. Honor PR templates and keep human-written body content. Normally the PR is ready for review; respect an explicit draft requirement. For native stacks, publish as [stacks](references/stacks.md) describes.
 
 When the PR is first opened, move its Freelo task to `Code review` per the task lifecycle in `esoul-workflow`; after merge the same lifecycle moves it on.
 
@@ -84,13 +84,13 @@ Read "CI track" and "Review track" in loop.md before acting on either.
 
 A push, rebase, retarget, lower-layer update, or externally changed head/base invalidates the affected ledger's green CI and review-completion evidence: refresh it and return to both tracks.
 
-**Remote round cap.** Count each push, wait, fix round. After 4 rounds without approval, stop and report blocked with the open findings ledger. Do not start a fifth round without a user decision.
+**Remote round cap.** Count each push, wait, fix round. Only blocking findings justify a new round; non-blocking ones ride along with it (loop.md, "Triage, fix, and reply"). After 4 rounds without approval, stop and report blocked with the open findings ledger and an assessment of whether the approach itself keeps producing findings, with the alternative. Do not start a fifth round without a user decision.
 
 ## 5. Triage, fix, and reply
 
 Create a task for every finding needing work, grouped as Critical, Warning, or Info. Severity controls order, not whether a valid finding is addressed. Consolidate duplicate root causes. Each finding gets one disposition: valid (fix, verify, reply with the commit), invalid (reply with evidence), duplicate or fixed (link the fix), or uncertain (investigate, then ask a focused question and mark it blocked; never relabel it invalid to finish). The table, reply rules and approval request are in "Triage, fix, and reply" in loop.md.
 
-- A fix with a clear cause goes to `implementer`.
+- A fix with a clear cause goes to `implementer`. For a finding that is a pattern, the brief asks to fix every instance (search for them), not only the flagged line.
 - Reply to inline findings in their original thread, with bodies from files or stdin, never interpolating reviewer text into shell code.
 - Never use blanket `@coderabbitai resolve`, equate `isOutdated` with resolved, or dismiss a changes-requested review yourself.
 - Batch coherent fixes before pushing. Return to step 2 after any fix and re-read remote discussions for new findings.
@@ -106,10 +106,10 @@ Immediately before completion, re-fetch each in-scope PR (through `ops`, as a co
 1. Intended commits are published, with the intended base and stack order.
 2. Required and expected CI succeeded for this revision (N/A only with evidence).
 3. CodeRabbit's current-head check completed and its latest non-dismissed decision is `APPROVED` with nothing superseding it; or, under substitution, `pre-pr-review` approves the current head.
-4. Every valid finding is fixed and verified, every other one has an evidence-backed reply, none is untriaged.
+4. Every valid finding is fixed and verified (or, when non-blocking after the final batch, accepted with a reason), every other one has an evidence-backed reply, none is untriaged.
 5. Repository-required approvals (human, CODEOWNER) are satisfied; a CodeRabbit approval does not bypass them.
 6. No protection or mergeability issue remains except a documented stack dependency. Do not merge to clear it.
 
-A stable all-green snapshot is the exit gate. Report PR/stack URLs, verified head/base SHAs, local checks and local-review mode, remote CI and approval links (under substitution, the limit notice and fallback review links, stated as a substitution), fixes, rejected findings, and remaining dependencies. Say explicitly that nothing was merged.
+A stable all-green snapshot is the exit gate. Report PR/stack URLs, verified head/base SHAs, local checks and local-review mode, remote CI and approval links (under substitution, the limit notice and fallback review links, stated as a substitution), fixes, rejected findings, the disposition tally per reviewer ([pre-pr-review evals](../pre-pr-review/references/evals.md#disposition-tally)), any proposed prevention rule, and remaining dependencies. Say explicitly that nothing was merged.
 
 If genuinely blocked, complete all independent actionable work first, use a bounded wait window (default 30 minutes without progress), and report the blocker, last observed state, what was attempted, and the action needed to resume. A wait expiry is **blocked**, never success. Text for the blocked state is under "Blocked state" in loop.md.

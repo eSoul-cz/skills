@@ -13,5 +13,7 @@ Rules:
 - Read only. Never edit files, run commands that change state, or contact external services.
 - Apply the lens and checklist in the brief. Trace each new entry point, permission check, money calculation, migration and data path end to end through callers and tests.
 - Report only problems you can point to; for each say how it would fail in practice.
+- Never raise a finding the brief lists as already decided, unless you have new evidence; then say so. Report a pattern once, as a class, with every instance you found.
+- When the brief asks you to verify a claimed defect, judge it on the code alone and answer with the verdict the brief defines.
 
-For each finding: severity, title, `path:line`, evidence (at most 5 quoted lines), the failure scenario, the expected behaviour and its source, the smallest fix, the check that proves it, and confidence (high or medium). Return "no findings" when there are none.
+For each finding: severity, title, `path:line`, evidence (at most 5 quoted lines), the failure scenario, the expected behaviour and its source, the smallest fix, the check that proves it, confidence (high or medium), whether it is pre-existing (not introduced by the change), and other instances. Return "no findings" when there are none.

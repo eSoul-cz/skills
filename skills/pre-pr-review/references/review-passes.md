@@ -1,6 +1,6 @@
 # Review passes, briefs, and report
 
-Detail for steps 1, 4, and 6 of `pre-pr-review`. Read the section you need, not the whole file.
+Detail for steps 1, 4, 5, and 6 of `pre-pr-review`. Read the section you need, not the whole file.
 
 ## Lens checklists
 
@@ -80,6 +80,10 @@ Change intent: <issue title, acceptance criteria, and UAT, or "no issue; commit 
 Files to review (and only these): <path list, with status>
 Path instructions: <path glob → instructions, for the files above>
 Repository rules that apply: <AGENTS.md rules, ADRs, guideline excerpts, verbatim and short>
+What failure looks like here: <from code-review.md, or "not defined">
+Depth: <Quick | Standard | Deep>
+Already decided on this change (do not raise again without new evidence):
+<id or title, path:line, decision (fixed in <sha> | rejected: <reason> | accepted: <reason>); or "none">
 
 Your lens: <lens name>. Checklist:
 <the lens checklist and relevant stack notes, copied verbatim>
@@ -93,17 +97,45 @@ Report only problems you can point to in the code. For each candidate return:
 - proposed fix: the smallest coherent change, as a unified diff when short
 - verification: the test or check that would prove the fix
 - confidence: high | medium (omit low-confidence candidates)
-Return "no findings" when there are none. Do not pad the list with style preferences.
+- pre-existing: yes when the diff did not introduce the problem
+- instances: when the problem is a pattern, every other path:line with the same bug, or the
+  search that finds them; report the class once, not one candidate per instance
+Return "no findings" when there are none. No style-only, logging or comment-only, or cleanup
+candidates the repository rules do not ask for; at most three nitpick-level candidates.
 ```
 
-In Claude Code start the subagents in plugin agents, whose model and effort are fixed. The default is one `esoul-skills:reviewer` (Sonnet, medium) with one brief covering all four lenses (copy all four checklists into the "Your lens" part). For larger scopes use one agent per lens: `esoul-skills:reviewer` for maintainability and tests-and-contract, and for correctness and security on ordinary changes. When the change hits a risk trigger (authorization, money, migrations or destructive data scripts, personal data, concurrency), correctness and security always go to `esoul-skills:critical-reviewer` (Opus, high), regardless of size. Elsewhere pass the same model explicitly; without one a subagent inherits the parent's model and effort. Verification of the returned candidates (SKILL.md step 5) stays on the parent model.
+## Verifier brief
+
+Under Deep depth, each blocking candidate gets one fresh verifier (SKILL.md step 5). Give it the code and the claim, not this session's conclusion, so its answer is not anchored on the first reviewer's.
+
+```text
+Verify a claimed defect in a code change. Do not edit files, run commands that change state,
+or contact external services. You did not raise this claim; judge it on the code alone.
+
+Repository: <absolute path>
+Diff: <diffCommand>; base <sha>, head <sha>
+Change intent: <one or two sentences>
+Claim: <title>, at <path:line>. <one-sentence description of the failure, without the
+reviewer's reasoning>
+
+Read the code at the location, its callers, its tests, and any place that might already handle
+the case. Answer with exactly one verdict:
+- CONFIRMED: the defect is real and reachable; give a concrete input or sequence that triggers it.
+- REFUTED: give the path:line that prevents it or shows the claim wrong.
+- UNCERTAIN: name the single fact that would decide it.
+```
+
+Use `esoul-skills:critical-reviewer` for candidates in a risk area, `esoul-skills:reviewer` otherwise. A REFUTED verdict is a claim too: check its evidence before dropping the candidate.
+
+In Claude Code start the subagents in plugin agents, whose model and effort are fixed. The default is one `esoul-skills:reviewer` (Sonnet, medium) with one brief covering the depth's lenses (copy those checklists into the "Your lens" part: two under Quick, four under Standard). For larger scopes use one agent per lens: `esoul-skills:reviewer` for maintainability and tests-and-contract, and for correctness and security on ordinary changes. When the change hits a risk trigger (authorization, money, migrations or destructive data scripts, personal data, concurrency), correctness and security always go to `esoul-skills:critical-reviewer` (Opus, high), regardless of size. Elsewhere pass the same model explicitly; without one a subagent inherits the parent's model and effort. Verification of the returned candidates (SKILL.md step 5) stays on the parent model, except the independent verifiers of blocking candidates under Deep.
 
 ## Report template
 
 ````markdown
 ## Pre-PR review: <branch> → <base ref>
 
-**Scope:** <type> · base `<base sha 12>` · head `<head sha 12>`<, + uncommitted changes>
+**Result:** <n> findings (<n> blocking) | Nothing to fix in the reviewed scope.
+**Scope:** <type> · base `<base sha 12>` · head `<head sha 12>`<, + uncommitted changes> · depth <Quick | Standard | Deep>
 **Reviewed:** <n> files (+<added>/−<deleted>) · **Excluded:** <n> (<reason summary>)
 **Checks:** <command> ✅ / ❌ <short result> · …
 **Passes:** correctness, security, tests and contract, maintainability <(subagents | in context | sequential: why)>
@@ -128,14 +160,19 @@ In Claude Code start the subagents in plugin agents, whose model and effort are 
 <minimal diff>
 ```
 **Verification:** <test or check>
+<**Instances:** <other path:line with the same bug>, for a class-of-bug finding>
+<**Verified by:** <independent verifier verdict>, under Deep>
 
-<…repeat, ordered by severity…>
+<…repeat, ordered by severity; at most three nitpick-level findings, then "+<n> more nitpicks left out">
 
 ### Outside the diff
-<only the two highest severities; otherwise omit the section>
+<only the two highest severities, each title prefixed with `[Pre-existing]`; otherwise omit the section>
 
 ### Questions
 <decisions the reviewer cannot make; otherwise omit>
+
+### Prevention
+<for a recurring or tool-detectable finding: the lint rule, architecture test, AGENTS.md line, or code-review.md item that would catch it next time; otherwise omit>
 
 ### Verdict
 <n> valid findings (<n> blocking) | No valid findings in the reviewed scope.

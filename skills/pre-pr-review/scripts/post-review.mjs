@@ -45,6 +45,7 @@ const TEXT = {
         outside: (count) => `Findings outside the diff range (${count})`,
         resolved: (count) => `Resolved findings outside the diff (${count})`,
         proposed: 'Proposed change:',
+        preExisting: 'Pre-existing',
         footer: '<sub>pre-pr-review · CodeRabbit fallback</sub>',
         retried: '> [!WARNING]\n> GitHub rejected the inline positions, so every finding is listed in this body.',
         approved: '### ✅ Approved by `pre-pr-review` (CodeRabbit substitute)\nNo open finding remains on this revision. The human review is still required.',
@@ -58,6 +59,7 @@ const TEXT = {
         outside: (count) => `Nálezy mimo rozsah diffu (${count})`,
         resolved: (count) => `Vyřešené nálezy mimo diff (${count})`,
         proposed: 'Navržená změna:',
+        preExisting: 'Existovalo už před PR',
         footer: '<sub>pre-pr-review · náhrada za CodeRabbit</sub>',
         retried: '> [!WARNING]\n> GitHub odmítl pozice inline komentářů, proto jsou všechny nálezy v tomto těle.',
         approved: '### ✅ Schváleno skillem `pre-pr-review` (náhrada za CodeRabbit)\nNa této revizi nezůstal žádný otevřený nález. Lidské review je dál povinné.',
@@ -255,6 +257,7 @@ function validateInput(input) {
         if (finding.startLine !== undefined && (!Number.isInteger(finding.startLine) || finding.startLine > finding.line || finding.startLine < 1)) {
             throw new UsageError(`findings[${index}].startLine must be a positive integer not after line.`);
         }
+        if (finding.preExisting !== undefined && typeof finding.preExisting !== 'boolean') throw new UsageError(`findings[${index}].preExisting must be true or false.`);
         if (finding.suggestion !== undefined && typeof finding.suggestion !== 'string') throw new UsageError(`findings[${index}].suggestion must be a string.`);
         if (finding.id !== undefined && !ID_PATTERN.test(String(finding.id))) throw new UsageError(`findings[${index}].id may contain only letters, digits, _ and - (at most 64).`);
     }
@@ -275,13 +278,16 @@ function fence(content, info = '') {
     return `${ticks}${info}\n${content.replace(/\n$/, '')}\n${ticks}`;
 }
 
-function heading(finding) {
+// A pre-existing finding is tagged so that a bug the PR did not introduce does not read as the
+// author's fault.
+function heading(finding, text) {
     const icon = SEVERITY_ICONS[finding.severity.toLowerCase()] ?? '⚪';
-    return `${icon} **${defang(finding.severity)}** · **${defang(finding.title)}**`;
+    const tag = finding.preExisting ? ` · \`${text.preExisting}\`` : '';
+    return `${icon} **${defang(finding.severity)}**${tag} · **${defang(finding.title)}**`;
 }
 
 function inlineBody(finding, id, text) {
-    const parts = [heading(finding), defang(finding.body.trim())];
+    const parts = [heading(finding, text), defang(finding.body.trim())];
     if (finding.suggestion !== undefined) parts.push(fence(finding.suggestion, 'suggestion'));
     parts.push(`${text.footer}\n<!-- ${MARKER}:finding:${id} -->`);
     return parts.join('\n\n');
@@ -289,7 +295,7 @@ function inlineBody(finding, id, text) {
 
 function outsideEntry(finding, id, text) {
     const location = finding.startLine ? `${finding.path}:${finding.startLine}-${finding.line}` : `${finding.path}:${finding.line}`;
-    const parts = [`#### ${heading(finding)}\n${defang(`\`${location}\``)}`, defang(finding.body.trim())];
+    const parts = [`#### ${heading(finding, text)}\n${defang(`\`${location}\``)}`, defang(finding.body.trim())];
     if (finding.suggestion !== undefined) parts.push(`${text.proposed}\n\n${fence(neutralizeMarkers(finding.suggestion))}`);
     parts.push(`<!-- ${MARKER}:finding:${id} -->`);
     return parts.join('\n\n');
