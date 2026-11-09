@@ -59,6 +59,7 @@ Apply each item to the changed code and what it touches. A checklist item is a q
 ### Stack notes
 
 - **Laravel / PHP:** Form Requests for validation, policies or gates for authorization, `$fillable` over `$guarded = []`, `DB::transaction` around multi-write operations, queued jobs that implement `ShouldBeUnique` or are otherwise idempotent, `strict_types` where the project uses it, PHPStan level of the project.
+- **Migrations for MariaDB / MySQL** (each of these shipped to production in an eSoul project because the suite ran on SQLite): a generated index or foreign key name over 64 characters (`<table>_<columns>_foreign`; count it); `timestamp()` without `nullable()` or a default under strict mode; a migration without a working `down()`; a SELECT expression that differs from its GROUP BY under `ONLY_FULL_GROUP_BY`.
 - **Symfony:** voters for authorization, Doctrine flush in loops, serializer groups exposing internal fields.
 - **JavaScript / TypeScript / Vue / Nuxt:** `any` and non-null assertions hiding real nulls, reactive state mutated outside its store, missing `key` in lists, unhandled promise rejections, SSR-only vs client-only code (`window` on the server), secrets in runtime config exposed to the client.
 - **WordPress:** capability checks plus nonces on every action, `$wpdb->prepare`, escaping on output and sanitizing on input, no direct edits of core, plugins, or Oxygen/Breakdance data outside their APIs, upload URLs relative to the domain.
