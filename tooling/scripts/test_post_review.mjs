@@ -198,6 +198,25 @@ test('places findings inline, outside the diff, or skips them as duplicates', ()
     assert.match(body, /`src\/a\.php:4-21`/);
 });
 
+test('tags pre-existing findings so they do not read as the author\'s fault', () => {
+    const files = [{ filename: 'src/a.php', patch: PATCH }];
+    const input = {
+        head: HEAD,
+        findings: [
+            finding({ preExisting: true }),
+            finding({ title: 'Old bug elsewhere', path: 'src/z.php', line: 9, preExisting: true }),
+            finding({ title: 'New bug', line: 4 }),
+        ],
+    };
+    const plan = planReview({ input, files, threads: [], reviewBodies: [] });
+    assert.match(plan.payload.comments[0].body, /^🟠 \*\*Major\*\* · `Pre-existing` · \*\*Value is overwritten\*\*/);
+    assert.match(plan.payload.comments[1].body, /^🟠 \*\*Major\*\* · \*\*New bug\*\*/);
+    assert.match(plan.payload.body, /#### 🟠 \*\*Major\*\* · `Pre-existing` · \*\*Old bug elsewhere\*\*/);
+
+    const cs = planReview({ input: { ...input, language: 'cs' }, files, threads: [], reviewBodies: [] });
+    assert.match(cs.payload.comments[0].body, /`Existovalo už před PR`/);
+});
+
 test('approves a head only when nothing was found and no fallback thread is open', () => {
     const files = [{ filename: 'src/a.php', patch: PATCH }];
     const openThread = { isResolved: false, isOutdated: false, path: 'src/a.php', line: 3, comments: { nodes: [{ url: 'u', body: `<!-- pre-pr-review:finding:${findingId(finding())} -->` }] } };

@@ -39,6 +39,7 @@ Write it outside the repository (the scratchpad or a temp directory):
       "startLine": 40,
       "body": "**Evidence:** ...\n\n**Expected:** ... (source: ...)\n\n**Verification:** ...",
       "suggestion": "<exact replacement text for lines startLine..line>",
+      "preExisting": false,
       "id": "<optional: reuse an existing id>"
     }
   ],
@@ -50,6 +51,7 @@ Write it outside the repository (the scratchpad or a temp directory):
 
 - `language`: `cs` or `en` for the fixed texts. Take it from `.coderabbit.yaml` `language` (`cs-CZ` → `cs`); otherwise match the PR description. Write `reason`, `summary`, `verdict`, titles, and bodies in the same language.
 - `line` and `startLine` are line numbers in the head version of the file. A finding becomes an inline comment only when its whole range lies in one hunk of the PR diff; otherwise it goes to the review body under "Outside the diff range", with its location.
+- `preExisting: true` marks a problem the PR did not introduce (reported only at the two highest severities, see SKILL.md step 5). Its heading gets a `Pre-existing` tag (`Existovalo už před PR` in Czech), so it does not read as the author's fault. It still counts as open until answered.
 - `suggestion` is optional and only for a fix that replaces exactly those lines; GitHub then offers it as a one-click commit. Leave it out for anything larger, and describe the fix in `body` as a short diff instead.
 - `id` defaults to a hash of path and normalized title; an explicit id may contain only letters, digits, `_`, and `-`. Reuse an id from the dry run's `existing` list when a finding was already reported with different wording.
 - `resolved` records findings that earlier fallback reviews listed in their body (outside the diff). They have no thread to resolve, so they stay open, and block the approval, until a later review lists them here with the fix commit or evidence. The dry run's `openInBodies` names them; an unknown id is rejected.
