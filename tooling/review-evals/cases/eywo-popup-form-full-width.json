@@ -1,0 +1,11 @@
+{
+  "id": "eywo-popup-form-full-width",
+  "kind": "clean",
+  "repository": "eSoul-cz/eywo",
+  "base": "35664faed51c19bb4888a542070e6b4c591abbb5",
+  "head": "d3d6ceae8d4784883b4586834fe24c48c4b75b1d",
+  "intent": "Let editors make the popup form full width.",
+  "expected": [],
+  "fix": null,
+  "confirmedBy": "Tomáš Drvota"
+}

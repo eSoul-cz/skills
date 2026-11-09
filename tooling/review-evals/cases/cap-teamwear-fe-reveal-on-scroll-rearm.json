@@ -1,0 +1,18 @@
+{
+  "id": "cap-teamwear-fe-reveal-on-scroll-rearm",
+  "kind": "bug",
+  "repository": "eSoul-cz/cap-teamwear-fe",
+  "base": "f32e1680fb550c28aece8573e63ec491ed2344e0",
+  "head": "2d3f191bde8f36bfd60a992a70a4afabe09dbbca",
+  "intent": "Make headlines hide and replay when scrolling up, with a single chevron.",
+  "expected": [
+    {
+      "path": "src/lib/useRevealOnScroll.ts",
+      "line": 95,
+      "defect": "The exit observer re-arms a headline that is outside the viewport but inside the reveal observer's positive-margin root, so the reveal observer never fires again and the headline stays hidden.",
+      "blocking": true
+    }
+  ],
+  "fix": "eSoul-cz/cap-teamwear-fe#53",
+  "confirmedBy": "Tomáš Drvota"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "cap-teamwear-be-filament-upload-disk",
+  "kind": "bug",
+  "repository": "eSoul-cz/cap-teamwear-be",
+  "base": "62662012c8db8e7211d10e246f547af37f4b9d9c",
+  "head": "87114033204fbd441e7134c04db8ac506fe710ac",
+  "intent": "Store admin media uploads on the cms-media disk without needing a MEDIA_DISK setting.",
+  "expected": [
+    {
+      "path": "app/Providers/AppServiceProvider.php",
+      "line": 22,
+      "defect": "Filament SpatieMediaLibraryFileUpload ignores the media-library default disk and falls back to FILESYSTEM_DISK=local, so uploads miss cms-media and 404 (absence in boot(); line is its declaration).",
+      "blocking": true
+    }
+  ],
+  "fix": "eSoul-cz/cap-teamwear-be#10",
+  "confirmedBy": "Tomáš Drvota"
+}

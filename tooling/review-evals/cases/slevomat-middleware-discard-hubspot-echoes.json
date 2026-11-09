@@ -1,0 +1,11 @@
+{
+  "id": "slevomat-middleware-discard-hubspot-echoes",
+  "kind": "clean",
+  "repository": "eSoul-cz/slevomat-middleware",
+  "base": "e64aabde22a08a00dd8acb2b30978b2c8c1dae36",
+  "head": "b637993a4c633b3e294952b6fe8cb474db909a47",
+  "intent": "Discard echoes of the middleware own HubSpot writes at intake.",
+  "expected": [],
+  "fix": null,
+  "confirmedBy": "Tomáš Drvota"
+}

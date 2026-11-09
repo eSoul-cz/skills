@@ -1,0 +1,24 @@
+{
+  "id": "forecom-tw-to-abra-reverb-origins-and-pcntl",
+  "kind": "bug",
+  "repository": "eSoul-cz/forecom-tw-to-abra",
+  "base": "be83387e22a8749f60676d2e413fc7add09a549a",
+  "head": "4b3be01e239273cfcc833b81b860c28a086f8727",
+  "intent": "Wire Reverb live updates end to end between the backend and the browser.",
+  "expected": [
+    {
+      "path": "config/reverb.php",
+      "line": 88,
+      "defect": "Reverb allowed origins are passed through as full URLs (e.g. REVERB_ALLOWED_ORIGINS=https://...) while Reverb compares hostnames, so browser connections are rejected.",
+      "blocking": true
+    },
+    {
+      "path": "docker/production/Dockerfile",
+      "line": 10,
+      "defect": "The production image installs no pcntl PHP extension, so reverb:start dies on startup.",
+      "blocking": true
+    }
+  ],
+  "fix": "eSoul-cz/forecom-tw-to-abra#78, eSoul-cz/forecom-tw-to-abra#65",
+  "confirmedBy": "Tomáš Drvota"
+}
