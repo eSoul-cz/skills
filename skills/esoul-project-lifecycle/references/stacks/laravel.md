@@ -215,7 +215,8 @@ final class DatabaseIdentifierLengthTest extends TestCase
                         $this->names?->append([$table, (string) $column->name]);
                     }
                     foreach ($this->getCommands() as $command) {
-                        if (str_starts_with((string) $command->name, 'drop')) {
+                        // MariaDB and MySQL ignore the primary key name; it is always PRIMARY.
+                        if ($command->name === 'primary' || str_starts_with((string) $command->name, 'drop')) {
                             continue;
                         }
                         foreach (['index', 'to'] as $key) {
