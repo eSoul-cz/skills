@@ -20,6 +20,11 @@ Closes #
 | Lighthouse mobil (klíčové šablony) | | |
 | AI review | `coderabbit review --agent` / `code-review` | |
 
+## Riziko a návrat
+
+- **Riziko:** <!-- nízké / běžné / vysoké a proč (formuláře, osobní údaje, přesměrování, SEO). -->
+- **Jak změnu vrátit:** <!-- revert tohoto PR stačí / jinak co přesně. -->
+
 ## Neověřeno a zbývá
 
 <!-- Co jsi neověřil a proč, co čeká na klienta (texty, fotky, přístupy), co je odložené.

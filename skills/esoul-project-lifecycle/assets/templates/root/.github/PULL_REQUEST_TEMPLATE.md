@@ -47,6 +47,13 @@ Closes #
 - [ ] UAT scénář z issue je proklikaný a v issue zaškrtnutý.
 - [ ] Freelo úkol má vykázaný čas a je ve stavu odpovídajícím realitě.
 
+## Riziko a návrat
+
+- **Riziko:** <!-- nízké / běžné / vysoké. U vysokého napiš, čeho se týká: autorizace, peníze,
+  migrace nebo destruktivní datový skript, osobní údaje, souběh. -->
+- **Jak změnu vrátit:** <!-- revert tohoto PR stačí / vypnout flag … / migrace down … / data
+  opravit skriptem …. Když vrátit nejde (odeslané e-maily, zápis do ERP), napiš to. -->
+
 ## Rizika a co jsem neudělal
 
 <!-- Známá omezení, odložené věci, migrační dopady. Pole nenechávej prázdné: „žádná“ je

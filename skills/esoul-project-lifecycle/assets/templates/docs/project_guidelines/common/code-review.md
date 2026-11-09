@@ -55,6 +55,34 @@ These are the findings a later fix does not repair.
 <!-- optional: project-specific Blockers -->
 In this project a finding is also a `Blocker` by default when {{PROJECT_SPECIFIC_BLOCKERS}}.
 
+## What failure looks like here
+
+Reviewers, human and AI, read this section first. It names the failures that matter most in this
+project, so a review hunts for them instead of for style.
+
+- {{FAILURE_MODES}}
+
+<!-- Examples: "an import silently drops rows", "a price differs from the ERP", "a page loses its
+     SEO meta", "a webhook runs twice". Add one line whenever an incident or a revert shows a new
+     kind. -->
+
+### Not reviewed
+
+Paths a review skips (generated code, vendored assets, fixtures copied from the client's export):
+
+- {{SKIPPED_PATHS}}
+
+### Keeping review short
+
+- At most three nitpicks per review. Style a formatter or linter can enforce goes into the tool,
+  not into review comments.
+- A problem the pull request did not introduce is marked **Pre-existing**. It is reported only
+  when it is a `Blocker` or `High`, and it is fixed in this pull request only when the fix is
+  small and in scope; otherwise it becomes a follow-up.
+- A pattern is reported once, with every instance, so it is fixed in one go.
+- A finding that keeps coming back in reviews becomes a rule: a lint or static analysis rule, an
+  architecture test, a line in `AGENTS.md`, or a line in this document.
+
 ## What a reviewer checks against
 
 Read the issue and its `## UAT` section before reading the diff. Then check, in this order:
