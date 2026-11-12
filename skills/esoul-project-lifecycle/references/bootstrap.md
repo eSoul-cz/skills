@@ -7,8 +7,8 @@ same order.
 ## Steps
 
 1. **Confirm inputs.** Client and project name, GitHub repository, Freelo project, stack,
-   archetype, tier, lead owners for `CODEOWNERS`, staging and production URLs (or `TBD`).
-   Resolve the Freelo project through `esoul-freelo-task-authoring` so its `## Freelo` block is
+   archetype, tier, lead owners for `CODEOWNERS`, staging and production URLs (or `TBD`),
+   original site URL (or `—`). Resolve the Freelo project through `esoul-freelo-task-authoring` so its `## Freelo` block is
    written in its standard form.
 2. **Skeleton.** Create the framework skeleton per the stack profile. Commit it alone
    (`:tada: [infra] scaffold`). `README.md` covers operations only (requirements, setup,
@@ -50,20 +50,22 @@ same order.
    `gitmoji-commit` confirm `## Commit convention` with the project's scope list.
 7. **Git LFS and data.** `.gitattributes` for `assets/**`, `*.pen`, design images, office files
    and dumps. Client data goes to `assets/`, never to ignored folders.
-8. **Skills.** Pin stack skills and the eSoul skills the repository needs with
+8. **Case-study snapshot.** With an original site, capture "před" and commit it alone, as
+   [case-study.md](case-study.md) describes. Without one, skip.
+9. **Skills.** Pin stack skills and the eSoul skills the repository needs with
    `npx skills@<pinned> add …`, commit `skills-lock.json` and `.agents/skills/`, symlink
    `.claude/skills/<name>` to them for Claude Code. List them in `AGENTS.md › Agent skills`.
-9. **Quality gates.** Jenkinsfile and local check command from the stack profile. Run them on
+10. **Quality gates.** Jenkinsfile and local check command from the stack profile. Run them on
    the empty scaffold; they must pass, or be explicitly skipped by a condition that switches
    them on automatically once code exists (VONO skips PHPStan while `app/` has no PHP).
-10. **Repository settings** (needs approval, show the exact `gh api` calls first): squash merge
+11. **Repository settings** (needs approval, show the exact `gh api` calls first): squash merge
     only, default to PR title, delete branch on merge; ruleset on `main` with required check
     `Jenkins`, one approval, dismiss stale approvals, no bypass for `esoul-cz-user`; labels
     `frontend`, `backend`, `data-migration`, `infrastructure`, `documentation`, `integration`,
     `bug`, `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`.
-11. **Documentation tooling** (full tier, when client PDFs are expected): hand over to
+12. **Documentation tooling** (full tier, when client PDFs are expected): hand over to
     `esoul-maintain-application-documentation`.
-12. **Verify.** Run `node <skill>/scripts/conformance.mjs <repo> --github <owner/repo>`. Fix
+13. **Verify.** Run `node <skill>/scripts/conformance.mjs <repo> --github <owner/repo>`. Fix
     errors, explain remaining warnings in the PR.
 
 Open the bootstrap as one PR, split by intention into commits. Its description lists the
@@ -81,6 +83,7 @@ Templates use `{{UPPER_SNAKE_CASE}}`. Common ones:
 | `{{FREELO_PROJECT_NAME}}`, `{{FREELO_PROJECT_ID}}` | Freelo project |
 | `{{STACK}}`, `{{ARCHETYPE}}`, `{{PROCESS_TIER}}`, `{{STACK_PROFILE}}` | Project profile |
 | `{{STAGING_URL}}`, `{{PRODUCTION_URL}}` | Environments, `TBD` until known |
+| `{{ORIGINAL_SITE}}` | URL of the site being replaced, or `—` |
 | `{{UAT_EXTRA_DIMENSIONS}}` | Extra UAT context fields, comma-led |
 | `{{TASKING_MODE}}` | `github-freelo` or `freelo-only` |
 | `{{FREELO_TASKLISTS}}`, `{{FREELO_LABELS}}` | Tasklists with IDs, e.g. Backlog `123` · To Do `124` · …; Freelo category labels with UUIDs mapped to GitHub labels |

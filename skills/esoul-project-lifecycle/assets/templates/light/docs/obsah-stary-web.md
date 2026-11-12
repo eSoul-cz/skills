@@ -1,8 +1,9 @@
 # Obsah starého webu {{OLD_SITE_URL}} (archiv)
 
-Stav ke dni {{DATE}}. Texty jsou převzaté doslova, včetně původních překlepů. Upravené podoby
+Stav ke dni {{DATE}}, shodný s datem snímků původního webu v `assets/case-study/pred/<datum>/`. Texty jsou převzaté doslova, včetně původních překlepů. Upravené podoby
 jsou v [obsah-novy-web.md](obsah-novy-web.md). Média starého webu jsou stažená v
-`assets/stary-web/` (Git LFS) se strukturou, jakou měla na starém webu.
+`assets/stary-web/` (Git LFS) se strukturou, jakou měla na starém webu. Snímky obrazovek původního
+webu (desktop, mobil, Lighthouse) jsou v `assets/case-study/pred/<datum>/`.
 
 Tento soubor je důkaz o tom, co na starém webu bylo, ne zadání. Nic se v něm po stažení
 neupravuje; slouží jako zdroj pro nové texty, pro
@@ -58,4 +59,5 @@ nic neztratilo.
 | Oblast | Soubory |
 |---|---|
 
-<!-- Portréty a fotky lidí jen se souhlasem; poznamenejte, u kterých souhlas chybí. -->
+<!-- Portréty a fotky lidí jen se souhlasem; poznamenejte, u kterých souhlas chybí. Platí i pro
+     snímky obrazovek v assets/case-study/ (recenze s celými jmény, portréty zaměstnanců). -->

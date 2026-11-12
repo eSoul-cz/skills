@@ -398,7 +398,7 @@ $esoul-model-routing make this quick and cheap
 
 The eSoul project process from first client materials to agent-ready work. Bootstraps or retrofits a repository with the standard rules (`AGENTS.md`, `CONTEXT.md` project profile, `GLOSSARY.md`, `CONTRIBUTING.md`, issue and PR templates, CodeRabbit, CODEOWNERS), keeps client podklady and legacy evidence, the question register, ADRs, project guidelines, the design brief and the plan with slices, prepares the codebase for agents (quality gates, reference module, parity tests), turns slices into GitHub issue + Freelo pairs through `esoul-tasking`, folds every client session back into the docs in one PR, and audits conformance and completeness.
 
-Works for any stack. Ships stack profiles for the common eSoul stacks (Laravel + Inertia, Medusa + Nuxt, Astro) and a checklist for new ones, and two process tiers: `full` for applications and `light` for websites. Includes starter templates for every document and a read-only `scripts/conformance.mjs` checker. Implementation is handed to `esoul-workflow`.
+Works for any stack. Ships stack profiles for the common eSoul stacks (Laravel + Inertia, Medusa + Nuxt, Astro) and a checklist for new ones, and two process tiers: `full` for applications and `light` for websites. Includes starter templates for every document a read-only `scripts/conformance.mjs` checker and `scripts/snapshot.mjs`, which captures screenshots and mobile Lighthouse of a client's original site ("před") and of the launched one ("po") for case studies. Implementation is handed to `esoul-workflow`.
 
 Usage:
 
