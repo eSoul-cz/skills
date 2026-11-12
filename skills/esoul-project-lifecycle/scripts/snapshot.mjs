@@ -24,13 +24,13 @@ import { pathToFileURL } from 'node:url';
 
 export const TOOL_NAME = 'esoul-project-lifecycle/snapshot.mjs';
 export const TOOL_VERSION = '1.0.0';
-const cacheRoot = join(homedir(), '.cache', 'esoul-uat');
-const INSTALL_PLAYWRIGHT = `npm install --prefix ${cacheRoot} playwright@1`;
+export const cacheRoot = join(homedir(), '.cache', 'esoul-uat');
+export const INSTALL_PLAYWRIGHT = `npm install --prefix ${cacheRoot} playwright@1`;
 const INSTALL_LIGHTHOUSE = 'npm install --prefix ~/.cache/esoul-uat lighthouse@12';
 
 const IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 // Headless Chrome announces itself as "HeadlessChrome", which some old sites and WAFs answer with 403.
-const DESKTOP_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
+export const DESKTOP_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
 export const DEVICES = {
     desktop: { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, userAgent: DESKTOP_UA },
     mobile: { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, userAgent: IPHONE_UA },
@@ -124,7 +124,7 @@ export function parseUrlsFile(text, base) {
     return entries;
 }
 
-const decodeXml = (s) => s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'");
+export const decodeXml = (s) => s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'");
 
 /** Sitemap XML (urlset or sitemap index) to { type: 'index' | 'urlset', locs }. */
 export function parseSitemapXml(xml) {
@@ -273,7 +273,7 @@ async function importPackage(name) {
     }
 }
 
-async function loadPlaywright() {
+export async function loadPlaywright() {
     try {
         return await import('playwright');
     } catch {
@@ -285,7 +285,7 @@ async function loadPlaywright() {
     }
 }
 
-const hasChrome = () => ['/Applications/Google Chrome.app', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable'].some(existsSync);
+export const hasChrome = () => ['/Applications/Google Chrome.app', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable'].some(existsSync);
 
 async function fetchText(url, timeout = 20000) {
     try {
