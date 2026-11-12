@@ -35,41 +35,44 @@ allowed-tools:
 
 As of 2025-2026, AI companies actively crawl the web to train models and power AI search. Managing these crawlers via robots.txt is a critical technical SEO consideration.
 
-**Known AI crawlers:**
+**Known AI crawlers** (search = appears in that product's answers; user = fetches on a user's request, often ignores robots.txt; training = model training only):
 
-| Crawler | Company | robots.txt token | Purpose |
-|---------|---------|-----------------|---------|
-| GPTBot | OpenAI | `GPTBot` | Model training |
-| ChatGPT-User | OpenAI | `ChatGPT-User` | Real-time browsing |
-| ClaudeBot | Anthropic | `ClaudeBot` | Model training |
-| PerplexityBot | Perplexity | `PerplexityBot` | Search index + training |
-| Bytespider | ByteDance | `Bytespider` | Model training |
-| Google-Extended | Google | `Google-Extended` | Gemini training (NOT search) |
-| CCBot | Common Crawl | `CCBot` | Open dataset |
+| Crawler | Company | robots.txt token | Type |
+|---------|---------|-----------------|------|
+| Googlebot | Google | `Googlebot` | Search (also AI Overviews, AI Mode) |
+| Bingbot | Microsoft | `bingbot` | Search (Bing, Copilot) |
+| SeznamBot | Seznam | `SeznamBot` | Search (Seznam, Seznam Asistent) |
+| OAI-SearchBot | OpenAI | `OAI-SearchBot` | Search (ChatGPT search) |
+| ChatGPT-User | OpenAI | `ChatGPT-User` | User-triggered |
+| GPTBot | OpenAI | `GPTBot` | Training |
+| Claude-SearchBot | Anthropic | `Claude-SearchBot` | Search |
+| Claude-User | Anthropic | `Claude-User` | User-triggered |
+| ClaudeBot | Anthropic | `ClaudeBot` | Training |
+| PerplexityBot | Perplexity | `PerplexityBot` | Search |
+| Perplexity-User | Perplexity | `Perplexity-User` | User-triggered |
+| Applebot | Apple | `Applebot` | Search |
+| Applebot-Extended | Apple | `Applebot-Extended` | Training (token only) |
+| Google-Extended | Google | `Google-Extended` | Gemini training (token only; NOT search) |
+| CCBot | Common Crawl | `CCBot` | Training (open dataset) |
+| Bytespider | ByteDance | `Bytespider` | Training |
 
 **Key distinctions:**
-- Blocking `Google-Extended` prevents Gemini training use but does NOT affect Google Search indexing or AI Overviews (those use `Googlebot`)
-- Blocking `GPTBot` prevents OpenAI training but does NOT prevent ChatGPT from citing your content via browsing (`ChatGPT-User`)
-- ~3-5% of websites now use AI-specific robots.txt rules
+- Blocking a training token (`Google-Extended`, `GPTBot`, `ClaudeBot`, `Applebot-Extended`, `CCBot`) does not remove the site from search or AI answers; blocking a search bot does.
+- `robots.txt` is advisory; user-triggered fetchers generally ignore it, so only firewall/WAF rules decide.
 
-**Example, selective AI crawler blocking:**
+**Example, a client who opted out of training:**
 ```
-# Allow search indexing, block AI training crawlers
 User-agent: GPTBot
 Disallow: /
 
 User-agent: Google-Extended
 Disallow: /
 
-User-agent: Bytespider
-Disallow: /
-
-# Allow all other crawlers (including Googlebot for search)
 User-agent: *
 Allow: /
 ```
 
-**Recommendation:** Consider your AI visibility strategy before blocking. Being cited by AI systems drives brand awareness and referral traffic. Cross-reference the `seo-geo` skill for full AI visibility optimization.
+**Recommendation:** Allow everything unless the client decides otherwise. For eSoul projects the policy, the exceptions and the launch gate are in the eSoul project-lifecycle skill, `references/ai-readiness.md`.
 
 ### 2. Indexability
 - Canonical tags: self-referencing, no conflicts with noindex
