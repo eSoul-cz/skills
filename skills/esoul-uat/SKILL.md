@@ -101,7 +101,7 @@ into missing files; never overwrite project files.
 | PDF rendering | `esoul-maintain-application-documentation` (`docs/documentation build`) |
 | Fix of a found bug | `esoul-workflow` (Bug flow) |
 | Mockup bundles as design source | `esoul-mockup-authoring` |
-| Accessibility depth, Lighthouse, SEO | `accessibility-compliance-accessibility-audit`, `frontend-lighthouse`, `seo-audit` when installed |
+| Accessibility depth, Lighthouse, SEO | `accessibility-compliance-accessibility-audit`, `frontend-lighthouse`, `seo-audit` when installed; automated SEO and AI-readiness checks: `esoul-project-lifecycle` › `scripts/ai-readiness.mjs` |
 
 If a required companion is missing, stop and give the install command for the whole chain.
 

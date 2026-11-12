@@ -9,9 +9,9 @@ eSoul writes case studies about client projects. For every project with a public
 
 | Moment | Action |
 |---|---|
-| Bootstrap (P0 / L0), right after Git LFS | Record `Original site` in the profile; capture "před" |
+| Bootstrap (P0 / L0), right after Git LFS | Record `Original site` in the profile; capture "před" and the AI-readiness report |
 | Retrofit | Same, if the original site is still unchanged; else Wayback fallback |
-| Launch, before the DNS switch | Last chance for "před"; then capture "po" with the same urls file and devices, Lighthouse included |
+| Launch, before the DNS switch | Last chance for "před"; then capture "po" with the same urls file and devices, Lighthouse included, plus the AI-readiness report |
 
 No original site: profile `Original site: —` and nothing to capture.
 
@@ -47,6 +47,13 @@ URLs to measure first) and exits non-zero when `lighthouse` is missing:
 
 Running the capture is mechanical: give it to a cheap subagent (`esoul-skills:test-runner`) and
 have it return only the summary line, the failed pages and the manifest `notes`.
+
+## AI-readiness report
+
+Next to the screenshots, run `ai-readiness.mjs` on the original site (report only, it never
+blocks) into `assets/case-study/pred/<YYYY-MM-DD>/ai-readiness`, and for "po" into
+`assets/case-study/po/<YYYY-MM-DD>/ai-readiness`; the `must x/y` score is the before/after pair.
+Commands and the `--type` choice: [ai-readiness.md](ai-readiness.md#case-study).
 
 ## Storage
 

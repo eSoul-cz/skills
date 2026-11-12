@@ -48,11 +48,11 @@ Pick one mode, say which in one line, and read only the references it names.
 | `adr` | A decision with real alternatives | [adr](references/adr.md), [domain-modeling](references/domain-modeling.md) |
 | `guidelines` | Engineering rules for the stack or project | [guidelines](references/guidelines.md), stack profile |
 | `design` | Design brief, Pencil, mockup review rounds | [design](references/design.md) |
-| `plan` | Phases, gates, scope, slices, risks | [plan-and-slices](references/plan-and-slices.md), [company-rules](references/company-rules.md) |
+| `plan` | Phases, gates, scope, slices, risks (public websites keep the AI slices: [ai-readiness](references/ai-readiness.md)) | [plan-and-slices](references/plan-and-slices.md), [company-rules](references/company-rules.md) |
 | `handover` | Prepare the codebase so agents can start | [dev-handover](references/dev-handover.md), stack profile |
 | `tasking` | Turn ready slices into issue + Freelo pairs | [tasking-batch](references/tasking-batch.md), [company-rules](references/company-rules.md) |
 | `audit` | Read-only conformance and completeness check | [audit](references/audit.md), [company-rules](references/company-rules.md) |
-| `launch` | Light tier, or any public website, before go-live | [launch](references/launch.md), [case-study](references/case-study.md) |
+| `launch` | Light tier, or any public website, before go-live | [launch](references/launch.md), [ai-readiness](references/ai-readiness.md), [case-study](references/case-study.md) |
 
 ## 3. Phases and gates
 
@@ -98,6 +98,7 @@ modes load. One line per rule and its owner:
 - PR finishing: `final-pr-review`.
 - Process tiers: `full` for applications, `light` for websites: [tiers.md](references/tiers.md).
 - **Case-study snapshots**: every project with a public website captures screenshots and mobile Lighthouse of the original site at bootstrap and of the launched site at go-live. Owner: this skill, [case-study](references/case-study.md).
+- **AI readiness**: every public website is AI-ready by default (slices AI-01…AI-06, `docs/ai-readiness.md`); launch is blocked by a failing `must` check without a lead-confirmed exception: [ai-readiness](references/ai-readiness.md).
 - Astro checks: mandatory Jenkins `Checks` stage; Lighthouse and axe before launch: [astro](references/stacks/astro.md).
 
 ## 5. Guardrails

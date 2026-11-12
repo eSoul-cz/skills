@@ -80,6 +80,7 @@ status check `Jenkins` is required:
 | Build | `pnpm build` | required |
 | Smoke | `pnpm test:e2e` — Playwright over **every route** at 1440 and 390, fails on console errors | required |
 | SEO spec | Playwright spec: title, description, canonical, OG, JSON-LD, `sitemap.xml`, `robots.txt`, 404 | required |
+| AI readiness | `ai-readiness.mjs` gate on staging and production ([ai-readiness.md](../ai-readiness.md)) | required before launch |
 | Accessibility | axe in Playwright | recommended; required before launch |
 | Lighthouse | Lighthouse CI mobile budgets: performance ≥ 90, accessibility, SEO and best practices 100, LCP < 2.5 s, CLS < 0.05 | recommended; required before launch |
 | Docker smoke | build the image, start it, run read-only specs with `BASE_URL` | recommended |

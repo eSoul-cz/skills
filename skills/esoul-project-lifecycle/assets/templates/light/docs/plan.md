@@ -43,7 +43,7 @@ Strom stránek, meta a přesměrování jsou v [sitemap-a-meta.md](sitemap-a-met
 ## Identifikátory a stavy
 
 - **ID** `F<fáze>-<nn>` se nikdy nepřečísluje ani nepoužije znovu; zrušený řádek zůstává se
-  stavem `zrušeno` a důvodem.
+  stavem `zrušeno` a důvodem. Standardní řezy AI-ready webu mají ID `AI-<nn>`.
 - **Titulek** issue i Freelo tasku je `Kontext: Akční výsledek`, bez ID; ID je v hlavičce issue
   a na prvním řádku popisu Freelo tasku.
 - **Stav:** `čeká`, `rozpracováno`, `hotovo`, `zrušeno`.
@@ -91,17 +91,29 @@ Strom stránek, meta a přesměrování jsou v [sitemap-a-meta.md](sitemap-a-met
 
 | ID | Stránka / sekce | Co | Velikost | Úkol | Stav |
 |---|---|---|---|---|---|
-| F4-01 | — | SEO: Meta, JSON-LD, OG, sitemap, robots a llms.txt | M | — | čeká |
+| AI-01 | — | Roboti: Povolený přístup, indexace, sitemap a IndexNow | M | — | čeká |
+| AI-02 | — | HTML: Obsah ze serveru a sémantika | M | — | čeká |
+| AI-03 | — | Strukturovaná data: JSON-LD z dat webu | M | — | čeká |
+| AI-04 | — | Fakta: Údaje, politiky a autoři jako text | S | — | čeká |
+| AI-05 | — | llms.txt: Soubor a Markdown verze stránek | M | — | čeká |
+| AI-06 | — | Feedy: Google Merchant, Zboží.cz a Heureka (jen e-shop, jinak smazat) | L | — | čeká |
 | F4-02 | — | Přesměrování: 301 ze starých URL | S | — | čeká |
-| F4-03 | — | Spuštění: Spouštěcí checklist a přepnutí domény | S | — | čeká |
+| F4-03 | — | Spuštění: Spouštěcí checklist, brána AI readiness a přepnutí domény | S | — | čeká |
 | F4-04 | — | Zápisy: Search Console, Bing, Google Business Profile a Firmy.cz | S | — | čeká |
+
+<!-- AI-01 až AI-06 jsou standardní řezy AI-ready webu (`ai-readiness.md` ve skillu
+     `esoul-project-lifecycle`): u webu je nemazat, jen upravit na stack; patří do první dávky
+     úkolů. U projektu bez veřejného webu je smazat. AI-06 jen u e-shopu. Pravidla a výjimky
+     vede [ai-readiness.md](ai-readiness.md). -->
 
 ## Ověření
 
 - Každý PR: zelené kontroly v Jenkinsu a sekce „Ověření“ a „Neověřeno a zbývá“ v popisu PR.
 - Preview: vizuální kontrola desktop 1440 a mobil 390, akceptace klientem zapsaná v
   [design-log.md](design-log.md). UAT scénáře v issues tu nahrazuje akceptace na preview.
-- Před spuštěním: všechny body [spouštěcího checklistu](nasazeni.md#spouštěcí-checklist).
+- Před spuštěním: všechny body [spouštěcího checklistu](nasazeni.md#spouštěcí-checklist);
+  `ai-readiness.mjs` na stagingu před přepnutím a na produkci hned po něm, každá kontrola
+  `must` prochází, nebo má potvrzenou výjimku v [ai-readiness.md](ai-readiness.md).
 
 ## Změny plánu
 

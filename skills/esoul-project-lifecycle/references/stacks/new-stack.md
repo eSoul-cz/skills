@@ -63,6 +63,8 @@ Each item must end in a concrete section of the project's own documentation. Do 
 - [ ] Which gates are CI-required and which are local soft gates (mutation testing on changed
       lines, Lighthouse before launch, …).
 - [ ] Ruleset on `main`: required check `Jenkins`, one human approval, squash merge only.
+- [ ] A public website follows [ai-readiness.md](../ai-readiness.md): decide how robots, sitemap,
+      `llms.txt`, Markdown and JSON-LD are generated, and run the launch gate.
 
 ### 5. Development handover (in `docs/plan/` or the handover PR)
 

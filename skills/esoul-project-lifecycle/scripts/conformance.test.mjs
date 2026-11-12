@@ -404,3 +404,28 @@ test('Original site: missing field warns, a dash or placeholder is skipped, a UR
     assert.ok(!codesOf({ ...withSite('https://stary.example.cz'), ...manifest }).includes('case-study-missing'));
     assert.ok(codesOf({ ...withSite('https://stary.example.cz'), 'assets/case-study/po/2026-11-12/manifest.json': '{}\n' }).includes('case-study-missing'));
 });
+
+test('AI readiness: website types need docs/ai-readiness.md and the AI slices, application is exempt', () => {
+    const withType = (files, type) => ({ ...files, 'CONTEXT.md': files['CONTEXT.md'].replace('- Stack:', `- Product type: \`${type}\`\n- Stack:`) });
+    const warned = (files, type) => codes(runConformance(project(withType(files, type))), 'warning').filter((code) => code.startsWith('ai-readiness'));
+    const aiRows = (ids) => ids.map((id) => `| ${id} | Titulek | fe | — | S | — | — | — |`).join('\n');
+    const fullSlices = (ids) => `${slices}${aiRows(ids)}\n`;
+    const five = ['AI-01', 'AI-02', 'AI-03', 'AI-04', 'AI-05'];
+
+    assert.deepEqual(warned(fullFiles(), 'application'), []);
+    assert.deepEqual(warned(fullFiles(), 'website'), ['ai-readiness-doc', 'ai-readiness-slices']);
+    assert.deepEqual(warned(fullFiles({ 'docs/ai-readiness.md': '# AI\n', 'docs/plan/seznam-slices.md': fullSlices(five) }), 'website-admin'), []);
+    // e-shop also needs AI-06
+    const eshop = fullFiles({ 'docs/ai-readiness.md': '# AI\n', 'docs/plan/seznam-slices.md': fullSlices(five) });
+    assert.deepEqual(warned(eshop, 'eshop'), ['ai-readiness-slices']);
+    assert.match(find(runConformance(project(withType(eshop, 'eshop'))), 'ai-readiness-slices')[0].message, /AI-06/);
+    assert.deepEqual(warned({ ...eshop, 'docs/plan/seznam-slices.md': fullSlices([...five, 'AI-06']) }, 'eshop'), []);
+
+    // light tier reads docs/plan.md; AI-nn IDs are ordinary slice IDs
+    const lightPlan = `# Plán\n\n| ID | Stránka / sekce | Co | Velikost | Úkol | Stav |\n|---|---|---|---|---|---|\n${five.map((id) => `| ${id} | — | Co | M | — | čeká |`).join('\n')}\n`;
+    assert.deepEqual(warned(lightFiles(), 'website'), ['ai-readiness-doc', 'ai-readiness-slices']);
+    assert.deepEqual(warned(lightFiles({ 'docs/ai-readiness.md': '# AI\n', 'docs/plan.md': lightPlan }), 'website'), []);
+    const full = runConformance(project(fullFiles({ 'docs/plan/seznam-slices.md': fullSlices(five) })));
+    assert.equal(find(full, 'slice-other-ids').length, 0);
+    assert.match(find(full, 'slice-summary')[0].message, /8 slice row\(s\)/);
+});

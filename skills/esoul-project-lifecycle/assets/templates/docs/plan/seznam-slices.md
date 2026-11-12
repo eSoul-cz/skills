@@ -12,7 +12,7 @@ rozsahu v [rozsahu díla](rozsah.md), co který slice blokuje u klienta v
 
 ## 1. Legenda ve zkratce
 
-- **ID** `F<fáze>-<nn>` se nikdy nepřečísluje ani nepoužije znovu. Zrušený slice zůstává v
+- **ID** `F<fáze>-<nn>` se nikdy nepřečísluje ani nepoužije znovu; standardní řezy AI-ready webu mají ID `AI-<nn>`. Zrušený slice zůstává v
   tabulce s rozsahem `—` a zdůvodněním; nový slice dostane další volné číslo své fáze.
 - **Titulek** je česky ve tvaru `Kontext: Akční výsledek` a je zároveň titulkem issue i Freelo
   tasku — bez prefixu kategorie a bez ID slice. ID nese hlavička issue
@@ -53,6 +53,23 @@ základy.
 <!-- Další fáze: „### 2.n Fn Název fáze“, jedna věta o cíli fáze a tabulka se stejnými
      sloupci. Slices řaďte podle závislostí, ne podle kategorie. -->
 
+### 2.2 Standardní řezy: AI-ready web
+
+Jen u projektu s veřejným webem (`website`, `website-admin`, `eshop`; u `application` pro veřejnou
+část). Řezy se nemažou, jen upraví na stack, a patří do první dávky úkolů hned po bootstrapu;
+u projektu bez veřejného webu je smaž celý blok. AI-06 jen u e-shopu. ID `AI-<nn>` se
+nepřečísluje. Pravidla, kontroly a výjimky: [ai-readiness.md](../ai-readiness.md). Slice delší
+než 4 h se rozdělí.
+
+| ID | Titulek | Kat. | Závislosti | Rozsah | Obrazovky | Issue | Akceptace |
+|---|---|---|---|---|---|---|---|
+| AI-01 | Roboti: Povolený přístup, indexace, sitemap a IndexNow | be | F0-04 | E | — | — | Vývojář eSoul: `ai-readiness.mjs` ověří `robots`, `bot-access`, `indexable`, `sitemap` → `robots.txt` povoluje všechny boty a odkazuje na sitemap s `lastmod`, bot UA dostanou 200 (ověřeno i v access logu), produkce je indexovatelná, preview má `noindex`, klíč IndexNow a ping fungují. |
+| AI-02 | HTML: Obsah ze serveru a sémantika | fe | — | E | — | — | Vývojář eSoul: `ai-readiness.mjs` ověří `ssr-content`, `html-basics`, `semantics` → klíčový obsah a odkazy jsou v HTML bez JavaScriptu, stránky mají `lang`, title, description, canonical, jedno h1, `main` a popsané formuláře. |
+| AI-03 | Strukturovaná data: JSON-LD z dat webu | fe | AI-02 | E | — | — | Vývojář eSoul: `ai-readiness.mjs` ověří `jsonld` → home má Organization nebo LocalBusiness a WebSite, články autora s daty, u e-shopu produkt s cenou v CZK, dostupností, dopravou a vrácením. |
+| AI-04 | Fakta: Údaje, politiky a autoři jako text | fe | AI-02 | E | — | — | Vývojář eSoul: `ai-readiness.mjs` ověří `facts`, `policies`, `article-meta` → kontakt, adresa a IČO jsou text v HTML, politiky jsou odkazované z patičky, články mají autora a datum, údaje odpovídají Firmy.cz. |
+| AI-05 | llms.txt: Soubor a Markdown verze stránek | be | AI-02 | E | — | — | Vývojář eSoul: `ai-readiness.mjs` ověří `llms-txt`, `markdown` → `/llms.txt` je generovaný z obsahu a každá indexovatelná stránka má Markdown verzi (`Accept: text/markdown` nebo `<url>.md`) oznámenou přes `<link rel="alternate">`. |
+| AI-06 | Feedy: Google Merchant, Zboží.cz a Heureka | be+int | AI-03 | E | — | — | Vývojář eSoul: `ai-readiness.mjs` ověří `feeds`, `product-data` → tři feedy generované z dat shopu mají povinná pole a ceny i dostupnost jako stránka produktu. Jen e-shop. |
+
 ## 3. Zrušené a přesunuté slices
 
 Zrušený slice zůstává ve své tabulce s rozsahem `—` a buňkou Akceptace
@@ -66,7 +83,8 @@ Zrušený slice zůstává ve své tabulce s rozsahem `—` a buňkou Akceptace
 | Fáze | fe | be | data | pm | Celkem | Hotovo |
 |---|---|---|---|---|---|---|
 | F0 | 0 | 2 | 0 | 3 | 5 | 0 |
-| **Celkem** | 0 | 2 | 0 | 3 | 5 | 0 |
+| AI | 3 | 3 | 0 | 0 | 6 | 0 |
+| **Celkem** | 3 | 5 | 0 | 3 | 11 | 0 |
 
 ## 5. Změny
 
@@ -75,4 +93,4 @@ Každá změna seznamu (nový, rozdělený, zrušený nebo přesunutý slice, zm
 
 | Datum | Změna | Důvod | PR |
 |---|---|---|---|
-| {{DATE}} | Seznam založen se slices F0-01 až F0-05. | Bootstrap projektu. | — |
+| {{DATE}} | Seznam založen se slices F0-01 až F0-05 a AI-01 až AI-06. | Bootstrap projektu. | — |

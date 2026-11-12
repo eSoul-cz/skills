@@ -112,7 +112,7 @@ Jenkins (CI-required, status check `Jenkins`; image `node:24` from `testing-imag
 - Extending Medusa with modules and links; admin extensions and admin RBAC.
 - Payments, shipping carriers, invoicing systems, POS or ERP integration, integration secrets.
 - Order status flow and event-driven side effects (subscribers, workflows).
-- Search engine; content modules; SEO and AI access; languages and regions.
+- Search engine; content modules; SEO and AI access (rules, feeds and launch gate: [ai-readiness.md](../ai-readiness.md)); languages and regions.
 - Transactional e-mails, marketing and consent, product feeds.
 - Design tokens; error contract between backend and storefront.
 - Deployment topology; product and customer migration from the legacy shop.
