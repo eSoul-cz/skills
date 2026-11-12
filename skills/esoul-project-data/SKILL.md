@@ -12,6 +12,7 @@ A colleague cannot find it, and it disappears with the disk. Therefore:
 | --- | --- |
 | Client files (XLSX, DOCX, PDF, original photos from file transfers) | `assets/<topic>/…` in the main repository, Git LFS |
 | Admin media, SQL dumps for transfer, backups before an import | `assets/…`, Git LFS |
+| Case-study screenshots and Lighthouse reports | `assets/case-study/…`, Git LFS (owner: `esoul-project-lifecycle` case-study reference) |
 | Processed files for an import (resized photos, caches) | `assets/…`, Git LFS |
 | Guides, runbooks, procedures for colleagues | `docs/…` (plain Git), linked from the README |
 | Scripts and manifests (small text files) | next to the data or in `docs/`, plain Git |

@@ -38,7 +38,9 @@ evidence: a command output, a screenshot, or a link.
 ## Switch-over
 
 - [ ] `noindex` and basic auth removed from production, kept on staging and previews.
+- [ ] Case-study „před“ snapshot exists in `assets/case-study/pred/` (last chance before the DNS switch).
 - [ ] DNS and TLS ready; the old site's shutdown or redirect planned.
 - [ ] After launch: Google Search Console and Bing Webmaster with the sitemap submitted,
       Google Business Profile and Firmy.cz updated, analytics receiving data.
+- [ ] After launch: case-study „po“ snapshot with the same urls file and devices, Lighthouse included ([case-study.md](case-study.md)).
 - [ ] The client has accepted the site on the preview, recorded with a date.

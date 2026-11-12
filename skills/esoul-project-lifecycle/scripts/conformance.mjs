@@ -234,7 +234,7 @@ export function parseTables(markdown) {
 
 export function readProfile(root, findings, tierFlag) {
     const context = readText(root, 'CONTEXT.md');
-    const profile = { tier: null, tierSource: null, stack: null, archetype: null, taskingMode: null };
+    const profile = { tier: null, tierSource: null, stack: null, archetype: null, taskingMode: null, originalSite: null };
     let profileLines = null;
     let sectionMap = new Map();
 
@@ -249,6 +249,10 @@ export function readProfile(root, findings, tierFlag) {
         const values = parseKeyValues(profileLines);
         profile.stack = values.stack ?? null;
         profile.archetype = values.archetype ?? null;
+        profile.originalSite = values['original site'] ?? null;
+        if (!profile.originalSite) {
+            findings.warn('profile-original-site', 'Project profile does not record `Original site`; record Original site: URL or — (case-study snapshots).', 'CONTEXT.md');
+        }
         const recorded = values['process tier'] ?? null;
         if (recorded && TIERS.includes(recorded)) {
             profile.tier = recorded;
@@ -292,6 +296,22 @@ export function readProfile(root, findings, tierFlag) {
     }
 
     return { profile, context, sectionMap };
+}
+
+/** Original site given as a URL needs a case-study snapshot; `—`, `-`, `none` and placeholders are skipped. */
+export function checkCaseStudy(root, profile, findings) {
+    const value = profile.originalSite;
+    if (!value || value.includes('{{') || !/^https?:\/\//i.test(value)) return;
+    const dir = path.join(root, 'assets', 'case-study', 'pred');
+    let dates = [];
+    try {
+        dates = readdirSync(dir);
+    } catch {
+        // no snapshot directory yet
+    }
+    if (!dates.some((date) => exists(root, `assets/case-study/pred/${date}/manifest.json`))) {
+        findings.warn('case-study-missing', `Original site ${value} has no snapshot (assets/case-study/pred/<date>/manifest.json); see case-study.md.`, 'assets/case-study/');
+    }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -750,6 +770,7 @@ export function runConformance(root, { tier: tierFlag = null, github = null, gh 
     const { profile, context, sectionMap } = readProfile(absolute, findings, tierFlag);
     const tier = profile.tier;
 
+    checkCaseStudy(absolute, profile, findings);
     checkRequiredFiles(absolute, tier, findings);
     checkContext(context, sectionMap, tier, findings);
     const files = trackedFiles(absolute, findings);

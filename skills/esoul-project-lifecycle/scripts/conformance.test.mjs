@@ -39,6 +39,7 @@ const context = (tier, stack = 'laravel', mode = 'github-freelo') => `# Demo —
 
 - Stack: \`${stack}\`
 - Archetype: \`—\`
+- Original site: \`—\`
 - Process tier: \`${tier}\`
 - Stack profile: \`esoul-project-lifecycle/references/stacks/${stack}.md\`
 - Environments: staging https://staging.example.test, production https://example.test
@@ -387,4 +388,19 @@ test('the CLI runs when invoked through a symlinked skill directory', () => {
     const run = spawnSync(process.execPath, [path.join(linkDir, 'conformance.mjs'), root, '--json'], { encoding: 'utf8' });
     assert.equal(run.status, 0, run.stderr);
     assert.equal(JSON.parse(run.stdout).profile.tier, 'light');
+});
+
+test('Original site: missing field warns, a dash or placeholder is skipped, a URL needs a snapshot', () => {
+    const withSite = (value) => lightFiles({ 'CONTEXT.md': lightFiles()['CONTEXT.md'].replace('- Original site: `—`\n', value === null ? '' : `- Original site: ${value}   # URL or —\n`) });
+    const codesOf = (files, extra) => codes(runConformance(project(files, extra)), 'warning');
+
+    assert.ok(codesOf(withSite(null)).includes('profile-original-site'));
+    for (const value of ['—', '`-`', '`none`', '{{ORIGINAL_SITE}}']) {
+        const found = codesOf(withSite(value));
+        assert.ok(!found.includes('profile-original-site') && !found.includes('case-study-missing'), value);
+    }
+    assert.ok(codesOf(withSite('https://stary.example.cz')).includes('case-study-missing'));
+    const manifest = { 'assets/case-study/pred/2026-11-12/manifest.json': '{}\n' };
+    assert.ok(!codesOf({ ...withSite('https://stary.example.cz'), ...manifest }).includes('case-study-missing'));
+    assert.ok(codesOf({ ...withSite('https://stary.example.cz'), 'assets/case-study/po/2026-11-12/manifest.json': '{}\n' }).includes('case-study-missing'));
 });

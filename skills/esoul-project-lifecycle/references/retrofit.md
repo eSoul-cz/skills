@@ -13,7 +13,8 @@ Run `node <skill>/scripts/conformance.mjs <repo> --github <owner/repo>` and read
 - what the code actually does per area (modules, integrations, money, auth, data);
 - existing specs, plans, client files and where they live;
 - runtime bugs and risky behaviour found while reading (each becomes a bug pair);
-- CI state, existing gates, and what is skipped.
+- CI state, existing gates, and what is skipped;
+- the original site: whether `Original site` is in the profile and `assets/case-study/pred/` exists; if the site is still unchanged, capture it ([case-study.md](case-study.md)).
 
 Legacy files, specs and client files are summarized by `esoul-skills:scout` (Haiku) per area,
 with `file:line` evidence, instead of the session reading them. The audit only produces a

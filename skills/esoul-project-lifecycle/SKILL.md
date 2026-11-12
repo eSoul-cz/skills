@@ -40,8 +40,8 @@ Pick one mode, say which in one line, and read only the references it names.
 
 | Mode | When | References |
 |---|---|---|
-| `bootstrap` | New project, empty or skeleton repository | [bootstrap](references/bootstrap.md), [tiers](references/tiers.md), stack profile |
-| `retrofit` | Existing project brought to the standard | [retrofit](references/retrofit.md), [audit](references/audit.md) |
+| `bootstrap` | New project, empty or skeleton repository | [bootstrap](references/bootstrap.md), [tiers](references/tiers.md), [case-study](references/case-study.md), stack profile |
+| `retrofit` | Existing project brought to the standard | [retrofit](references/retrofit.md), [audit](references/audit.md), [case-study](references/case-study.md) |
 | `intake` | New client files, exports, legacy dumps | [podklady-and-legacy](references/podklady-and-legacy.md), [questions-and-client](references/questions-and-client.md) |
 | `client-update` | After a meeting, written answers, design feedback | [questions-and-client](references/questions-and-client.md), then whatever it touches |
 | `glossary` | New or disputed domain term | [glossary](references/glossary.md), [domain-modeling](references/domain-modeling.md) |
@@ -52,7 +52,7 @@ Pick one mode, say which in one line, and read only the references it names.
 | `handover` | Prepare the codebase so agents can start | [dev-handover](references/dev-handover.md), stack profile |
 | `tasking` | Turn ready slices into issue + Freelo pairs | [tasking-batch](references/tasking-batch.md), [company-rules](references/company-rules.md) |
 | `audit` | Read-only conformance and completeness check | [audit](references/audit.md), [company-rules](references/company-rules.md) |
-| `launch` | Light tier, or any public website, before go-live | [launch](references/launch.md) |
+| `launch` | Light tier, or any public website, before go-live | [launch](references/launch.md), [case-study](references/case-study.md) |
 
 ## 3. Phases and gates
 
@@ -63,7 +63,7 @@ The full tier runs these phases in order; the light tier runs the reduced set in
 
 | Phase | Output | Gate |
 |---|---|---|
-| P0 Bootstrap | Repository rules, templates, CONTEXT profile, CI green on the empty scaffold | B0 |
+| P0 Bootstrap | Repository rules, templates, CONTEXT profile, CI green on the empty scaffold, case-study snapshot of the original site | B0 |
 | P1 Podklady and legacy | `docs/podklady/` notes, `docs/legacy/`, files in `assets/` via LFS | — |
 | P2 Questions and workshop | `otevrene-otazky.md`, questionnaire, dated answer transcripts | — |
 | P3 Glossary and ADRs | `GLOSSARY.md`, ADRs as `proposed` | — |
@@ -97,6 +97,7 @@ modes load. One line per rule and its owner:
 - Freelo states: Backlog, To Do, In progress, Code review, Testing, Done; recurring work in `LTT`.
 - PR finishing: `final-pr-review`.
 - Process tiers: `full` for applications, `light` for websites: [tiers.md](references/tiers.md).
+- **Case-study snapshots**: every project with a public website captures screenshots and mobile Lighthouse of the original site at bootstrap and of the launched site at go-live. Owner: this skill, [case-study](references/case-study.md).
 - Astro checks: mandatory Jenkins `Checks` stage; Lighthouse and axe before launch: [astro](references/stacks/astro.md).
 
 ## 5. Guardrails

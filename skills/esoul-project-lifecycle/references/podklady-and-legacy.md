@@ -13,6 +13,7 @@ ADR, the plan or an issue says so.
 | Index and binding table | `docs/podklady/README.md` |
 | Dated client answers and meeting notes | `docs/podklady/odpovedi-klienta-YYYY-MM-DD.md` |
 | Design review feedback exports | `docs/podklady/pripominky-mockup-revize-N-YYYY-MM-DD.md` |
+| Screenshots and Lighthouse of the original and launched site | `assets/case-study/pred\|po/<date>/` ([case-study.md](case-study.md)) |
 | Previous system "as it was" | `docs/legacy/<area>.md` |
 | Raw legacy evidence (dumps, crawls) | gitignored `_reference/` or `assets/` when anonymized |
 

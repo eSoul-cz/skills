@@ -13,8 +13,9 @@ node <skill>/scripts/conformance.mjs <repo-root> [--tier full|light] [--github o
 
 It checks required files per tier, `CONTEXT.md` sections, leftover `{{…}}` placeholders,
 ADR index ↔ frontmatter consistency and duplicate numbers, slice IDs and their issues, issue
-titles with category prefixes, issues without a category label, UAT or Freelo link, and the
-repository's merge and ruleset settings. Exit code 1 means errors.
+titles with category prefixes, issues without a category label, UAT or Freelo link, the
+repository's merge and ruleset settings, and the case-study inputs (`Original site` in the
+profile; a `assets/case-study/pred/*/manifest.json` when it is a URL). Exit code 1 means errors.
 
 ## 2. Completeness review (judgement)
 
