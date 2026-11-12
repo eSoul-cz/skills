@@ -54,7 +54,7 @@ Title nejvýše 60 znaků, description 110–155 znaků. Délky ověřuje SEO ko
 
 ## Technické SEO
 
-- Sitemap generovaná při buildu, bez stránek s `noindex`.
+- Sitemap bez stránek s `noindex` (generování viz [ai-readiness.md](ai-readiness.md)).
 - Kanonické URL v jednotném tvaru (s lomítkem na konci, nebo bez — jedno pro celý web),
   `lang="cs"`, `og:locale=cs_CZ`.
 - Obrázky v moderních formátech (AVIF/WebP) se zadaným `width` a `height`, lazy mimo první
@@ -64,21 +64,10 @@ Title nejvýše 60 znaků, description 110–155 znaků. Délky ověřuje SEO ko
 
 ## Dohledatelnost v AI (GEO)
 
-Cíl: aby web citovaly a doporučovaly AI odpovědi (Google, Gemini, ChatGPT, Perplexity,
-Copilot) u dotazů, na které web odpovídá.
-
-1. **Zápisy mimo web (největší vliv):** Google Business Profile, Firmy.cz, Bing Webmaster
-   Tools; stejné jméno, adresa, telefon a IČ všude, kde subjekt vystupuje.
-2. **Obsah stránek:** přímá odpověď na začátku stránky, FAQ se `FAQPage`, konkrétní fakta
-   (oprávnění, oblast, roky praxe, orientační ceny), viditelné datum aktualizace a
-   `dateModified`.
-3. **Crawlery a strojově čitelné verze:** `robots.txt` výslovně povoluje vyhledávací a AI
-   crawlery (`OAI-SearchBot`, `ChatGPT-User`, `GPTBot`, `ClaudeBot`, `Claude-SearchBot`,
-   `PerplexityBot`, `Google-Extended`, `Applebot-Extended`, `Bingbot`) a hosting ani CDN je
-   neblokují; `llms.txt` v kořeni s popisem, službami a odkazy. Přínos `llms.txt` není prokázaný,
-   stojí ale málo.
-4. **Měření:** v analytice vlastní kanál pro návštěvy z AI asistentů; jednou měsíčně ručně
-   vyzkoušet typické dotazy a zapsat výsledek.
+Pravidla pro crawlery, `robots.txt`, sitemapu, `llms.txt`, Markdown verze, JSON-LD, fakta a
+feedy jsou v [ai-readiness.md](ai-readiness.md); plní je slices AI-01 až AI-06 v plánu.
+Obsahové zásady pro texty: fakta jako text, odpověď na začátku, autor a datum u článků, jména,
+adresa a telefon shodné s Firmy.cz a Google Business Profile.
 
 ## 301 přesměrování ze starého webu
 

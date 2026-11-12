@@ -43,6 +43,7 @@ the domain, not from the template.
 | Acceptance | `## UAT` in every issue | Acceptance on the preview plus the launch checklist |
 | Gates | Stack profile | Stack profile; Astro needs a Jenkins `Checks` stage |
 | Case study | Snapshot of the original site at bootstrap, "po" at launch ([case-study](case-study.md)) | Same |
+| AI readiness | Public website: `docs/ai-readiness.md`, slices `AI-01`…`AI-06`, launch gate ([ai-readiness](ai-readiness.md)) | Same |
 | Before go-live | Handover and application documentation | `launch` mode: launch-readiness audit in `docs/nasazeni.md` |
 
 Templates: full tier under `assets/templates/docs/`, light tier under
@@ -53,13 +54,13 @@ Templates: full tier under `assets/templates/docs/`, light tier under
 
 | Phase | Output | Gate |
 |---|---|---|
-| L0 Bootstrap | Root rules, light docs, CONTEXT profile, Jenkins `Checks` green on the skeleton, case-study snapshot of the original site | B0 |
+| L0 Bootstrap | Root rules, light docs, CONTEXT profile, Jenkins `Checks` green on the skeleton, case-study snapshot and AI-readiness report of the original site, `docs/ai-readiness.md` | B0 |
 | L1 Content and inputs | `obsah-stary-web.md`, `obsah-novy-web.md`, `sitemap-a-meta.md`, files in `assets/` | — |
 | L2 Decisions | `rozhodnuti.md` entries D-01… (archetype, editing model, forms, motion, fonts, hosting) | B1 |
 | L3 Design | Brief, `.pen`, mockup bundle, review rounds, approvals in `design-log.md` | B2 (client) |
-| L4 Plan and tasking | `docs/plan.md` page table; Freelo tasks or pairs via `esoul-tasking` | B3 |
+| L4 Plan and tasking | `docs/plan.md` page table incl. the AI slices `AI-01`…`AI-06` (kept, in the first batch); Freelo tasks or pairs via `esoul-tasking` | B3 |
 | L5 Build | Pages and sections one PR each through `esoul-workflow`, accepted on the preview | — |
-| L6 Launch | `launch` mode, checklist in `nasazeni.md` complete, case-study "po" snapshot, client acceptance recorded | B4 (client) |
+| L6 Launch | `launch` mode, checklist in `nasazeni.md` complete, AI-readiness gate passed, case-study "po" snapshot, client acceptance recorded | B4 (client) |
 
 ## Escalating light → full
 

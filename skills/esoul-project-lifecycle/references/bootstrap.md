@@ -51,7 +51,13 @@ same order.
 7. **Git LFS and data.** `.gitattributes` for `assets/**`, `*.pen`, design images, office files
    and dumps. Client data goes to `assets/`, never to ignored folders.
 8. **Case-study snapshot.** With an original site, capture "před" and commit it alone, as
-   [case-study.md](case-study.md) describes. Without one, skip.
+   [case-study.md](case-study.md) describes, and run `ai-readiness.mjs` on the original site into
+   `assets/case-study/pred/<date>/ai-readiness` (report only). Without one, skip.
+   **AI readiness.** For a public website, copy `assets/templates/docs/ai-readiness.md` →
+   `docs/ai-readiness.md` (both tiers; the light tier takes this one file from the full tree) and
+   keep the AI slices `AI-01`…`AI-06` in the plan (delete `AI-06` unless `eshop`; delete all for a
+   project without a public site). The first tasking batch includes them
+   ([ai-readiness.md](ai-readiness.md)).
 9. **Skills.** Pin stack skills and the eSoul skills the repository needs with
    `npx skills@<pinned> add …`, commit `skills-lock.json` and `.agents/skills/`, symlink
    `.claude/skills/<name>` to them for Claude Code. List them in `AGENTS.md › Agent skills`.

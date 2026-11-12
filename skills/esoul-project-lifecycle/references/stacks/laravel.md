@@ -290,7 +290,7 @@ dump's names once by hand.
   two adapters, the real driver and a fake driver for tests (`esoul-workflow` ›
   references/design-principles.md).
 - Authentication, roles and authorization; legal entity or tenant scope.
-- Search (Scout, engine), URLs and redirects, SEO head and SSR, page cache.
+- Search (Scout, engine), URLs and redirects, SEO head and SSR, page cache. A public part follows [ai-readiness.md](../ai-readiness.md) (slices AI-01…AI-06, launch gate).
 - Imports and legacy migration (one-off vs repeatable), exports and file formats.
 - Calculation parity with source workbooks; audit trail and change history.
 - Deployment and runtime (Docker targets, Komodo stack, storage buckets).

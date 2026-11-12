@@ -77,9 +77,11 @@ datem. Body, které nejdou splnit, schvaluje vedoucí projektu a zapíše výjim
   jedno H1 a canonical ([sitemap-a-meta.md](sitemap-a-meta.md#meta-title-a-description)).
 - [ ] OG obrázky a Twitter card na každé indexované stránce.
 - [ ] JSON-LD prošel validátorem Schema.org a Rich Results Test bez chyb.
-- [ ] `sitemap.xml` obsahuje jen indexované stránky; `robots.txt` na ni odkazuje.
-- [ ] `robots.txt` povoluje vyhledávací a AI crawlery; hosting ani CDN je neblokují.
-- [ ] `llms.txt` v kořeni odpovídá aktuálnímu obsahu.
+- [ ] **Brána AI readiness (blokuje spuštění):** `ai-readiness.mjs` na stagingu s `--staging`
+  před přepnutím a na produkci hned po něm; každá kontrola `must` prochází, nebo má výjimku
+  potvrzenou vedoucím projektu v [ai-readiness.md](ai-readiness.md#výjimky). Reporty v
+  `assets/ai-readiness/<datum>/`, výsledek v záznamu spuštění (robots, sitemap, `llms.txt`,
+  Markdown, JSON-LD a feedy pokrývá skript).
 - [ ] Všechna 301 z [plánu přesměrování](sitemap-a-meta.md#301-přesměrování-ze-starého-webu)
   vyzkoušená proti produkci; žádný řetěz ani smyčka přesměrování.
 

@@ -13,9 +13,13 @@ node <skill>/scripts/conformance.mjs <repo-root> [--tier full|light] [--github o
 
 It checks required files per tier, `CONTEXT.md` sections, leftover `{{…}}` placeholders,
 ADR index ↔ frontmatter consistency and duplicate numbers, slice IDs and their issues, issue
-titles with category prefixes, issues without a category label, UAT or Freelo link, the
+titles with category prefixes, AI-readiness inputs (`ai-readiness-doc`, `ai-readiness-slices` for website, website-admin and eshop), issues without a category label, UAT or Freelo link, the
 repository's merge and ruleset settings, and the case-study inputs (`Original site` in the
 profile; a `assets/case-study/pred/*/manifest.json` when it is a URL). Exit code 1 means errors.
+
+For an audit of a live public site, also run the AI-readiness check against production
+(`ai-readiness.mjs run --base <url> --exceptions docs/ai-readiness.md --out assets/ai-readiness/<date>/`,
+via `test-runner`) and report failed `must` checks as Errors; see [ai-readiness.md](ai-readiness.md).
 
 ## 2. Completeness review (judgement)
 

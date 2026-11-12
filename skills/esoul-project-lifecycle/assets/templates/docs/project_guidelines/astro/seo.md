@@ -45,23 +45,21 @@ page tree, the meta texts, the redirects and what the client still has to delive
 - The identity (name, address, phone, company id) is identical on the site, in JSON-LD, Google
   Business Profile, Firmy.cz and social profiles.
 
-## Sitemap and robots
+## Sitemap, robots, `llms.txt` and Markdown
+
+The rules (all bots allowed, sitemap with `lastmod`, `llms.txt`, Markdown versions, IndexNow, the
+launch gate and exceptions) live in `esoul-project-lifecycle` › `references/ai-readiness.md` and
+`docs/ai-readiness.md`. Astro implementation:
 
 - `@astrojs/sitemap` writes the sitemap at build time with canonical URLs only, without
-  `noindex` pages. On a headless site the integration also respects `noindex` set in the backend.
-- `robots.txt` links the sitemap and explicitly allows the search and AI crawlers:
-  `Googlebot`, `Bingbot`, `OAI-SearchBot`, `ChatGPT-User`, `GPTBot`, `ClaudeBot`,
-  `Claude-SearchBot`, `PerplexityBot`, `Google-Extended`, `Applebot-Extended`. Check that the
-  hosting or CDN does not block them.
+  `noindex` pages and with `lastmod` (`serialize`). On a headless site the integration also
+  respects `noindex` set in the backend.
+- `robots.txt`, `llms.txt` and the Markdown versions are static endpoints (`src/pages/robots.txt.ts`,
+  `llms.txt.ts`, `[...slug].md.ts`) built from the same content collections as the pages; the
+  pages advertise the Markdown with `<link rel="alternate" type="text/markdown">`.
 - While the site is a protected preview, `robots.txt` disallows everything and every page is
   `noindex` ([deployment.md](deployment.md#preview-protection)); `robots.txt` stays reachable
   without basic auth.
-
-## `llms.txt`
-
-`/llms.txt` in the site root gives a short description of the business, the area it serves, its
-main pages and services with links, and the contact. It is generated from the same content as the
-pages or kept next to them and updated with them. It is cheap; do not expect a large effect.
 
 ## Redirects from the old site
 

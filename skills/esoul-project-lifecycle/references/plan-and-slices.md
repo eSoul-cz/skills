@@ -39,6 +39,15 @@ The light tier uses one `docs/plan.md`: per phase a table `ID | Stránka / sekce
   can ship separately (two dependent pairs).
 - An ADR that still has to be written or accepted is a slice too (`ADR: Přijmout …`).
 
+## Standard AI-ready slices
+
+For the public-website product types (`website`, `website-admin`, `eshop`; `application` for its
+public part), the plan templates ship the slices `AI-01`…`AI-06` (`AI-06` for `eshop` only). Keep
+them: adapt titles, dependencies and acceptance to the stack, never delete them, and keep the
+`AI-nn` IDs. They belong to the first tasking batch ([tasking-batch.md](tasking-batch.md)). A
+project without a public site deletes them. The rules and the launch gate are owned by
+[ai-readiness.md](ai-readiness.md); `audit` warns (`ai-readiness-slices`) when they are missing.
+
 ## Phases and gates
 
 - Phases map 1:1 to GitHub milestones.

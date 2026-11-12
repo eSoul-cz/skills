@@ -18,6 +18,13 @@ This reference only adds what a batch from the slice table needs.
    `Dotčené oblasti`.
 5. Load [company-rules.md](company-rules.md) once for the batch.
 
+## First batch and AI-ready slices
+
+For `website`, `website-admin` and `eshop` projects (and `application` with a public part), the
+first batch right after bootstrap includes the standard slices `AI-01`…`AI-06` (`AI-06` for
+`eshop` only) from the plan, adapted to the stack, so their pairs exist from the start
+([ai-readiness.md](ai-readiness.md)). Non-website projects have deleted them from the plan.
+
 ## Building each pair
 
 - Title = the slice's Titulek. No category prefix, no slice ID.
