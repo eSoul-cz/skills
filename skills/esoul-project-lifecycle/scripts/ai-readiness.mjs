@@ -460,8 +460,11 @@ export function checkArticleMeta(pages) {
     return details.length ? res('warn', 'Článek bez viditelného autora nebo data.', details) : res('pass', 'Články mají autora a datum.');
 }
 
+// Widget containers, loader scripts and API calls only: a cookie list naming `_GRECAPTCHA` is not a CAPTCHA.
+const CAPTCHA_MARKERS = /class=["'][^"']*\b(?:g-recaptcha|h-captcha|cf-turnstile)\b|(?:google\.com|recaptcha\.net|gstatic\.com)\/recaptcha\/|hcaptcha\.com\/1\/api\.js|challenges\.cloudflare\.com\/turnstile|grecaptcha\.(?:execute|render|ready)\s*\(/i;
+
 export function checkCaptcha(pages) {
-    const details = pages.filter((p) => p.status === 200 && /g-recaptcha|grecaptcha|h-captcha|hcaptcha\.com|cf-turnstile|challenges\.cloudflare\.com\/turnstile/i.test(p.html)).map((p) => finding(p.url, 'CAPTCHA v HTML'));
+    const details = pages.filter((p) => p.status === 200 && CAPTCHA_MARKERS.test(p.html ?? '')).map((p) => finding(p.url, 'CAPTCHA v HTML'));
     return details.length ? res('warn', 'Na stránkách je CAPTCHA; ověřte, že neblokuje obsah ani kontakt.', details) : res('pass', 'Žádná CAPTCHA ve vzorku.');
 }
 

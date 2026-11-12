@@ -7,6 +7,7 @@ import { promisify } from 'node:util';
 import {
     applyExceptions,
     botResponseProblems,
+    checkCaptcha,
     checkFacts,
     checkHtmlBasics,
     checkJsonLd,
@@ -309,6 +310,18 @@ test('klasifikace: produkt podle URL, og:type a product:price:amount; product-da
     const r = checkProductData([page('https://a.cz/produkt/box/', '<h1>Box</h1>')]);
     assert.equal(r.status, 'fail');
     assert.match(r.details[0].finding, /nemá Product JSON-LD/);
+});
+
+test('captcha: widget, loader a volání API ano; cookie lišta s _GRECAPTCHA ne', () => {
+    const p = (html) => ({ url: 'https://a.cz/', status: 200, html });
+    assert.equal(checkCaptcha([p('<li>_GRECAPTCHA · Google reCAPTCHA</li><p>grecaptcha cookie</p>')]).status, 'pass');
+    for (const html of [
+        '<div class="g-recaptcha" data-sitekey="x"></div>',
+        '<script src="https://www.google.com/recaptcha/api.js?render=x"></script>',
+        '<div class="cf-turnstile"></div>',
+        '<script src="https://js.hcaptcha.com/1/api.js"></script>',
+        '<script>grecaptcha.ready(() => {})</script>',
+    ]) assert.equal(checkCaptcha([p(html)]).status, 'warn', html);
 });
 
 test('discovery eshopu zahrne produktovou URL i při malém --max', () => {
