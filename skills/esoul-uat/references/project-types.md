@@ -80,7 +80,7 @@ alt text; preview of drafts; roles in the admin.
 | Content parity | content matches `docs/obsah-novy-web.md` |
 | Redirects | old URLs from `docs/obsah-stary-web.md` redirect with 301 |
 | Forms | contact and lead forms deliver (needs mail access), spam protection, GDPR consent |
-| SEO | title, description, canonical, OG image, `hreflang`, `robots`, sitemap.xml |
+| SEO | title, description, canonical, OG image, `hreflang`, `robots`, sitemap.xml; the automated part (robots, bots, sitemap, JSON-LD, `llms.txt`, Markdown, feeds) is `esoul-project-lifecycle` › `scripts/ai-readiness.mjs` |
 | Tracking | cookie consent blocks tracking until accepted |
 | Performance | Lighthouse budgets from the project profile, when defined |
 
