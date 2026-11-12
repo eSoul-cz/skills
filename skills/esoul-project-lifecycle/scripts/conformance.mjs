@@ -4,7 +4,7 @@
 // Usage: node scripts/conformance.mjs <project-root> [--tier full|light] [--github owner/repo] [--json]
 //
 // Checks required files, CONTEXT.md sections, leftover {{PLACEHOLDERS}}, broken relative links,
-// ADR index consistency, slice IDs and, with --github, issues and repository merge settings.
+// ADR index consistency, slice IDs, AI-readiness inputs and, with --github, issues and repository merge settings.
 //
 // Node >= 20, no dependencies. Never writes to the project, GitHub or Freelo. Exit code 1 when
 // any error is found, 2 on invalid usage, 0 otherwise.
@@ -234,7 +234,7 @@ export function parseTables(markdown) {
 
 export function readProfile(root, findings, tierFlag) {
     const context = readText(root, 'CONTEXT.md');
-    const profile = { tier: null, tierSource: null, stack: null, archetype: null, taskingMode: null, originalSite: null };
+    const profile = { tier: null, tierSource: null, stack: null, archetype: null, productType: null, taskingMode: null, originalSite: null };
     let profileLines = null;
     let sectionMap = new Map();
 
@@ -250,6 +250,7 @@ export function readProfile(root, findings, tierFlag) {
         profile.stack = values.stack ?? null;
         profile.archetype = values.archetype ?? null;
         profile.originalSite = values['original site'] ?? null;
+        profile.productType = values['product type']?.match(/^(application|eshop|website-admin|website)\b/)?.[1] ?? null;
         if (!profile.originalSite) {
             findings.warn('profile-original-site', 'Project profile does not record `Original site`; record Original site: URL or — (case-study snapshots).', 'CONTEXT.md');
         }
@@ -311,6 +312,28 @@ export function checkCaseStudy(root, profile, findings) {
     }
     if (!dates.some((date) => exists(root, `assets/case-study/pred/${date}/manifest.json`))) {
         findings.warn('case-study-missing', `Original site ${value} has no snapshot (assets/case-study/pred/<date>/manifest.json); see case-study.md.`, 'assets/case-study/');
+    }
+}
+
+/**
+ * Public-website projects are AI-ready by default: docs/ai-readiness.md and the standard slices
+ * AI-01..AI-05 (AI-06 for an e-shop) must exist; `application` is exempt (ai-readiness.md).
+ */
+export function checkAiReadiness(root, profile, tier, findings) {
+    const type = profile.productType;
+    if (!['website', 'website-admin', 'eshop'].includes(type)) return;
+    if (!exists(root, 'docs/ai-readiness.md')) {
+        findings.warn('ai-readiness-doc', `Product type \`${type}\` has no docs/ai-readiness.md (AI readiness policy, run log, exceptions); see ai-readiness.md.`, 'docs/ai-readiness.md');
+    }
+    const rel = tier === 'light' ? 'docs/plan.md' : findSliceFile(root);
+    const ids = new Set();
+    for (const table of parseTables((rel && readText(root, rel)) ?? '')) {
+        for (const row of table.rows) ids.add(stripMarkdown(row.cells[0] ?? ''));
+    }
+    const required = ['AI-01', 'AI-02', 'AI-03', 'AI-04', 'AI-05', ...(type === 'eshop' ? ['AI-06'] : [])];
+    const missing = required.filter((id) => !ids.has(id));
+    if (missing.length > 0) {
+        findings.warn('ai-readiness-slices', `Plan ${rel ?? '(no slice file)'} lacks the standard AI-ready slices: ${missing.join(', ')}; see ai-readiness.md.`, rel ?? 'docs/plan/seznam-slices.md');
     }
 }
 
@@ -771,6 +794,7 @@ export function runConformance(root, { tier: tierFlag = null, github = null, gh 
     const tier = profile.tier;
 
     checkCaseStudy(absolute, profile, findings);
+    checkAiReadiness(absolute, profile, tier, findings);
     checkRequiredFiles(absolute, tier, findings);
     checkContext(context, sectionMap, tier, findings);
     const files = trackedFiles(absolute, findings);
