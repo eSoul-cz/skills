@@ -446,6 +446,18 @@ Usage:
 $esoul-project-data back up the media before the import
 ```
 
+### `esoul-office-documents`
+
+Branded client documents (offers, contracts, reports, price calculations, presentations) as DOCX, XLSX and PPTX, filled into the eSoul company templates with fonts, logo, header and footer. Markdown becomes a Word document, a JSON description becomes an Excel calculation with formulas and totals, and a JSON outline becomes a deck built from the template layouts. DOCX and XLSX need only `python3`; PPTX needs `python-pptx` in a venv in `~/.cache/esoul-office-documents`. Versioned application documentation PDFs stay with `esoul-maintain-application-documentation`.
+
+Usage:
+
+```text
+$esoul-office-documents write the offer from Sales/nabidka/nabidka-portal.md as a Word document
+$esoul-office-documents make a price calculation for these 6 work items as Excel
+$esoul-office-documents prepare a 6-slide client presentation of the offer
+```
+
 ### `test-queue`
 
 One shared queue for test runs across all agent sessions on a machine. Parallel sessions that each start a test suite, Playwright, Infection or a build push a laptop into swap and their tests time out. `testq` runs cheap checks at once, admits suites and builds in a limited number, runs E2E and mutation testing one at a time, and starts nothing new while memory is short. Limits are tuned to the machine's RAM and cores and can be changed at any time.

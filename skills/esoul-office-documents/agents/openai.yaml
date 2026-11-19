@@ -1,0 +1,7 @@
+interface:
+  display_name: "eSoul Office Documents"
+  short_description: "Generate branded DOCX, XLSX and PPTX client documents from eSoul templates"
+  default_prompt: "Use $esoul-office-documents to produce this offer as a branded Word document."
+
+policy:
+  allow_implicit_invocation: true
