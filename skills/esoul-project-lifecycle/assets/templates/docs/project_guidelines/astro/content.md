@@ -45,6 +45,13 @@ The archetype decides who edits content and how it reaches the site
   page rendering all come from it; a field that is not in the registry is not editable.
 - Text is stored per section and key; images are stored as references to uploaded images, never
   as URLs typed by hand.
+- **Media library.** The admin has one top-level tab `Média`: the shared library of every uploaded
+  image and file, with upload (also several at once), preview, alt text, search and the list of
+  places that use the item. Every image or file field in a section or collection opens the same
+  picker, where the editor chooses an item from the library or uploads a new one; an upload from
+  the picker lands in the library too. There are no private per-form uploads: one item can be used
+  in many places, and an item that is in use cannot be deleted. The tab is part of every eSoul
+  admin, not a project option.
 - The approved copy and photos enter the database through a **run-once seed**, never by typing
   them into the admin. Later corrections to seeded copy use a new seed that replaces a value only
   while it is unedited.

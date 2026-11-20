@@ -12,7 +12,7 @@ illustrations only: none of them yet runs the required CI gates, so copy structu
 | Archetype | Examples | Shape | Usual tier |
 |---|---|---|---|
 | `A-static` | `eSoul_website`, `drvotova_farma` | Static output, no islands; content in content collections or `src/data/*.ts`, edited through git; PHP Slim `api/` for the contact form (honeypot, rate limit, reCAPTCHA, SMTP + DB fallback) | `light` |
-| `B-admin` | `komfort-servis` → `petr_moravec` | SSR with `@astrojs/node`; React islands only in the admin; Effect + SQLite; Astro Actions that work without JS; registry of editable sections; migrations and run-once seeds | `light`, escalate when the admin gains domain logic |
+| `B-admin` | `komfort-servis` → `petr_moravec` | SSR with `@astrojs/node`; React islands only in the admin; Effect + SQLite; Astro Actions that work without JS; registry of editable sections; media library tab `Média` with a shared picker; migrations and run-once seeds | `light`, escalate when the admin gains domain logic |
 | `C-headless` | `cap-teamwear-fe` + `cap-teamwear-be` | Static Astro (+ Vue islands) built from a Laravel/Filament export validated by a Zod contract; "publish" button in the admin triggers Jenkins; umbrella repo with submodules, `GLOSSARY-MAP.md` (older repos: `CONTEXT-MAP.md`), system ADRs | `light` for the site, the backend by its own profile |
 
 ## Bootstrap specifics
@@ -99,7 +99,8 @@ the same `Checks` stage.
       title, description and 301s from the old site.
 - [ ] Preview environment with noindex + basic auth; `docs/nasazeni.md` launch checklist started.
 - [ ] B: migrations, seeds and the editable-section registry pattern in place with one section
-      done end to end. C: the Zod export contract and a fixture export committed.
+      done end to end, and the media library (tab `Média` and the picker) in place with one image
+      field using it. C: the Zod export contract and a fixture export committed.
 
 ## Typical ADR topics
 

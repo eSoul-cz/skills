@@ -70,7 +70,9 @@ Use only sandbox payment methods. Never complete a real payment.
 
 Everything from `website`, plus: edit each content type in the admin, publish, unpublish,
 schedule; the change appears on the web after the documented delay; media upload and
-alt text; preview of drafts; roles in the admin.
+alt text; the `Média` tab (upload, alt text, search, where an item is used, delete refused while
+in use) and the picker in an editor (choose from the library, upload new from the picker and
+find it in the library afterwards); preview of drafts; roles in the admin.
 
 ## `website`
 

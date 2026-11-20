@@ -102,6 +102,9 @@ backend redirects back with a result anchor. The backend lists the site in its a
   sizes, and marks admin and action responses `Cache-Control: private, no-store`.
 - Uploads are validated by decoding their content, stored outside the build, and served only as
   resized copies; originals (with EXIF and GPS) are served to logged-in administrators only.
+- Every upload is one row of the media library (file, type, dimensions, alt text, uploader, time)
+  behind the admin tab `Média` ([content.md](content.md)). Content references media by id, so
+  the same item serves many places and usage can be listed before a delete.
 
 <!-- optional: archetype A-static or C-headless -->
 The site has no server code beyond {{SERVER_CODE}}. Everything else is produced at build time.
