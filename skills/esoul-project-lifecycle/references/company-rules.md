@@ -36,3 +36,8 @@ owner and does not repeat the details beyond what the lifecycle needs.
   check, build, Playwright smoke of every route at 1440 and 390 px failing on console errors,
   with SEO assertions). Lighthouse budgets and axe are
   mandatory before launch.
+- **Link prefetch**: every public website prefetches internal links on hover or touch, with the
+  stack's own mechanism (Astro prefetch, Inertia `<Link prefetch>`, `<NuxtLink>`, Speculation
+  Rules on plain server-rendered pages). Links that change state, downloads, signed URLs and the
+  admin are never prefetched. The rule lives in the project's `frontend.md`; the launch checklist
+  checks it.

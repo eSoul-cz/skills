@@ -181,6 +181,19 @@ The rules above are checked, not only reviewed:
   filter in the browser.
 - Remote search is debounced and stale requests are cancelled or ignored.
 
+## Link prefetch
+
+- Navigation and listing links on public pages prefetch their target on hover: Inertia
+  `<Link prefetch>` (or `prefetch="hover"`) with a short cache time, never a hand-written
+  fetch. Server-rendered Blade pages without Inertia use one
+  `<script type="speculationrules">` in the layout (`prefetch`, `eagerness: "moderate"`,
+  same-origin `href_matches`), carrying the CSP nonce.
+- Never prefetch a link that changes state or costs something: log out, cart and checkout
+  actions, a `GET` that writes, exports and file downloads, signed or one-time URLs, the admin.
+  Exclude them in the rules (`not` + `href_matches`) or leave `prefetch` off the link.
+- Prefetch respects the page cache and per-user data: a prefetched response is never shared
+  between users.
+
 ## Frontend tests
 
 - Vitest covers pure functions, model transformations, non-trivial {{HOOKS_DIR}} and concrete

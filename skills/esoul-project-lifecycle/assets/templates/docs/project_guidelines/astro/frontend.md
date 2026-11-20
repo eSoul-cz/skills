@@ -90,6 +90,20 @@ map is kept here and updated with every new or renamed component:
   layout holds between them and beyond 1440 px.
 - Breakpoints come from tokens that match the design's frames, not from Tailwind's defaults.
 
+## Link prefetch
+
+- Every public page prefetches internal links when the visitor hovers, focuses or touches them,
+  so the next page opens without a visible wait. Use Astro's built-in prefetch
+  (`prefetch: { prefetchAll: true, defaultStrategy: 'hover' }`); it ships as a bundled script,
+  works in every browser and skips visitors on a slow connection or with data saving on.
+- Never prefetch a link that changes state or costs something: log out, a `GET` that writes,
+  file downloads, signed or one-time URLs, the admin. Mark such links
+  `data-astro-prefetch="false"`; the admin layout prefetches nothing.
+- A prefetched public page has no side effect on the server (no write, counter or rate limit on
+  `GET`).
+- An e2e test hovers one navigation link and expects the prefetch, and hovers one excluded link
+  and expects none.
+
 ## Third-party scripts
 
 - Analytics, tag managers and marketing pixels load only after the cookie consent allows them,
