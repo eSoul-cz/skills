@@ -100,6 +100,7 @@ modes load. One line per rule and its owner:
 - **Case-study snapshots**: every project with a public website captures screenshots and mobile Lighthouse of the original site at bootstrap and of the launched site at go-live. Owner: this skill, [case-study](references/case-study.md).
 - **AI readiness**: every public website is AI-ready by default (slices AI-01…AI-06, `docs/ai-readiness.md`); launch is blocked by a failing `must` check without a lead-confirmed exception: [ai-readiness](references/ai-readiness.md).
 - Astro checks: mandatory Jenkins `Checks` stage; Lighthouse and axe before launch: [astro](references/stacks/astro.md).
+- **Link prefetch**: every public website prefetches internal links on hover or touch with the stack's own mechanism; state-changing links, downloads and the admin are excluded: the project's `frontend.md`, checked in [launch](references/launch.md).
 
 ## 5. Guardrails
 

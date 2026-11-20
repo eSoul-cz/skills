@@ -131,6 +131,14 @@ render and the browser agree ([domain.md](domain.md)).
 - Colour is never the only carrier of a state. Asynchronous results that are not otherwise
   visible are announced.
 
+## Link prefetch
+
+- Internal links are `<NuxtLink>`, which prefetches the target's code and payload when the link
+  becomes visible or is hovered; do not switch it off globally and do not replace it with plain
+  `<a>` for internal routes.
+- Links that change state or cost something (log out, cart and checkout actions, downloads,
+  signed URLs) are buttons or carry `no-prefetch`.
+
 ## Third-party scripts
 
 - Payment and shipping widgets load only through their composable or component.

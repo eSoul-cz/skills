@@ -96,6 +96,8 @@ datem. Body, které nejdou splnit, schvaluje vedoucí projektu a zapíše výjim
 - [ ] Performance ≥ 90.
 - [ ] Accessibility, SEO a Best Practices 100 (SEO se měří až po vypnutí `noindex`).
 - [ ] LCP < 2,5 s, CLS < 0,05.
+- [ ] Interní odkazy se přednačítají při najetí myší nebo dotyku; odkazy měnící stav, stahování
+      a admin jsou vyloučené.
 - [ ] Na konzoli prohlížeče žádná chyba (Playwright smoke v 1440 a 390).
 
 ### Bezpečnost

@@ -27,6 +27,8 @@ the classic SEO items.
       broken images or links.
 - [ ] Lighthouse mobile on key templates: performance ≥ 90, accessibility, best practices and
       SEO 100, LCP < 2.5 s, CLS < 0.05.
+- [ ] Internal links prefetch on hover or touch (the stack's own mechanism, see the project's
+      `frontend.md`); state-changing links, downloads and the admin are excluded.
 - [ ] axe reports no serious or critical violations; keyboard navigation and focus states work;
       `prefers-reduced-motion` is honoured.
 - [ ] Forms work without JavaScript, reject spam (honeypot, rate limit, captcha where chosen)
