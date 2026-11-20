@@ -70,7 +70,12 @@ Use only sandbox payment methods. Never complete a real payment.
 
 Everything from `website`, plus: edit each content type in the admin, publish, unpublish,
 schedule; the change appears on the web after the documented delay; media upload and
-alt text; preview of drafts; roles in the admin.
+alt text; the `Média` tab (upload, alt text, search, where an item is used, delete refused while
+in use) and the picker in an editor (choose from the library, upload new from the picker and
+find it in the library afterwards); the `Dokumentace` tab (both guides open, every content type
+of the admin has a chapter, the instructions for the client's Claude can be copied, and a change
+made by following them passes the same validation as a manual edit); preview of drafts; roles in
+the admin.
 
 ## `website`
 
