@@ -1,0 +1,7 @@
+interface:
+  display_name: "eSoul Offer Authoring"
+  short_description: "Research, scope, price and write a client offer step by step"
+  default_prompt: "Use $esoul-offer-authoring to prepare an offer for this client."
+
+policy:
+  allow_implicit_invocation: true

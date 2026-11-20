@@ -458,6 +458,17 @@ $esoul-office-documents make a price calculation for these 6 work items as Excel
 $esoul-office-documents prepare a 6-slide client presentation of the offer
 ```
 
+### `esoul-offer-authoring`
+
+Step-by-step authoring of a client offer: intake, parallel evidence research of the client's current site or specification, previous offers as the model, scope and packages, pricing, the offer text and the handover. Findings carry evidence, claims from the brief are checked against it, and a cheaper package is designed as the first stage of the larger one. Rendering into the company template stays with `esoul-office-documents`.
+
+Usage:
+
+```text
+$esoul-offer-authoring prepare an offer for a new e-shop for this client, a cheap and a full variant
+$esoul-offer-authoring revise the offer in Sales/nabidka after the client's feedback
+```
+
 ### `test-queue`
 
 One shared queue for test runs across all agent sessions on a machine. Parallel sessions that each start a test suite, Playwright, Infection or a build push a laptop into swap and their tests time out. `testq` runs cheap checks at once, admits suites and builds in a limited number, runs E2E and mutation testing one at a time, and starts nothing new while memory is short. Limits are tuned to the machine's RAM and cores and can be changed at any time.
