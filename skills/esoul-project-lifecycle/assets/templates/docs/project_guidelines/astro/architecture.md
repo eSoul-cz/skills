@@ -105,6 +105,11 @@ backend redirects back with a result anchor. The backend lists the site in its a
 - Every upload is one row of the media library (file, type, dimensions, alt text, uploader, time)
   behind the admin tab `Média` ([content.md](content.md)). Content references media by id, so
   the same item serves many places and usage can be listed before a delete.
+- The admin tab `Dokumentace` renders `docs/admin/*.md` from the repository at build time
+  ([content.md](content.md)); it has no editor and no database table. Its list of editable
+  content types and fields comes from the section registry, so the guide cannot drift from the
+  admin. Whatever access the guide gives the client's Claude goes through the same server-side
+  validation and authorization as a human editor; there is no separate write path.
 
 <!-- optional: archetype A-static or C-headless -->
 The site has no server code beyond {{SERVER_CODE}}. Everything else is produced at build time.

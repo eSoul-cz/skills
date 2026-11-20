@@ -52,6 +52,19 @@ The archetype decides who edits content and how it reaches the site
   the picker lands in the library too. There are no private per-form uploads: one item can be used
   in many places, and an item that is in use cannot be deleted. The tab is part of every eSoul
   admin, not a project option.
+- **Documentation tab.** The admin has one top-level tab `Dokumentace`, read-only, in the
+  client's language, rendered from Markdown in the repository (`docs/admin/*.md`) so it always
+  matches the deployed version. It holds two guides. *Práce s administrací*: one short chapter
+  per content type and per tab (`Média` included), with the delay before a change is public.
+  *Úpravy webu s Claudem*: how the client's own Claude may edit the site without breaking it —
+  the content types and fields it may change (the list is generated from the section registry,
+  never typed by hand), the limits (text length, image ratio and size, required alt text), what
+  it must never touch (URLs and slugs without a redirect, navigation structure, code, settings,
+  accounts), how to check the result on the page and how to undo a change, and one block of
+  instructions the client copies into Claude. The supported way for Claude to reach the site
+  (the admin in a browser, an import, an API) is a project decision recorded in
+  `docs/rozhodnuti.md`; the guide describes only that way. The tab is part of every eSoul admin,
+  not a project option, and a PR that adds or changes an editable section updates the guide.
 - The approved copy and photos enter the database through a **run-once seed**, never by typing
   them into the admin. Later corrections to seeded copy use a new seed that replaces a value only
   while it is unedited.
