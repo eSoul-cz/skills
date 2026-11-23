@@ -1,12 +1,12 @@
 ---
 name: esoul-project-data
-description: Use whenever you save, back up, unpack or prepare project data (client files, photos, media, SQL dumps, backups, import files, exports) or a guide for colleagues. Source material without personal data and anonymised dumps go to assets/ via Git LFS, guides to docs/; non-anonymised exports, backups with personal data and generated PDFs are never committed; never to gitignored storage/, *.nosync, tmp/ or Downloads.
+description: Use whenever you save, back up, unpack or prepare project data (client files, photos, media, SQL dumps, backups, import files, exports) or a guide for colleagues. Source material without personal data and anonymised dumps go to assets/ via Git LFS, guides to docs/; non-anonymised exports, backups with personal data and generated PDFs are never committed (non-anonymised client material may sit only in the gitignored `_reference/`, never shared); never to gitignored storage/, *.nosync, tmp/ or Downloads.
 ---
 
 # Project data belongs in Git, not in storage
 
-Whatever lies in `storage/`, `*.nosync` or another gitignored folder exists on one computer only.
-A colleague cannot find it, and it disappears with the disk. Therefore:
+Project data in `storage/`, `*.nosync` or another ad hoc gitignored folder exists on one computer
+only. A colleague cannot find it, and it disappears with the disk. Therefore:
 
 | What | Where |
 | --- | --- |
@@ -17,9 +17,12 @@ A colleague cannot find it, and it disappears with the disk. Therefore:
 | Guides, runbooks, procedures for colleagues | `docs/…` (plain Git), linked from the README |
 | Scripts and manifests (small text files) | next to the data or in `docs/`, plain Git |
 
-Real client data stays out of code, tests, fixtures, issues and PRs; agents work with anonymized
-dumps. Unanonymized legacy evidence the project keeps for reference goes to the gitignored
-`_reference/` folder when the repository defines one. Repository rules (`AGENTS.md`,
+Real client data stays out of code, tests, fixtures, issues and PRs; agents work with anonymised
+dumps. Non-anonymised client material needed for the work (legacy evidence) MAY sit in one
+gitignored local folder, by convention `_reference/` (guidelines `general/security-and-data.md`,
+Anonymized dumps for agents): the project's `.gitignore` names it; it is never committed and
+never shared (not in LFS, issues or PRs, not copied into code, fixtures or tests), and what is
+derived from it is anonymised. Anonymised dumps never live there. Repository rules (`AGENTS.md`,
 `CONTEXT.md`) override this skill, for example a project that names another approved store for
 sensitive originals.
 
