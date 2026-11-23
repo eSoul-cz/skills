@@ -40,7 +40,7 @@ Do what `coderabbit review` does before a push, with the agent's own model: no c
 Only what is not in context yet:
 
 - **Intent.** The linked issue (from branch name, PR body, or commits) with its acceptance criteria and `## UAT` section. Without an issue, PR, or commits, ask the user for the intent in one sentence; if there is none, review the change on its own and say the contract was missing.
-- **Rules.** `AGENTS.md`; `docs/project_guidelines/common/code-review.md` for severity, default Blockers, what failure looks like in this project, and paths the review skips, when present; `accepted` ADRs for the touched areas; glossary terms used in new names.
+- **Rules.** `AGENTS.md`; `docs/project_guidelines/code-review.md` for severity, default Critical findings, what failure looks like in this project, and paths the review skips, when present; `accepted` ADRs for the touched areas; glossary terms used in new names.
 - **CodeRabbit configuration** (already parsed in `config`): `profile: assertive` includes nitpicks; `chill` or unset omits them. `inheritance: true` means organization settings also apply that this review cannot see; say so.
 - **Blast radius.** Callers of changed signatures and contracts, through `codegraph_explore` when available, otherwise search.
 
@@ -101,7 +101,7 @@ With an agent as the author, noise costs more than with a person: a person waves
 
 Use the template in the reference. It opens with the result as a count ("2 findings, 1 blocking", or plainly "Nothing to fix" when there is none), then the scope header (base ref and SHA, head SHA, scope type, depth, reviewed and excluded files, checks run with results, how the passes ran), a short walkthrough with a changes table that can serve as the PR description draft, findings ordered by severity (location, evidence, expected behavior with its source, proposed fix as a minimal diff, verification), questions, prevention, and a verdict. Keep the template's headings and severity labels in English; write the prose in the conversation's language and quote code verbatim.
 
-**Prevention: fix recurring findings at the source.** When a finding is the kind a tool or a written rule would catch every time (it recurred in this review loop, matches an earlier rejected or fixed finding of the same class in this session, or a linter, static analysis rule, or architecture test could detect it), add a "Prevention" line proposing that rule: a lint or PHPStan rule, an architecture test, a line in `AGENTS.md`, or an item in `docs/project_guidelines/common/code-review.md`. Propose; change the rule only when the user or the calling workflow authorizes it, in its own commit.
+**Prevention: fix recurring findings at the source.** When a finding is the kind a tool or a written rule would catch every time (it recurred in this review loop, matches an earlier rejected or fixed finding of the same class in this session, or a linter, static analysis rule, or architecture test could detect it), add a "Prevention" line proposing that rule: a lint or PHPStan rule, an architecture test, a line in `AGENTS.md`, or an item in `docs/project_guidelines/code-review.md`. The review proposes; the author of the PR where the finding recurs adds the rule, in that PR or a linked follow-up, when the user or the calling workflow authorizes it. A change to a guideline rule is its own PR.
 
 ## 7. Fix loop (only when fixing is authorized)
 
