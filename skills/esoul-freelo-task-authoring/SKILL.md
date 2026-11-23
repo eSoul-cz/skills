@@ -95,4 +95,5 @@ new preview. Silence or approval of an earlier draft is not approval.
 
 Writes are not atomic. On partial failure stop dependent writes, read the actual state,
 report what succeeded and what remains, and ask before changed operations. Do not move tasks
-through later states, track time, or manage their lifecycle.
+through later states, track time, or manage their lifecycle: moves between states belong to
+`esoul-workflow` (`references/task-lifecycle.md`).
