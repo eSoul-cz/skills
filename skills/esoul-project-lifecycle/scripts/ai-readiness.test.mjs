@@ -5,6 +5,8 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import {
+    checkSitemap,
+    CHECKS,
     applyExceptions,
     botResponseProblems,
     checkFacts,
@@ -118,23 +120,23 @@ test('výjimky: potvrzený řádek platí, řádek bez Potvrdil/Datum je ignorov
 const failing = (id, urls) => ({ id, level: 'must', status: 'fail', message: 'x', details: urls.map((u) => ({ url: u, finding: 'f' })) });
 
 test('výjimky: rozsah * i prefix cesty, částečné pokrytí', () => {
-    const ex = (scope) => ({ applied: [{ check: 'markdown', scope, reason: 'r', by: 'A', date: '2026-11-01' }], ignored: [] });
-    const star = applyExceptions([failing('markdown', ['https://a.cz/blog/1', 'https://a.cz/x'])], ex('*'));
+    const ex = (scope) => ({ applied: [{ check: 'sitemap', scope, reason: 'r', by: 'A', date: '2026-11-01' }], ignored: [] });
+    const star = applyExceptions([failing('sitemap', ['https://a.cz/blog/1', 'https://a.cz/x'])], ex('*'));
     assert.equal(star.checks[0].status, 'excepted');
     assert.equal(star.exceptions[0].status, 'applied');
-    const full = applyExceptions([failing('markdown', ['https://a.cz/blog/1', 'https://a.cz/blog/2'])], ex('/blog'));
+    const full = applyExceptions([failing('sitemap', ['https://a.cz/blog/1', 'https://a.cz/blog/2'])], ex('/blog'));
     assert.equal(full.checks[0].status, 'excepted');
-    const part = applyExceptions([failing('markdown', ['https://a.cz/blog/1', 'https://a.cz/x'])], ex('/blog'));
+    const part = applyExceptions([failing('sitemap', ['https://a.cz/blog/1', 'https://a.cz/x'])], ex('/blog'));
     assert.equal(part.checks[0].status, 'fail');
     assert.deepEqual(part.checks[0].details.map((d) => d.url), ['https://a.cz/x']);
     assert.equal(exitCodeOf(part.checks), 1);
-    const unused = applyExceptions([failing('markdown', ['https://a.cz/x'])], ex('/blog'));
+    const unused = applyExceptions([failing('sitemap', ['https://a.cz/x'])], ex('/blog'));
     assert.equal(unused.exceptions[0].status, 'unused');
     const other = applyExceptions([failing('robots', ['https://a.cz/robots.txt'])], ex('*'));
     assert.equal(other.checks[0].status, 'fail');
-    const ignored = applyExceptions([failing('markdown', [])], { applied: [], ignored: [{ row: 'r', reason: 'x' }] });
+    const ignored = applyExceptions([failing('sitemap', [])], { applied: [], ignored: [{ row: 'r', reason: 'x' }] });
     assert.equal(ignored.exceptions[0].status, 'ignored');
-    assert.equal(applyExceptions([failing('markdown', [])], ex('/blog')).checks[0].status, 'fail'); // globální nález jen přes *
+    assert.equal(applyExceptions([failing('sitemap', [])], ex('/blog')).checks[0].status, 'fail'); // globální nález jen přes *
 });
 
 test('skóre a exit kód', () => {
@@ -147,6 +149,25 @@ test('skóre a exit kód', () => {
     ];
     assert.deepEqual(computeScore(checks), { must: '2/2', should: '1/2' });
     assert.equal(exitCodeOf(checks), 0);
+});
+
+test('úrovně: llms-txt je should, markdown je info; žádná z nich neblokuje spuštění', () => {
+    const level = (id) => CHECKS.find((c) => c.id === id).level('website');
+    assert.equal(level('llms-txt'), 'should');
+    assert.equal(level('markdown'), 'info');
+    const checks = [
+        { id: 'robots', level: 'must', status: 'pass', details: [] },
+        { id: 'llms-txt', level: 'should', status: 'warn', details: [] },
+        { id: 'markdown', level: 'info', status: 'info', details: [] },
+    ];
+    assert.equal(exitCodeOf(checks), 0);
+    assert.deepEqual(computeScore(checks), { must: '1/1', should: '0/1' });
+});
+
+test('sitemap: na staging se chybějící sitemapa nehlásí jako chyba, na produkci ano', async () => {
+    const ctx = (staging) => ({ origin: 'https://a.cz', staging, sitemap: { sources: [{ url: 'https://a.cz/sitemap.xml', status: 404, type: null, entries: [] }], locs: [], locSource: new Map() }, get: async () => ({ status: 0 }) });
+    assert.equal((await checkSitemap(ctx(true))).status, 'info');
+    assert.equal((await checkSitemap(ctx(false))).status, 'fail');
 });
 
 // --- pure checks
@@ -333,6 +354,7 @@ const PAGES = {
 
 function startSite(variant) {
     const bad = variant === 'bad';
+    const noAi = variant === 'noai';
     let origin = '';
     const ld = (path) => {
         const crumbs = { '@type': 'BreadcrumbList', itemListElement: [] };
@@ -373,16 +395,16 @@ Tel. 777 123 456, info@test.cz, Dlouhá 1, 110 00 Praha 1, IČO: 12345678</foote
             const urls = Object.keys(PAGES).map((p) => `<url><loc>${origin}${p}</loc>${bad ? '' : '<lastmod>2026-01-01</lastmod>'}</url>`);
             return send(200, 'application/xml', `<?xml version="1.0"?><urlset>${urls.join('')}</urlset>`);
         }
-        if (path === '/llms.txt' && !bad) return send(200, 'text/plain; charset=utf-8', `# Test\n\n> Firma Test.\n\n- [Kontakt](${origin}/kontakt)\n- [Blog](${origin}/clanek)\n- [Produkt](${origin}/produkt)\n`);
+        if (path === '/llms.txt' && !bad && !noAi) return send(200, 'text/plain; charset=utf-8', `# Test\n\n> Firma Test.\n\n- [Kontakt](${origin}/kontakt)\n- [Blog](${origin}/clanek)\n- [Produkt](${origin}/produkt)\n`);
         if (path === '/tajny.txt') return send(200, 'text/plain', 'tajny');
         if (path === '/og.png') return send(200, 'image/png', 'png');
         if (feed[path]) return send(200, 'application/xml', feed[path]);
         const mdPath = path.replace(/\.md$/, '').replace(/^\/index$/, '/') || '/';
         if (PAGES[path]) {
-            if (!bad && /text\/markdown/.test(req.headers.accept ?? '')) return send(200, 'text/markdown; charset=utf-8', mdOf(path), { vary: 'Accept' });
+            if (!bad && !noAi && /text\/markdown/.test(req.headers.accept ?? '')) return send(200, 'text/markdown; charset=utf-8', mdOf(path), { vary: 'Accept' });
             return send(200, 'text/html; charset=utf-8', html(path), bad ? {} : { vary: 'Accept' });
         }
-        if (/\.md$/.test(path) && PAGES[mdPath] && !bad) return send(200, 'text/markdown; charset=utf-8', mdOf(mdPath));
+        if (/\.md$/.test(path) && PAGES[mdPath] && !bad && !noAi) return send(200, 'text/markdown; charset=utf-8', mdOf(mdPath));
         return send(404, 'text/html', '<h1>x</h1>');
     });
     return new Promise((resolve) =>
@@ -428,7 +450,9 @@ test('e2e: špatný web selže (exit 1), --staging mění robots a indexable na 
     try {
         const out = await cli(['run', '--base', site.origin, '--no-browser', '--type', 'website']);
         assert.equal(out.code, 1);
-        for (const id of ['robots', 'bot-access', 'sitemap', 'jsonld', 'llms-txt', 'markdown']) assert.equal(statusOf(out.stdout, id), 'CHYBA', id);
+        for (const id of ['robots', 'bot-access', 'sitemap', 'jsonld']) assert.equal(statusOf(out.stdout, id), 'CHYBA', id);
+        assert.equal(statusOf(out.stdout, 'llms-txt'), 'VAROVÁNÍ');
+        assert.equal(statusOf(out.stdout, 'markdown'), 'INFO');
         assert.equal(statusOf(out.stdout, 'ssr-content'), 'PŘESKOČENO');
         const staging = await cli(['run', '--base', site.origin, '--no-browser', '--staging', '--json']);
         const st = Object.fromEntries(JSON.parse(staging.stdout).checks.map((c) => [c.id, c.status]));
@@ -448,7 +472,7 @@ test('e2e: potvrzené výjimky převedou selhání na excepted a exit 0', async 
         const { tmpdir } = await import('node:os');
         const { join } = await import('node:path');
         const dir = mkdtempSync(join(tmpdir(), 'ai-ready-'));
-        const rows = ['robots', 'bot-access', 'sitemap', 'jsonld', 'llms-txt', 'markdown'].map((c) => `| ${c} | * | test | Vedoucí | 2026-11-12 |`);
+        const rows = ['robots', 'bot-access', 'sitemap', 'jsonld'].map((c) => `| ${c} | * | test | Vedoucí | 2026-11-12 |`);
         writeFileSync(join(dir, 'ai.md'), `## Výjimky\n\n| Kontrola | Rozsah | Důvod | Potvrdil | Datum |\n|---|---|---|---|---|\n${rows.join('\n')}\n| facts | * | bez potvrzení | | |\n`);
         const r = await cli(['run', '--base', site.origin, '--no-browser', '--exceptions', join(dir, 'ai.md'), '--out', join(dir, 'out'), '--json']);
         const report = JSON.parse(r.stdout);
@@ -457,6 +481,23 @@ test('e2e: potvrzené výjimky převedou selhání na excepted a exit 0', async 
         assert.equal(report.exceptions.filter((e) => e.status === 'ignored').length, 1);
         const { existsSync } = await import('node:fs');
         assert.ok(existsSync(join(dir, 'out', 'report.json')) && existsSync(join(dir, 'out', 'report.md')));
+    } finally {
+        await site.close();
+    }
+});
+
+test('e2e: web bez llms.txt a Markdown verzí dostane varování a info, ale exit 0', async () => {
+    const site = await startSite('noai');
+    try {
+        const r = await cli(['run', '--base', site.origin, '--no-browser', '--type', 'website', '--json']);
+        const report = JSON.parse(r.stdout);
+        const byId = Object.fromEntries(report.checks.map((c) => [c.id, c]));
+        assert.equal(byId['llms-txt'].level, 'should');
+        assert.equal(byId['llms-txt'].status, 'warn');
+        assert.equal(byId.markdown.level, 'info');
+        assert.equal(byId.markdown.status, 'info');
+        assert.deepEqual(report.checks.filter((c) => c.level === 'must' && c.status === 'fail'), []);
+        assert.equal(r.code, 0);
     } finally {
         await site.close();
     }

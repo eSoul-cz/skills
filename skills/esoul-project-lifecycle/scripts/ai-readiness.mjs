@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 /**
  * eSoul AI-readiness check of a public website (roboti, obsah v HTML, JSON-LD, llms.txt, Markdown, feedy).
- * Node >= 18; only local fetch and local headless Chrome (Playwright from ~/.cache/esoul-uat). No external services.
+ * Node >= 22; only local fetch and local headless Chrome (Playwright from ~/.cache/esoul-uat). No external services.
  *
  *   ai-readiness.mjs --check
  *   ai-readiness.mjs run --base https://site.cz [--urls file | --max 20] [--type website|website-admin|eshop|application]
  *       [--staging] [--exceptions docs/ai-readiness.md] [--feeds google=/feed.xml,zbozi=/zbozi.xml,heureka=/heureka.xml]
  *       [--indexnow-key <key>] [--header 'Name: value']... [--auth user:pass] [--out dir] [--json] [--no-browser]
  *
+ * Levels: must blocks launch, should fails as a warning, info is only reported (a failed info check stays `info`).
  * Exit code: 0 = every `must` passed or has a confirmed exception, 1 = an unexcepted `must` failed, 2 = usage/tool error.
  * Exceptions: `## Výjimky` table `| Kontrola | Rozsah | Důvod | Potvrdil | Datum |`; a row without Potvrdil or Datum is ignored.
  */
@@ -689,9 +690,10 @@ export async function loadSitemaps(get, origin, robotsText) {
     return { sources, locs: [...locSource.keys()], locSource };
 }
 
-async function checkSitemap(ctx) {
+export async function checkSitemap(ctx) {
     const { sources } = ctx.sitemap;
     const ok = sources.filter((s) => s.status === 200);
+    if (ok.length === 0 && ctx.staging) return res('info', 'Staging: sitemapa se nepublikuje (očekáváno; ověří se až na produkci).');
     if (ok.length === 0) return res('fail', 'Sitemapa nenalezena (robots.txt Sitemap: ani /sitemap.xml).', [finding(`${ctx.origin}/sitemap.xml`, `HTTP ${sources[0]?.status || 'chyba spojení'}`)]);
     const details = [];
     for (const s of sources.filter((x) => x.status !== 200)) details.push(finding(s.url, `HTTP ${s.status || 'chyba spojení'}`));
@@ -767,7 +769,7 @@ async function checkMarkdown(ctx) {
         if (!md) details.push(finding(page.url, 'žádná Markdown verze (Accept: text/markdown ani <link rel=alternate> ani .md)'));
         else if (h1 && !norm(md.text).includes(norm(h1))) details.push(finding(page.url, `Markdown neobsahuje h1 „${h1}“`));
     });
-    return details.length ? res('fail', `Markdown verze: ${details.length} nedostatků.`, details) : res('pass', `Markdown verze mají všechny vzorkované stránky (${sample.length}).`);
+    return details.length ? res('fail', `Markdown verze: ${details.length} nedostatků (informativně; směrnice: MAY u stránek převážně z textu).`, details) : res('pass', `Markdown verze mají všechny vzorkované stránky (${sample.length}).`);
 }
 
 async function checkFeeds(ctx) {
@@ -858,8 +860,8 @@ export const CHECKS = [
     { id: 'jsonld', level: () => 'must', run: (c) => checkJsonLd(c.pages) },
     { id: 'facts', level: () => 'must', run: (c) => checkFacts(c.pages) },
     { id: 'policies', level: (t) => (t === 'eshop' ? 'must' : 'should'), run: (c) => checkPolicies(c.pages, c.type) },
-    { id: 'llms-txt', level: () => 'must', run: checkLlmsTxt },
-    { id: 'markdown', level: () => 'must', run: checkMarkdown },
+    { id: 'llms-txt', level: () => 'should', run: checkLlmsTxt },
+    { id: 'markdown', level: () => 'info', run: checkMarkdown },
     { id: 'product-data', level: () => 'must', only: ['eshop'], run: (c) => checkProductData(c.pages) },
     { id: 'feeds', level: () => 'must', only: ['eshop'], run: checkFeeds },
     { id: 'indexnow', level: () => 'should', run: checkIndexNow },
@@ -890,6 +892,7 @@ export async function runChecks(ctx) {
             r = res('fail', `Kontrola selhala: ${error.message ?? error}`);
         }
         if (level === 'should' && r.status === 'fail') r.status = 'warn';
+        if (level === 'info' && r.status === 'fail') r.status = 'info';
         out.push({ ...base, ...r });
     }
     return out;

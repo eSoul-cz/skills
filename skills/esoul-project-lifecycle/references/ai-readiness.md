@@ -1,10 +1,14 @@
 # AI readiness
 
 Every eSoul website is built so that search engines, AI assistants and agents can find, read and
-use it. This file is the single owner of the rules; stack profiles, templates and the launch
-checklist only point here. The work is planned from day one as the standard slices AI-01…AI-06,
-and launch is blocked by a failing `must` check. Facts below were researched on 2026-11-12;
-re-verify vendor behaviour before promising a client anything.
+use it. The project rules for public pages (HTML content, crawling and indexing, sitemap,
+`llms.txt`, Markdown versions, preview gate, redirects, exceptions) are owned by the guideline
+`general/public-website.md` of the project's guidelines (`docs/project_guidelines/public-website.md`
+in the project); read it first and do not restate it. This file holds what is skill-only: the
+standard slices AI-01…AI-06, the checker `scripts/ai-readiness.mjs`, the skill's own checks
+(JSON-LD, facts, feeds, IndexNow and others), the crawler reference and the launch gate. A failing
+`must` check blocks launch. Facts below were researched on 2026-11-12; re-verify vendor behaviour
+before promising a client anything.
 
 ## Scope
 
@@ -24,79 +28,80 @@ The product type is in `CONTEXT.md › Project profile`. Conformance warns (`ai-
    generates robots.txt, sitemap, `llms.txt`, Markdown versions, JSON-LD and feeds from its own
    data; the bundled script checks it, locally. Protocol endpoints (IndexNow ping, search engines
    fetching the site) are not "services" in this sense.
-2. **Everything allowed.** Every bot is allowed by default, training bots included (GPTBot,
-   ClaudeBot, Google-Extended, Applebot-Extended, CCBot). A client who wants to opt out decides it
-   explicitly; it is recorded as a confirmed exception ([Exceptions](#exceptions)).
-3. **Server HTML first.** Seznam and most AI crawlers render JavaScript poorly or not at all;
-   content, links and facts must be in the HTML the server sends.
-4. **One source of data.** The pages, JSON-LD, Markdown versions, `llms.txt`, sitemap and feeds
+2. **One source of data.** The pages, JSON-LD, Markdown versions, `llms.txt`, sitemap and feeds
    come from the same data and never disagree (price, availability, address, dates).
-5. **Stack-agnostic.** The requirements are the same everywhere; only the implementation differs
+3. **Stack-agnostic.** The requirements are the same everywhere; only the implementation differs
    ([Stack notes](#stack-notes)).
+
+Bot policy (all bots allowed, training bots included) and server-rendered HTML are guideline rules;
+a client opt-out is a deviation recorded as the guideline's Exceptions section says
+([Exceptions](#exceptions)).
 
 ## Requirements by slice
 
-Levels: **must** blocks launch, **should** is fixed unless there is a reason, **info** is reported
-only. `Check` is the stable id of `scripts/ai-readiness.mjs`, used in exceptions and reports.
+Levels: **must** blocks launch, **should** is reported as a warning and fixed unless there is a
+reason, **info** is reported only. A check on a rule the guideline owns never has a stronger level
+than the guideline's wording (SHOULD → should, MAY → info). `Check` is the stable id of
+`scripts/ai-readiness.mjs`, used in exceptions and reports. `Rule` names the owner: **G** = the
+guideline `public-website.md` (the check only verifies it), **S** = skill policy defined here.
 
 ### AI-01 Přístup robotů a indexace
 
-| Level | Check | Requirement |
-|---|---|---|
-| must | `robots` | `robots.txt` answers 200 as text, no group applicable to a listed bot disallows `/` or the sampled pages, `Sitemap:` present |
-| must | `bot-access` | Home and sampled pages answer 200 to every bot UA in the [crawler table](#crawlers) with no challenge (`cf-mitigated`, "Just a moment", CAPTCHA, 403/429/503) and a body comparable to the browser's. Firewall, WAF, security plugins and host rules let the bots through |
-| must | `indexable` | Production has no `noindex` (meta or `X-Robots-Tag`); previews and staging have `noindex`, basic auth and `Disallow: /`, `robots.txt` reachable without auth |
-| must | `sitemap` | Generated XML with absolute same-host URLs, every `<url>` has `<lastmod>`, sampled URLs answer 200, only indexable pages |
-| should | `indexnow` | Key file at `/<key>.txt` with the key as body; the site pings IndexNow (`api.indexnow.org` and `search.seznam.cz/indexnow`) when a page is published or changed |
+| Level | Check | Rule | Requirement |
+|---|---|---|---|
+| must | `robots` | G | `robots.txt` answers 200 as text, no group applicable to a listed bot disallows `/` or the sampled pages, `Sitemap:` present |
+| must | `bot-access` | S | Home and sampled pages answer 200 to every bot UA in the [crawler table](#crawlers) with no challenge (`cf-mitigated`, "Just a moment", CAPTCHA, 403/429/503) and a body comparable to the browser's. Firewall, WAF, security plugins and host rules let the bots through |
+| must | `indexable` | G | Production has no `noindex` (meta or `X-Robots-Tag`); previews and staging follow the guideline's preview gate, `robots.txt` reachable without auth |
+| must | `sitemap` | G | Generated XML with absolute same-host URLs, every `<url>` has `<lastmod>`, sampled URLs answer 200, only indexable pages. A preview publishes none, so a missing sitemap is `info` with `--staging` |
+| should | `indexnow` | S | Key file at `/<key>.txt` with the key as body; the site pings IndexNow (`api.indexnow.org` and `search.seznam.cz/indexnow`) when a page is published or changed |
 
 ### AI-02 Obsah v HTML a sémantika
 
-| Level | Check | Requirement |
-|---|---|---|
-| must | `ssr-content` | Raw HTML has the h1 and at least 70 % of the words of the rendered `main`; internal navigation links are in raw HTML |
-| must | `html-basics` | `<html lang>`, title, meta description, absolute canonical; `hreflang` reciprocal with `x-default` on multilingual sites |
-| must | `semantics` | One h1, a `main` landmark, every form control has an accessible name, real `<a>` and `<button>`; native HTML first, ARIA only to fill gaps |
-| should | `og` | `og:title`, `og:description`, `og:image` (absolute, 1200 × 630), `og:url` |
-| should | `captcha` | No CAPTCHA wall in front of content or the contact route; offer an e-mail or phone fallback |
-| should | `images-alt` | Content images have `alt` (decorative `alt=""` allowed) |
+| Level | Check | Rule | Requirement |
+|---|---|---|---|
+| must | `ssr-content` | G | Raw HTML has the h1 and at least 70 % of the words of the rendered `main`; internal navigation links are in raw HTML |
+| must | `html-basics` | G + S | `<html lang>`, title, meta description, absolute canonical (G); `hreflang` reciprocal with `x-default` on multilingual sites (S) |
+| must | `semantics` | S | One h1, a `main` landmark, every form control has an accessible name, real `<a>` and `<button>`; native HTML first, ARIA only to fill gaps |
+| should | `og` | S | `og:title`, `og:description`, `og:image` (absolute, 1200 × 630), `og:url` |
+| should | `captcha` | G | No CAPTCHA wall in front of content or the contact route; offer an e-mail or phone fallback |
+| should | `images-alt` | S | Content images have `alt` (decorative `alt=""` allowed) |
 
 ### AI-03 Strukturovaná data (JSON-LD)
 
-| Level | Check | Requirement |
-|---|---|---|
-| must | `jsonld` | Every block parses; home has Organization or LocalBusiness (or subtype) and WebSite; articles have Article/BlogPosting with author, `datePublished`, `dateModified`; BreadcrumbList on inner pages (warn) |
-| must (eshop) | `product-data` | Product with name, image, `offers.price`, `priceCurrency` (CZK), `availability`; `shippingDetails` and `hasMerchantReturnPolicy` (warn); GTIN when known; price equals the visible price |
+| Level | Check | Rule | Requirement |
+|---|---|---|---|
+| must | `jsonld` | S | Every block parses; home has Organization or LocalBusiness (or subtype) and WebSite; articles have Article/BlogPosting with author, `datePublished`, `dateModified`; BreadcrumbList on inner pages (warn) |
+| must (eshop) | `product-data` | S | Product with name, image, `offers.price`, `priceCurrency` (CZK), `availability`; `shippingDetails` and `hasMerchantReturnPolicy` (warn); GTIN when known; price equals the visible price |
 
 Generate one graph per page from site data, never from a plugin's guess and never fake reviews or
 `AggregateRating` for reviews the site publishes about itself. Markup must match visible content.
 
 ### AI-04 Fakta a stránky pro agenty
 
-| Level | Check | Requirement |
-|---|---|---|
-| must | `facts` | Raw HTML of home or contact has phone or e-mail, a postal address and, for Czech sites, the IČO, as text |
-| must (eshop), should | `policies` | Privacy policy linked site-wide; eshop also obchodní podmínky, doprava a platba, vrácení a reklamace |
-| should | `article-meta` | Articles show author and a visible update date in raw HTML |
+| Level | Check | Rule | Requirement |
+|---|---|---|---|
+| must | `facts` | S | Raw HTML of home or contact has phone or e-mail, a postal address and, for Czech sites, the IČO, as text |
+| must (eshop), should | `policies` | S | Privacy policy linked site-wide; eshop also obchodní podmínky, doprava a platba, vrácení a reklamace |
+| should | `article-meta` | S | Articles show author and a visible update date in raw HTML |
 
 Content rules are in [Content rules](#content-rules-for-copy-and-design).
 
 ### AI-05 llms.txt a Markdown verze stránek
 
-| Level | Check | Requirement |
-|---|---|---|
-| must | `llms-txt` | `/llms.txt` answers 200 as `text/plain` or `text/markdown`, starts with `# `, has a summary, at least 3 links, sampled links answer 200. Format: [llmstxt.org](https://llmstxt.org/) |
-| must | `markdown` | Every indexable page has a Markdown version: `Accept: text/markdown` returns `text/markdown; charset=utf-8` with `Vary: Accept`, and/or `<url>.md`, advertised by `<link rel="alternate" type="text/markdown" href="…">`; the Markdown contains the page's h1 |
-| info | `webmcp` | Forms with WebMCP attributes or `navigator.modelContext`; experimental, never required |
+| Level | Check | Rule | Requirement |
+|---|---|---|---|
+| should | `llms-txt` | G | `/llms.txt` answers 200 as `text/plain` or `text/markdown`, starts with `# `, has a summary, at least 3 links, sampled links answer 200. Format: [llmstxt.org](https://llmstxt.org/) |
+| info | `markdown` | G | Where a page is mostly prose: `Accept: text/markdown` returns `text/markdown; charset=utf-8` with `Vary: Accept`, and/or `<url>.md`, advertised by `<link rel="alternate" type="text/markdown" href="…">`; the Markdown contains the page's h1. The checker samples pages, so a missing version on an interface page is not a finding to fix |
+| info | `webmcp` | S | Forms with WebMCP attributes or `navigator.modelContext`; experimental, never required |
 
-`llms.txt` is a must because it is cheap and checked by tools, not because it is proven to help
-([Contested](#contested-and-watch-list)). Generate it and the Markdown from the page content,
-cached, never by an external converter.
+Neither `llms-txt` nor `markdown` blocks launch ([Contested](#contested-and-watch-list)). Generate
+the file and the Markdown from the page content, cached, never by an external converter.
 
 ### AI-06 Produktová data a feedy (eshop only)
 
-| Level | Check | Requirement |
-|---|---|---|
-| must | `feeds` | Each feed answers 200 as XML with the required fields below, unique `ITEM_ID`; prices and availability equal the product page and its JSON-LD |
+| Level | Check | Rule | Requirement |
+|---|---|---|---|
+| must | `feeds` | S | Each feed answers 200 as XML with the required fields below, unique `ITEM_ID`; prices and availability equal the product page and its JSON-LD |
 
 | Feed | Format and required fields | Specification |
 |---|---|---|
@@ -165,7 +170,6 @@ verified by the script; it is never the unverified source of truth.
 | WooCommerce | Product JSON-LD is emitted by core; extend or replace it from site code so `shippingDetails`, `hasMerchantReturnPolicy`, GTIN and CZK prices are present and equal the page. Feeds are generated by site code from the product data (Google Merchant, Zboží.cz, Heureka), cached, UTF-8. Product lists and filters must have server-rendered HTML; guest checkout, no CAPTCHA at cart |
 | Laravel | Routes or controllers (not static files) for `robots.txt`, `sitemap.xml`, `llms.txt`, feeds and Markdown versions (a middleware or action rendering from the same Blade data and cached, `Vary: Accept`); one JSON-LD Blade component per page; IndexNow ping from the publish event through a queued job behind a port with a fake driver. Rate limiters and middleware must not answer the bots with 429. Inertia/Vue/React pages need SSR or prerendering |
 | Astro / SSG | Build-time endpoints (`src/pages/robots.txt.ts`, `llms.txt.ts`, `[...slug].md.ts`) and `@astrojs/sitemap` with `lastmod`; `Accept` negotiation needs the web server or an adapter, so the `<url>.md` + `<link rel="alternate">` form is the default; JSON-LD in the base layout; see `docs/project_guidelines/seo.md` |
-| Nuxt / Medusa | SSR or prerender for every public route; server routes for robots, sitemap, `llms.txt`, Markdown and feeds, built from Medusa product data via the JS SDK; JSON-LD in the layout; feeds as scheduled or cached server routes; IndexNow from a Medusa subscriber |
 | Other | Same requirements; decide the generation mechanism in the AI-01 issue and record it in `docs/ai-readiness.md` |
 
 ## Content rules for copy and design
@@ -191,7 +195,7 @@ For copywriters and designers; they make the `facts`, `ssr-content` and `article
 
 ## The check script
 
-`<skill>/scripts/ai-readiness.mjs` (Node ≥ 18, Playwright from `~/.cache/esoul-uat`, local only):
+`<skill>/scripts/ai-readiness.mjs` (Node ≥ 22, Playwright from `~/.cache/esoul-uat`, local only):
 
 ```bash
 ai-readiness.mjs --check
@@ -203,15 +207,17 @@ ai-readiness.mjs run --base https://site.cz [--urls file | --max 20] [--type web
 - Pages come from `--urls` (same format as `assets/case-study/urls.txt`) or are discovered, one
   per template up to `--max`. On a protected preview pass `--auth` or `--header`.
 - Exit code 0: every `must` passed or has a confirmed exception; 1: an unexcepted `must` failed;
-  2: usage or tool error. `--out` writes `report.json` and `report.md`.
-- `--staging` expects `noindex` and `Disallow`: the `robots` bot rules and `indexable` become info.
+  2: usage or tool error. A failed `should` is reported as a warning and a failed `info` stays
+  `info`; neither changes the exit code. `--out` writes `report.json` and `report.md`.
+- `--staging` expects the preview gate of the guideline: the `robots` bot rules and `indexable`
+  become info, and a missing sitemap is info.
 - `--no-browser` skips `ssr-content` and `semantics`; a gate run uses the browser.
 
 | Moment | Run | Output |
 |---|---|---|
 | During build | Any time, on the preview, as a self-check | optional |
 | Before the DNS switch | `run --base <staging> --staging … --out assets/ai-readiness/<YYYY-MM-DD>/` | must pass or be excepted |
-| Right after the switch | `run --base <production> … --out assets/ai-readiness/<YYYY-MM-DD>/` | must pass or be excepted; the first run on production proves `bot-access` and `indexable` |
+| Right after the switch | `run --base <production> … --out assets/ai-readiness/<YYYY-MM-DD>/` | must pass or be excepted; the first run on production proves `bot-access`, `indexable` and `sitemap` |
 | Audit of a live site | Same, on production | [audit.md](audit.md) |
 
 Record every gate run in the run log of `docs/ai-readiness.md` (date, environment, `must x/y`,
@@ -226,14 +232,16 @@ A failing `must` blocks launch. The only way past it is an exception confirmed b
 ```md
 | Kontrola | Rozsah | Důvod | Potvrdil | Datum |
 |---|---|---|---|---|
-| robots | * | Klient nechce trénink modelů: GPTBot a CCBot zakázány | Jméno | 2026-11-12 |
+| robots | * | Klient nechce trénink modelů: GPTBot a CCBot zakázány (ADR 0012) | Jméno | 2026-11-12 |
 ```
 
 `Kontrola` is the check id, `Rozsah` is `*` or a URL path prefix. A row without `Potvrdil` or
-`Datum` is ignored and reported as ignored. Client opt-outs of training bots, a legacy page that
-cannot be fixed, a feed for a marketplace the shop does not use are typical exceptions. Fake-bot
-protection that blocks only spoofed UAs needs the access-log proof from [Crawlers](#crawlers)
-first. Exceptions are reviewed at every launch and audit.
+`Datum` is ignored and reported as ignored. A deviation from a rule the guideline owns (rows of
+the `G` checks: a blocked bot, no sitemap) also has an ADR, as the guideline's Exceptions section
+requires; the row cites it in `Důvod`. Checks with level `should` or `info` need no row. A legacy
+page that cannot be fixed or a feed for a marketplace the shop does not use are typical
+exceptions. Fake-bot protection that blocks only spoofed UAs needs the access-log proof from
+[Crawlers](#crawlers) first. Exceptions are reviewed at every launch and audit.
 
 ## Case study
 
@@ -255,7 +263,7 @@ Not requirements; keep out of client promises.
 
 | Topic | Status |
 |---|---|
-| `llms.txt` | A proposal, not a standard. Google says AI features need no special files; log and citation studies (secondary, vendor) show little or no crawler use or effect. Real use is by coding agents and documentation sites. Kept as a must because it is cheap and tools (Lighthouse, checkers) look for it. Promise no visibility |
+| `llms.txt` | A proposal, not a standard. Google says AI features need no special files; log and citation studies (secondary, vendor) show little or no crawler use or effect. Real use is by coding agents and documentation sites. The guideline asks for it as SHOULD and the check is a warning, because it is cheap and tools (Lighthouse, checkers) look for it. Promise no visibility |
 | "AI optimisation" vs plain SEO | Google states AI Overviews and AI Mode have no extra requirements beyond being crawlable, indexable and snippet-eligible; most GEO tactics (chunking, FAQ blocks, answer-first) are vendor claims without measured effect. They are kept as good writing |
 | Schema and citations | No demonstrated causal effect on AI citations; still needed for rich results and merchant listings. Some fetch tools strip `<script>`, so visible text must carry the same facts |
 | `robots.txt` | Advisory. Training and search bots honour it, user-triggered fetchers generally do not |
