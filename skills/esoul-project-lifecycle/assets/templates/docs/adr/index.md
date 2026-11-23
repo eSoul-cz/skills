@@ -26,8 +26,8 @@ or both).
 
 ## When to write an ADR
 
-Write one when a decision could reasonably have gone the other way and has meaningful
-consequences. Ask: "Will someone want to know a year from now why this was not done
+Write one when a decision could reasonably have gone the other way and has meaningful,
+hard-to-reverse consequences. Ask: "Will someone want to know a year from now why this was not done
 differently?" Tool choices such as a formatter, a linter or a test runner are project guidelines
 in
 [docs/project_guidelines/](../project_guidelines/index.md), not ADRs. A restatement of the

@@ -14,7 +14,7 @@ Putting knowledge in the wrong place is how a project ends up with three answers
 |---|---|---|---|
 | [CONTEXT.md](../../CONTEXT.md) | Project conventions: profile, Freelo, tasking, commits, languages, UAT dimensions, sources of truth | Domain terms, decisions, rules for code | English |
 | [GLOSSARY.md](../../GLOSSARY.md) | The domain language: English term, Czech original, definition, `_Avoid_` synonyms | Decisions, formulas, process | English + Czech terms |
-| [docs/adr/](../adr/index.md) | A decision with real alternatives and consequences, its status, why the alternatives lost, its implementation gaps | Vocabulary, day-to-day conventions | English |
+| [docs/adr/](../adr/index.md) | A decision that could reasonably have gone the other way, with its consequences and status; the considered alternatives and why they lost, when there are any; its implementation gaps | Vocabulary, day-to-day conventions | English |
 | `docs/project_guidelines/` | The rules the code follows: layers, naming, validation, testing, review | Decisions still open, schedules | English |
 | [docs/plan/](../plan/README.md) | Phases, gates, scope, slices, risks: what is built next and what blocks it | How code is written | Czech |
 | `docs/podklady/` | The client's own material, unedited, plus notes on what it contains; the question register | Anything we decided ourselves | Czech |
