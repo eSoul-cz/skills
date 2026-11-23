@@ -1,9 +1,10 @@
 # Stack profile: new stack (no profile yet)
 
-Use this checklist when the project's stack has no profile in `references/stacks/` (for example
-WordPress, Symfony, Django, a mobile app, or a Laravel variant different enough to need its own
-rules). The project defines the profile items itself, in its own repository, and the profile
-graduates to `eSoul-cz/skills` once it has proven itself.
+Use this checklist when the project's stack has no profile in `references/stacks/` (Laravel,
+Lunar, LSR and Astro have one), for example WordPress, Symfony, Django, a mobile app, or a stack
+different enough to need its own rules. The project defines the profile items itself, in its own
+repository, and the profile graduates to `eSoul-cz/skills` and the guidelines once it has proven
+itself.
 
 Record the stack in `CONTEXT.md › ## Project profile` as `Stack: \`other:<name>\`` and point
 `Stack profile:` at `docs/project_guidelines/tools.md`.
@@ -30,7 +31,7 @@ Each item must end in a concrete section of the project's own documentation. Do 
       engines as production.
 - [ ] Process tier (`full` / `light`) with the reason, per [tiers.md](../tiers.md).
 
-### 2. Bootstrap specifics (in `tools.md › Tools` and `AGENTS.md`)
+### 2. Bootstrap specifics (in `tools.md › Tools` and the project part of `AGENTS.md`)
 
 - [ ] Skeleton command and the packages added on top of it, with versions.
 - [ ] Package manager pinned (`packageManager`, `composer.lock`, `uv.lock`, …).
@@ -45,13 +46,14 @@ Each item must end in a concrete section of the project's own documentation. Do 
 
 ### 3. Guidelines (in `docs/project_guidelines/`)
 
-- [ ] Copy `assets/templates/docs/project_guidelines/common/` (`index.md`, `code-review.md`,
-      `testing.md`, `documentation.md`, `domain.md`, `security-and-data.md`).
-- [ ] Write stack files modelled on the closest profile: `architecture.md` (layers and the
-      dependency direction), `frontend.md` if there is UI, `tools.md`, `deployment.md`, plus
-      framework-specific files (as `laravel/cqrs.md` or `medusa-nuxt/workflows.md` do).
-- [ ] RFC 2119 wording; every rule the code does not follow yet is marked **Target** with an
-      issue link or "No issue".
+- [ ] Run `esoul-guidelines init` and `sync` with the layers that apply: `general` always, and
+      any `package/*` layer for a detected package ([guidelines.md](../guidelines.md)). The
+      general rules (testing, workflow, security, documentation, review) come with it.
+- [ ] Write the stack files as project files next to the managed ones, modelled on the closest
+      layer (`framework/laravel`, `framework/lsr` or `framework/astro`): `architecture.md` (layers
+      and the dependency direction), `frontend.md` if there is UI, `tools.md`, `deployment.md`.
+      Use the guideline style: RFC 2119 wording; every rule the code does not follow yet is
+      marked **Target** with an issue link or "No issue".
 
 ### 4. Quality gates (in `tools.md › Read-only verification` and the `Jenkinsfile`)
 
@@ -59,26 +61,28 @@ Each item must end in a concrete section of the project's own documentation. Do 
 - [ ] Static analysis at the strictest practical level, formatter check, linter, type check,
       unit tests, build. Each listed with its exact command.
 - [ ] Jenkins stages on the shared libraries (`dockerHelpers`, `testing`, `deploy`) running the
-      same commands; image tags pinned, not `lts`; `GIT_LFS_SKIP_SMUDGE=1`.
-- [ ] Which gates are CI-required and which are local soft gates (mutation testing on changed
-      lines, Lighthouse before launch, …).
+      same commands plus `esoul-guidelines check`; image tags pinned, not `lts`;
+      `GIT_LFS_SKIP_SMUDGE=1`.
+- [ ] Which gates are CI-required and which are local diagnostics (mutation testing,
+      Lighthouse before launch, …).
 - [ ] Ruleset on `main`: required check `Jenkins`, one human approval, squash merge only.
-- [ ] A public website follows [ai-readiness.md](../ai-readiness.md): decide how robots, sitemap,
-      `llms.txt`, Markdown and JSON-LD are generated, and run the launch gate.
+- [ ] A public website follows the guideline `public-website.md` and [ai-readiness.md](../ai-readiness.md):
+      decide how robots, sitemap, `llms.txt`, Markdown and JSON-LD are generated, and run the
+      launch gate.
 
 ### 5. Development handover (in `docs/plan/` or the handover PR)
 
 - [ ] CI green on the empty scaffold, with guards for tools that fail on empty input.
 - [ ] Architecture or structure checks that fire from the first commit, each with a test that
-      proves it detects a violation.
+      proves it detects a violation, named as exceptions in the testing guideline of the project.
 - [ ] A reference module implemented end to end for agents to copy.
 - [ ] Parity fixtures and pending parity tests when the client calculates in spreadsheets.
-- [ ] Anonymized data for local work; no real dump reaches an agent.
+- [ ] Anonymized data for local work.
 
 ### 6. Typical ADR topics (in `docs/adr/` or `docs/rozhodnuti.md`)
 
-- [ ] Why this stack (with at least two rejected alternatives, including the closest eSoul
-      profile).
+- [ ] Why this stack, with a considered alternative where there is one (including the closest
+      eSoul profile).
 - [ ] Data store and precision, authentication and roles, integrations, deployment topology.
 - [ ] Stack-specific: plugin or extension policy, upgrade cadence, hosting constraints.
 
@@ -90,13 +94,17 @@ Each item must end in a concrete section of the project's own documentation. Do 
 ## Graduating to a company profile
 
 When the project has passed B4 and shipped at least one phase with the gates unchanged for a
-month, propose a profile to `eSoul-cz/skills`:
+month, propose the stack to the maintainers:
 
-1. Draft `skills/esoul-project-lifecycle/references/stacks/<stack>.md` with the same seven
-   headings as `laravel.md`, generalized (no client names, IDs, or domain terms).
-2. Extract reusable guideline files into
-   `assets/templates/docs/project_guidelines/<stack>/` with `{{UPPER_SNAKE_CASE}}` placeholders.
+1. The rules go to `esoul-cz/guidelines` as a `framework/<stack>` layer written from the real
+   project (project and client names removed); that is a change to the guidelines repository, with
+   its own release.
+2. Draft `skills/esoul-project-lifecycle/references/stacks/<stack>.md` with the headings of
+   [laravel.md](laravel.md): when it applies, bootstrap specifics, handover checklist, typical
+   ADR topics, pitfalls; generalized (no client names, IDs, or domain terms), pointing to the
+   layer instead of restating it.
 3. Add the stack to the `Stack:` options in `tiers.md`, to the profile list in `SKILL.md`, and to
-   the `STACKS` pattern in `scripts/conformance.mjs`.
-4. Open the PR with the project as evidence (links to its `tools.md`, `Jenkinsfile`, and green
+   the `STACKS` pattern in `scripts/conformance.mjs` (and its tests).
+4. If an app template exists for the stack, name its variant in the profile.
+5. Open the PR with the project as evidence (links to its `tools.md`, `Jenkinsfile`, and green
    builds); a second project on the same stack should review the draft before merge.
