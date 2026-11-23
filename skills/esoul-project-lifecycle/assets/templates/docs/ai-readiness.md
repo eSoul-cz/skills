@@ -1,9 +1,11 @@
 # AI readiness — {{PROJECT_NAME}}
 
-Pravidla jsou v eSoul skillu `esoul-project-lifecycle` (`references/ai-readiness.md`); tento
-dokument eviduje, jak je plní tento projekt. Web generuje všechny strojové výstupy sám z vlastních
-dat, bez externích služeb. Spuštění blokuje každá neprošlá kontrola úrovně `must`, kterou
-nekryje potvrzená výjimka níže. Práce je v plánu jako slices AI-01 až AI-06 (AI-06 jen e-shop).
+Pravidla pro roboty, sitemap, `llms.txt`, Markdown verze a náhledové prostředí jsou v guidelinu
+[public-website.md](project_guidelines/public-website.md); eSoul skill `esoul-project-lifecycle`
+(`references/ai-readiness.md`) k nim drží řezy, kontrolu a bránu spuštění. Tento dokument eviduje,
+jak je plní tento projekt. Web generuje všechny strojové výstupy sám z vlastních dat, bez
+externích služeb. Spuštění blokuje každá neprošlá kontrola úrovně `must`, kterou nekryje
+potvrzená výjimka níže. Práce je v plánu jako slices AI-01 až AI-06 (AI-06 jen e-shop).
 
 ## Politika crawlerů
 

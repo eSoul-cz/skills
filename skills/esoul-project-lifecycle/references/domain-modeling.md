@@ -40,7 +40,7 @@ choice.
 
 Update `GLOSSARY.md` the moment a term is resolved instead of batching the changes; keep the
 definition free of implementation details. The change ships in the pull request that introduces
-the term. An open point becomes a `Q-nn` question in the register, never an invented answer.
+the term. An open point becomes a `question` issue, never an invented answer.
 
 ## Offer ADRs sparingly
 

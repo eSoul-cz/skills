@@ -92,5 +92,6 @@ Otevřené položky a jejich rozhodnutí. Odškrtnutá položka nese datum a to,
 
 ## Otevřené body
 
-<!-- Body, které nejsou úkolem pro klienta, ale ještě nejsou rozhodnuté. Rozhodnutí s
-     alternativami jde do rozhodnuti.md. -->
+<!-- Body, které nejsou úkolem pro klienta, ale ještě nejsou rozhodnuté. Otázku na klienta
+     veďte jako issue (nebo task) se štítkem `question` a tady na ni jen odkažte (`#N`).
+     Rozhodnutí s alternativami jde do rozhodnuti.md. -->

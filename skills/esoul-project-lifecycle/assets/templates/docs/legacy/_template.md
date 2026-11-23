@@ -34,6 +34,6 @@ snapshot: YYYY-MM-DD
 ## Otevřené otázky
 
 <!-- Co ze zdrojů nejde určit a na čem záleží. Otázka, kterou musí rozhodnout klient, je
-     položka registru docs/podklady/otevrene-otazky.md; sem patří jen odkaz Q-nn. -->
+     issue se štítkem `question`; sem patří jen odkaz #N. -->
 
-- Co nelze určit a proč na tom záleží — [Q-nn](../podklady/otevrene-otazky.md#q-nn).
+- Co nelze určit a proč na tom záleží — #N.

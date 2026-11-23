@@ -60,8 +60,8 @@ recorded in the ADR's *Implementation status* with its issue.
 
 ## Open questions are not yours to answer
 
-A rule the client has not decided lives in
-[`docs/podklady/otevrene-otazky.md`](../podklady/otevrene-otazky.md). Do not guess it from the
+A rule the client has not decided is an open issue labelled `question` in the project's tracker
+(`gh issue list --label question --state open`). Do not guess it from the
 podklady, the legacy system or your own reasoning, and do not phrase a guess as a decision. Split
 the dependent work out and ask.
 

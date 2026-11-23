@@ -18,7 +18,7 @@ Start from `assets/templates/docs/adr/0000-template.md`.
   a topic.
 - Frontmatter `status`, `date` (when the status last changed), `deciders` (who decided: people
   with their organisation where known, e.g. `Jan Novák (Client), eSoul`).
-- **Context**: the problem, the source (podklad note, legacy document, question `Q-nn`, issue)
+- **Context**: the problem, the source (podklad note, legacy document, `question` issue `#N`, issue)
   and how the client or the previous system handles it today. Technical facts (library or API
   behaviour, limits, pricing, legal rules) come from primary sources: official documentation,
   source code, specifications, first-party APIs. Cite the source next to each claim. Delegate
@@ -50,9 +50,9 @@ Start from `assets/templates/docs/adr/0000-template.md`.
 ## Acceptance
 
 Accept ADRs in a reviewed batch PR, one commit per ADR
-(`:memo: [<scope>] accept ADR-0002 <short title>`), with the deciders confirmed. The index
+(`:memo: [<scope>] Accept ADR-0002 <short title>`), with the deciders confirmed. The index
 records the review date. Accepting an ADR that closes a client question also closes the
-question in the register.
+`question` issue (previewed and approved), with a comment linking the ADR.
 
 ## Index sections
 

@@ -5,10 +5,16 @@ them. Load this file in the `tasking`, `plan` and `audit` modes, or whenever a r
 doubt. Each rule has one owning skill that holds its details; this list names the rule and the
 owner and does not repeat the details beyond what the lifecycle needs.
 
-- **Titles** of issue, Freelo task and PR are identical: `Kontext: Akční výsledek`. No `[FE]`,
-  `[BE]`, `[DATA]` prefix and no slice ID in the title. Category is a label on both sides.
-  The slice ID goes into the issue header line and the first line of the Freelo description.
-  Owner: `esoul-tasking`.
+- **Issue first**: every change has an issue or tracker task (guidelines `workflow.md`, Tasking).
+  Small administrative work (dependency updates, a `Jenkinsfile` change) may go without one only
+  when the user decides so; this skill asks and never assumes it. `profile/internal` relaxes the
+  rule.
+- **Titles** of issue and Freelo task are identical (`Context: Action result`) and the PR title
+  wraps the same message in the commit format. A new project writes it in English; an existing
+  Czech project keeps Czech tracker titles and an English commit-style PR title that links the
+  issue (guidelines `workflow.md`, Tasking). No `[FE]`, `[BE]`, `[DATA]` prefix and no slice ID
+  in the title. Category is a label on both sides. The slice ID goes into the issue header line
+  and the first line of the Freelo description. Owner: `esoul-tasking`.
 - **Estimates** in Freelo are human time in 15-minute steps; split above 4 h. Owner:
   `esoul-freelo-task-authoring`. Actual time is logged as Freelo work reports of active work
   only (`freelo` › work reports).
@@ -20,7 +26,9 @@ owner and does not repeat the details beyond what the lifecycle needs.
 - **Dependencies**: GitHub native `blocked_by` is the source of truth, mirrored as a Freelo
   relation. No temporary "create this relation manually" comments.
 - **Merging**: squash merge, required `Jenkins` check and one human approval on `main`, no
-  bypass for the shared `esoul-cz-user` account. Agents never merge.
+  bypass for the shared `esoul-cz-user` account. Agents do not merge, approve or use a ruleset
+  bypass unless the owner explicitly authorises it for that PR or batch, recorded in the PR
+  description (guidelines `workflow.md`).
 - **Freelo states**: Backlog → To Do (description, assignee, approved estimate) → In progress
   (branch exists) → Code review (PR open, CI green) → Testing (merged and on staging or preview)
   → Done and finished (UAT ticked). Recurring work goes to `LTT`. Whoever starts the work
@@ -34,10 +42,10 @@ owner and does not repeat the details beyond what the lifecycle needs.
   with acceptance on the preview plus the launch checklist.
 - **Astro checks**: a Jenkins `Checks` stage is mandatory (`astro check`, `tsc`, lint and format
   check, build, Playwright smoke of every route at 1440 and 390 px failing on console errors,
-  with SEO assertions). Lighthouse budgets and axe are
-  mandatory before launch.
+  with SEO assertions; the commands are in `framework/astro` `tools.md`). Lighthouse budgets
+  and axe are mandatory before launch.
 - **Link prefetch**: every public website prefetches internal links on hover or touch, with the
-  stack's own mechanism (Astro prefetch, Inertia `<Link prefetch>`, `<NuxtLink>`, Speculation
+  stack's own mechanism (Astro prefetch, Inertia `<Link prefetch>`, Speculation
   Rules on plain server-rendered pages). Links that change state, downloads, signed URLs and the
   admin are never prefetched. The rule lives in the project's `frontend.md`; the launch checklist
   checks it.

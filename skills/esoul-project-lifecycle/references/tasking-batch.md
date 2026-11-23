@@ -15,7 +15,7 @@ This reference only adds what a batch from the slice table needs.
 4. Read every slice row. Reading its sources (ADR, guideline, podklad, design frame) and the
    code it touches goes to `esoul-skills:scout` (Haiku) with the slice rows in the brief,
    returning verified paths with `file:line` evidence. Unverified paths do not go into
-   `Dotčené oblasti`.
+   `Affected areas`.
 5. Load [company-rules.md](company-rules.md) once for the batch.
 
 ## First batch and AI-ready slices
@@ -29,10 +29,10 @@ first batch right after bootstrap includes the standard slices `AI-01`…`AI-06`
 
 - Title = the slice's Titulek. No category prefix, no slice ID.
 - Issue header line: `**Slice:** F1-17 · **Fáze:** F1 (brána G1) · **Rozsah:** S`.
-- Sections per `.github/ISSUE_TEMPLATE/task.yml`: Kontext, Dotčené oblasti, Co je potřeba,
-  Mimo rozsah, Akceptační kritéria (technical, for the developer), `## UAT` (the format in
-  `esoul-tasking` § 3), Poznámky k implementaci, Závislosti,
-  Odkazy (ADR with status, plan section, design frames, Freelo), Kontrola kontraktu.
+- Sections per `.github/ISSUE_TEMPLATE/task.yml` (English form labels, Czech content allowed):
+  Context, Affected areas, What is needed, Out of scope, Acceptance criteria (technical, for the
+  developer), `## UAT` (the format in `esoul-tasking` § 3), Implementation notes, Dependencies,
+  Links (ADR with status, plan section, design frames, Freelo), Contract check.
 - Technical slices: `**Role:** vývojář eSoul` with verification through the pipeline or staging,
   or „Bez uživatelsky viditelného dopadu“ plus a concrete technical check.
 - Labels: one category label (`frontend`, `backend`, `data-migration`, `infrastructure`,

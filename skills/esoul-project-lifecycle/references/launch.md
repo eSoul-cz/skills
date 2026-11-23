@@ -6,8 +6,9 @@ evidence: a command output, a screenshot, or a link.
 
 ## Content and SEO / GEO
 
-AI readiness is owned by [ai-readiness.md](ai-readiness.md); this list only holds the gate and
-the classic SEO items.
+The AI-readiness rules are owned by the guideline `public-website.md` (the project's
+`docs/project_guidelines/public-website.md`); [ai-readiness.md](ai-readiness.md) owns the slices,
+the checker and the gate. This list only holds the gate and the classic SEO items.
 
 - [ ] Every page has a unique title, description and canonical URL.
 - [ ] Structured data (JSON-LD) validates for the page types used (Organization or
@@ -16,8 +17,8 @@ the classic SEO items.
 - [ ] **AI-readiness gate (blocking):** `ai-readiness.mjs` on staging (`--staging`) before the
       switch and on production right after it; every `must` check passes or has an exception
       confirmed by the project lead in `docs/ai-readiness.md`; reports in
-      `assets/ai-readiness/<date>/`. Rules (robots, sitemap, `llms.txt`, Markdown, JSON-LD,
-      feeds): [ai-readiness.md](ai-readiness.md).
+      `assets/ai-readiness/<date>/`. Checks, levels and the checker:
+      [ai-readiness.md](ai-readiness.md).
 - [ ] 301 redirects from every old URL that had traffic or backlinks; removed media return 410.
 - [ ] Trailing-slash policy is consistent with canonicals and the sitemap.
 

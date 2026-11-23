@@ -37,8 +37,8 @@ exists.
 
 ## What this model deliberately does not contain
 
-<!-- Things a reader might expect and will not find, each with the ADR, open question (Q-nn)
-     or scope decision that keeps it out. -->
+<!-- Things a reader might expect and will not find, each with the ADR, open question (issue
+     `#N`) or scope decision that keeps it out. -->
 
 ---
 

@@ -6,9 +6,9 @@ behaviour; the ADR remains the target contract and the difference is recorded as
 implementation gap in its *Implementation status* section. **Never weaken an ADR to match the
 code.**
 
-Open points that block a decision live in
-[docs/podklady/otevrene-otazky.md](../podklady/otevrene-otazky.md); the answers are recorded
-here, not there.
+Open points that block a decision are issues labelled `question` in the project's tracker; the
+answers are recorded here (and in the glossary or a guideline where they belong), the issue is
+then closed.
 
 ## Statuses
 
@@ -66,7 +66,7 @@ client's assignment is not an ADR either; the assignment is summarised in
 
 ## What still blocks
 
-<!-- Numbered list of the open questions (Q-nn) and proposed records that still block
+<!-- Numbered list of the open `question` issues (#N) and proposed records that still block
      delivery, each with what exactly it blocks, and the records that must be accepted
      before the first migration because they cannot be changed cheaply afterwards. When
      nothing blocks, say so with the date. -->

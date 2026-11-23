@@ -24,7 +24,7 @@ eSoul mockups module, and treats the approved design as part of the specificatio
   B screens one by one with screen codes (`B1`…), C supplements, D human checklist. Each screen
   has a „N. revize“ paragraph recording what changed and why.
 - Do not invent fields. The data model, glossary and accepted ADRs are the only source for
-  what a screen shows. Missing data → question in the register.
+  what a screen shows. Missing data → `question` issue.
 - Design every screen at desktop 1440 px and mobile 390 px.
 - Notes on the canvas named „Poznámka — …“ are binding specification for implementation.
 - Design tokens go into code once (Tailwind `@theme` or equivalent) and are lint-enforced.

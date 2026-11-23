@@ -1,24 +1,24 @@
-name: Úkol
-description: Nová funkcionalita, změna, refaktoring nebo datová práce
+name: Task
+description: A new feature, a change, a refactoring or data work
 title: ""
 labels: []
 body:
   - type: markdown
     attributes:
       value: |
-        Název piš ve tvaru `Kontext: Akční výsledek` (např. `Košík: Přepočítat dopravu po změně
-        množství`) a **stejný název použij i pro párový Freelo úkol** — viz
-        [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md#každá-práce-je-pár). Žádný prefix
-        kategorie a žádné ID slice v názvu. Kategorii (`frontend`, `backend`, `data-migration`,
-        `infrastructure`, `documentation`, případně `integration`) vyjádři štítkem.
+        Write the title as `Context: Action result` (for example `Cart: Recalculate shipping after a
+        quantity change`) and **use the same title for the paired Freelo task** (a new project has
+        English titles; an existing Czech project keeps its Czech tracker titles). No category prefix
+        and no slice ID in the title. Express the category (`frontend`, `backend`, `data-migration`,
+        `infrastructure`, `documentation`, optionally `integration`) with a label.
 
   - type: input
     id: header
     attributes:
       label: Slice
       description: >-
-        Hlavička úkolu: ID slice z `docs/plan/seznam-slices.md`, fáze s bránou a rozsah. Úkol mimo
-        plán napiš `mimo plán`.
+        Header line: the slice ID from `docs/plan/seznam-slices.md`, the phase with its gate and the
+        size. Write `mimo plán` for work outside the plan.
       value: "**Slice:** F?-?? · **Fáze:** F? (brána G?) · **Rozsah:** S"
     validations:
       required: true
@@ -26,29 +26,29 @@ body:
   - type: textarea
     id: context
     attributes:
-      label: Kontext
-      description: Co a proč se má stát, odkud požadavek vzešel.
+      label: Context
+      description: What should happen and why, where the request came from.
       placeholder: |
-        Odkud to přišlo (schůzka, podklad, review, chyba v provozu), jaký problém to řeší
-        a co se stane, když se to neudělá.
+        Where it came from (meeting, podklad, review, production defect), which problem it solves
+        and what happens if it is not done.
     validations:
       required: true
 
   - type: textarea
     id: scope
     attributes:
-      label: Dotčené oblasti
+      label: Affected areas
       description: >-
-        Ověřené cesty k souborům, třídy, moduly, routy, tabulky. **Piš jen to, co jsi v repu
-        skutečně ověřil** — nepravdivá cesta stojí řešitele víc času než prázdné pole.
+        Verified file paths, classes, modules, routes, tables. **Write only what you verified in the
+        repository**: a false path costs the assignee more time than an empty field.
     validations:
       required: false
 
   - type: textarea
     id: changes
     attributes:
-      label: Co je potřeba
-      description: Číslovaný seznam konkrétních změn.
+      label: What is needed
+      description: A numbered list of concrete changes.
       placeholder: |
         1. …
         2. …
@@ -58,8 +58,8 @@ body:
   - type: textarea
     id: out-of-scope
     attributes:
-      label: Mimo rozsah
-      description: Co tento úkol záměrně nedělá a kam to patří (jiný slice, jiné issue).
+      label: Out of scope
+      description: What this task deliberately does not do and where it belongs (another slice, another issue).
       placeholder: |
         - …
     validations:
@@ -68,11 +68,11 @@ body:
   - type: textarea
     id: acceptance
     attributes:
-      label: Akceptační kritéria
+      label: Acceptance criteria
       description: >-
-        Technické, pozorovatelné podmínky hotovosti. Ověřuje je vývojář. Pokud úkol mění nebo
-        zavádí výpočet, uveď zdroj v `docs/podklady/` (soubor, list, buňka nebo sloupec), který má
-        výsledek reprodukovat.
+        Technical, observable conditions of done, verified by the developer. When the task changes
+        or introduces a calculation, name the source in `docs/podklady/` (file, sheet, cell or
+        column) that the result must reproduce.
       value: |
         - [ ]
         - [ ]
@@ -84,18 +84,18 @@ body:
     attributes:
       label: UAT
       description: >-
-        UAT není totéž co akceptační kritéria. **UAT je scénář, který v aplikaci proklikne
-        netechnický člověk** a na konci umí říct ano/ne. Uveď rozměry z `CONTEXT.md` (Project
-        profile) s konkrétními hodnotami. Každý krok = akce uživatele + očekávaný výsledek za
-        šipkou. Žádné SQL, žádné příkazy, žádné čtení logů. U technické práce napiš
-        `**Role:** vývojář eSoul`, nebo výslovně „Bez uživatelsky viditelného dopadu“ a popiš
-        technickou kontrolu s pozorovatelným výsledkem.
+        UAT is not the same as the acceptance criteria. **UAT is a scenario that a non-technical
+        person clicks through in the application** and can answer yes or no at the end. State the
+        dimensions from `CONTEXT.md` (Project profile) with concrete values. Each step is a user
+        action plus the expected result after the arrow. No SQL, no commands, no reading logs. For
+        technical work write `**Role:** vývojář eSoul`, or explicitly „Bez uživatelsky viditelného
+        dopadu“, and describe a technical check with an observable result.
       value: |
         **Role:**
         **Předpoklad:**
         {{UAT_DIMENSION_LINES}}
 
-        1. [ ] Akce uživatele → očekávaný výsledek.
+        1. [ ] User action → expected result.
         2. [ ] … → …
     validations:
       required: true
@@ -103,33 +103,33 @@ body:
   - type: textarea
     id: notes
     attributes:
-      label: Poznámky k implementaci
-      description: Omezení, pasti, na co si dát pozor, co záměrně nedělat.
+      label: Implementation notes
+      description: Constraints, pitfalls, what to watch out for, what deliberately not to do.
     validations:
       required: false
 
   - type: textarea
     id: dependencies
     attributes:
-      label: Závislosti
+      label: Dependencies
       description: >-
-        Blokující issue zapiš jako nativní GitHub závislost (`blocked_by`); ta je zdrojem pravdy
-        a Freelo relace ji zrcadlí. Sem napiš jen přehled a závislost na `proposed` ADR nebo
-        otevřené otázce (`Q-nn`).
+        Record a blocking issue as a native GitHub dependency (`blocked_by`); it is the source of
+        truth and the Freelo relation mirrors it. Write here only an overview and a dependency on a
+        `proposed` ADR or an open question (an issue labelled `question`).
       placeholder: |
-        - Blokováno: #…
-        - Otevřená otázka: Q-…
+        - Blocked by: #…
+        - Open question: #…
     validations:
       required: false
 
   - type: textarea
     id: links
     attributes:
-      label: Odkazy
-      description: ADR, plán a slice, design (soubor a frame), podklady.
+      label: Links
+      description: ADR, plan and slice, design (file and frame), podklady.
       placeholder: |
         - ADR: docs/adr/NNNN-….md
-        - Plán: docs/plan/seznam-slices.md (F?-??)
+        - Plan: docs/plan/seznam-slices.md (F?-??)
         - Design: docs/design_pencil/… (frame …)
         - Podklady: docs/podklady/…
     validations:
@@ -139,7 +139,7 @@ body:
     id: freelo
     attributes:
       label: Freelo
-      description: URL párového úkolu. Doplň hned po jeho založení.
+      description: URL of the paired task. Fill it in as soon as the task exists.
       placeholder: https://app.freelo.io/task/…
     validations:
       required: false
@@ -147,14 +147,16 @@ body:
   - type: checkboxes
     id: contract
     attributes:
-      label: Kontrola kontraktu
+      label: Contract check
       options:
         - label: >-
-            Použité pojmy odpovídají `GLOSSARY.md`, nebo je součástí úkolu doplnění glosáře.
+            The terms used match `GLOSSARY.md`, or adding to the glossary is part of the task.
           required: false
         - label: >-
-            Úkol neodporuje žádnému `accepted` ADR, nebo je rozpor popsaný a má vzniknout nové ADR.
+            The task does not contradict an `accepted` ADR, or the contradiction is described and a
+            new ADR is to be written.
           required: false
         - label: >-
-            Úkol nestojí na otevřené otázce ani na `proposed` ADR, nebo to výslovně uvádí.
+            The task does not depend on an open question or a `proposed` ADR, or it says so
+            explicitly.
           required: false

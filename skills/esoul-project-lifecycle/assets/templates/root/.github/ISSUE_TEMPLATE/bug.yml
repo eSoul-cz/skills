@@ -1,37 +1,39 @@
-name: Chyba
-description: Něco nefunguje, jak má
+name: Bug
+description: Something does not work as it should
 title: ""
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Název piš ve tvaru `Kontext: Akční výsledek` a stejný název použij i pro párový Freelo
-        úkol. Kategorii (`frontend`, `backend`, `data-migration`, `infrastructure`) vyjádři
-        štítkem, ne prefixem. Žádná reálná data klienta (jména, kontakty, částky z podkladů).
+        Write the title as `Context: Action result`, the same title as the paired Freelo task (in a
+        new project it is English; an existing Czech project keeps its Czech titles). Express the
+        category (`frontend`, `backend`, `data-migration`, `infrastructure`) with a label, not a
+        prefix. No real client data (names, contacts, amounts from the podklady); an anonymised
+        sample of the faulty records is allowed.
 
   - type: textarea
     id: observed
     attributes:
-      label: Pozorované chování
-      description: Co se skutečně děje. Chybová hláška doslovně, screenshot vítán.
+      label: Observed behaviour
+      description: What actually happens. The error message verbatim; a screenshot is welcome.
     validations:
       required: true
 
   - type: textarea
     id: expected
     attributes:
-      label: Očekávané chování
+      label: Expected behaviour
       description: >-
-        Co se mělo stát místo toho, a proč si to myslíš. U čísel uveď, odkud správná hodnota
-        plyne — zdroj v `docs/podklady/`, ADR, nebo ruční přepočet.
+        What should have happened instead, and why you think so. For numbers, say where the correct
+        value comes from: a source in `docs/podklady/`, an ADR or a manual recalculation.
     validations:
       required: true
 
   - type: textarea
     id: repro
     attributes:
-      label: Kroky k reprodukci
+      label: Steps to reproduce
       value: |
         1.
         2.
@@ -42,25 +44,25 @@ body:
   - type: dropdown
     id: impact
     attributes:
-      label: Dopad
-      description: Rozdíl mezi křivým zarovnáním a špatnou částkou je řádový.
+      label: Impact
+      description: The difference between a crooked alignment and a wrong amount is an order of magnitude.
       options:
-        - Blokuje klíčový tok (uživatel nedokončí hlavní akci)
-        - Zkreslená data, částky nebo doklady
-        - Zpřístupnění osobních nebo cizích dat
-        - Funkční omezení (existuje obchvat)
-        - Kosmetika
+        - Blocks a key flow (the user cannot finish the main action)
+        - Distorted data, amounts or documents
+        - Exposes personal or foreign data
+        - Functional limitation (a workaround exists)
+        - Cosmetic
     validations:
       required: true
 
   - type: dropdown
     id: environment
     attributes:
-      label: Prostředí
+      label: Environment
       options:
-        - lokální
+        - local
         - staging / preview
-        - produkce
+        - production
     validations:
       required: true
 
@@ -69,32 +71,33 @@ body:
     attributes:
       label: Role
       description: >-
-        Pod jakou rolí je chyba vidět (role podle `GLOSSARY.md`), nebo `nepřihlášený uživatel`,
-        nebo `napříč rolemi`.
+        The role under which the bug is visible (a role from `GLOSSARY.md`), or `not signed in`, or
+        `across roles`.
     validations:
       required: true
 
   - type: textarea
     id: scope
     attributes:
-      label: Dotčené oblasti
-      description: Ověřené cesty k souborům, třídy, routy, tabulky — pokud je znáš.
+      label: Affected areas
+      description: Verified file paths, classes, routes, tables, if you know them.
     validations:
       required: false
 
   - type: textarea
     id: uat
     attributes:
-      label: UAT (regresní ověření)
+      label: UAT (regression check)
       description: >-
-        Kroky, kterými se po opravě ověří, že je chyba pryč — včetně původního reprodukčního
-        scénáře. Proklikne je netechnický člověk; rozměry z `CONTEXT.md` s konkrétními hodnotami.
+        Steps that prove after the fix that the bug is gone, including the original reproduction.
+        A non-technical person clicks through them; use the dimensions from `CONTEXT.md` with
+        concrete values.
       value: |
         **Role:**
         **Předpoklad:**
         {{UAT_DIMENSION_LINES}}
 
-        1. [ ] Akce uživatele → očekávaný výsledek.
+        1. [ ] User action → expected result.
     validations:
       required: true
 
@@ -102,7 +105,7 @@ body:
     id: freelo
     attributes:
       label: Freelo
-      description: URL párového úkolu. Doplň hned po jeho založení.
+      description: URL of the paired task. Fill it in as soon as the task exists.
       placeholder: https://app.freelo.io/task/…
     validations:
       required: false

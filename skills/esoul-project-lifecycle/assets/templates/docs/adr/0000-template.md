@@ -15,7 +15,7 @@ deciders: eSoul
          > had never been accepted, so it is amended in place rather than superseded.
        List the record under Revisions in index.md.
      - Accepted, and a point is filled in, confirmed or narrowed: add a dated note under the
-       title, newest first, citing its source (podklady note, Q-nn, issue). Never rewrite the
+       title, newest first, citing its source (podklady note, question issue #N, issue). Never rewrite the
        accepted text:
          > Note of YYYY-MM-DD from the client's written answers (odpovedi-klienta-YYYY-MM-DD.md).
          > **One-sentence outcome.** Detail, and which bullet below it overrides.
@@ -30,7 +30,7 @@ deciders: eSoul
 
 What forced this decision. Cite where it comes from: a note in
 [docs/podklady/](../podklady/README.md), a document in [docs/legacy/](../legacy/index.md), an
-open question (`Q-nn`), a slice of the plan, an issue or a pull request. Explain how the client
+open question (issue `#N` labelled `question`), a slice of the plan, an issue or a pull request. Explain how the client
 or the old system solves the problem today, why that approach does not simply carry over, and
 why the decision cannot wait.
 

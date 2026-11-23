@@ -22,22 +22,24 @@ The light tier uses one `docs/plan.md`: per phase a table `ID | Stránka / sekce
 ```md
 | ID | Titulek | Kat. | Závislosti | Rozsah | Obrazovky | Issue | Akceptace |
 |---|---|---|---|---|---|---|---|
-| F1-17 | Peníze: Zavést Money a směnné kurzy | be | F1-03, Q-12 | S | — | #92 | Obsluha@admin: zadá kurz → ceny v EUR se přepočtou |
+| F1-17 | Money: Introduce Money and exchange rates | be | F1-03, #12 | S | — | #92 | Obsluha@admin: zadá kurz → ceny v EUR se přepočtou |
 ```
 
 - **ID** `<phase code>-<nn>` (`F1-17` by default; VONO uses its phase codes `M1-05`, `NT-02`),
   never renumbered or reused. Cancelled slices stay with the reason.
-- **Titulek** follows the company title rule and becomes the issue and Freelo title verbatim.
+- **Titulek** follows the project's title rule (`CONTEXT.md › Tasking convention`: English in a
+  new project, Czech tracker titles in an existing Czech one) and becomes the issue and Freelo
+  title verbatim.
 - **Kat.** exactly one of `fe`, `be`, `data`, optionally `+int`; or `pm` for Freelo-only work
   (contracts, workshops, client coordination).
-- **Závislosti** slice IDs, questions `Q-nn`, client inputs `K-nn`, or gates.
+- **Závislosti** slice IDs, open questions (`#N` of a `question` issue), client inputs `K-nn`, or gates.
 - **Rozsah** from `rozsah.md`.
 - **Akceptace** one-line scenario `Role@kontext: akce → výsledek`. Money states amount,
   currency and VAT mode.
 - **Granularity**: a slice is one vertical, independently shippable result: one issue, one PR,
   one UAT scenario. Split when the estimate exceeds 4 h of human time or when it spans frontend and backend in a way that
   can ship separately (two dependent pairs).
-- An ADR that still has to be written or accepted is a slice too (`ADR: Přijmout …`).
+- An ADR that still has to be written or accepted is a slice too (`ADR: Accept …`).
 
 ## Standard AI-ready slices
 
@@ -45,7 +47,8 @@ For the public-website product types (`website`, `website-admin`, `eshop`; `appl
 public part), the plan templates ship the slices `AI-01`…`AI-06` (`AI-06` for `eshop` only). Keep
 them: adapt titles, dependencies and acceptance to the stack, never delete them, and keep the
 `AI-nn` IDs. They belong to the first tasking batch ([tasking-batch.md](tasking-batch.md)). A
-project without a public site deletes them. The rules and the launch gate are owned by
+project without a public site deletes them. The rules are owned by the guideline `public-website.md`
+(`docs/project_guidelines/public-website.md`); the slices, the checker and the launch gate by
 [ai-readiness.md](ai-readiness.md); `audit` warns (`ai-readiness-slices`) when they are missing.
 
 ## Phases and gates

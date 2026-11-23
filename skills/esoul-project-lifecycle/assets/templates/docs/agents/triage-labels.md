@@ -15,11 +15,10 @@ When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the 
 label string from this table.
 
 Triage labels are independent of the work-category labels (`frontend`, `backend`,
-`data-migration`, `infrastructure`, `documentation`, plus `integration` and `bug`) and of
-Dependabot's `dependencies` — see
-[CONTRIBUTING.md](../../CONTRIBUTING.md#každá-práce-je-pár).
+`data-migration`, `infrastructure`, `documentation`, plus `integration` and `bug`), of the
+`question` label of open questions and of Renovate's `dependencies` label; the tasking rules are
+in `## Tasking convention` of [CONTEXT.md](../../CONTEXT.md).
 
-An issue is `ready-for-agent` only when it has a UAT section, verified paths in *Dotčené
-oblasti*, and no open `blocked_by` issue. An issue that depends on an open question in
-`docs/podklady/otevrene-otazky.md` or on a `proposed` ADR stays `needs-info` until the point is
-decided.
+An issue is `ready-for-agent` only when it has a UAT section, verified paths in *Affected
+areas*, and no open `blocked_by` issue. An issue that depends on an open `question` issue or on
+a `proposed` ADR stays `needs-info` until the point is decided.

@@ -8,7 +8,7 @@ read it.
 ```md
 ## Project profile
 
-- Stack: `laravel`                  # laravel | medusa-nuxt | astro | other:<name>
+- Stack: `laravel`                  # laravel | lunar | lsr | astro | other:<name>
 - Archetype: `—`                    # astro: A-static | B-admin | C-headless
 - Product type: `application`       # application | eshop | website-admin | website (UAT packs, esoul-uat)
 - Process tier: `full`              # full | light
@@ -19,8 +19,9 @@ read it.
 - Design: `docs/design/projekt.pen` or Figma URL, or `—`
 ```
 
-Infer the stack from the repository (`composer.json`, `package.json`, `astro.config.*`,
-`medusa-config.*`). Propose a tier with the reason, wait for confirmation, then write the
+Infer the stack from the repository (`composer.json`, `package.json`, `astro.config.*`):
+`lunarphp/lunar` is `lunar`, `lsr/core` is `lsr`, other `laravel/framework` projects are
+`laravel`. Propose a tier with the reason, wait for confirmation, then write the
 section. For `other:<name>` the stack profile points to the project's own
 `docs/project_guidelines/tools.md` (see `stacks/new-stack.md`).
 
@@ -32,11 +33,11 @@ the domain, not from the template.
 
 | Area | `full` (applications) | `light` (websites, small sites with an admin) |
 |---|---|---|
-| Typical | Laravel, Medusa/Nuxt, integrations, custom domain logic, money | Astro A/B, WordPress, landing pages |
+| Typical | Laravel, Lunar, LSR, integrations, custom domain logic, money | Astro A/B, WordPress, landing pages |
 | Client evidence | `docs/podklady/` notes, `docs/legacy/` | `docs/obsah-stary-web.md`, `docs/obsah-novy-web.md`, files in `assets/` |
-| Questions | `docs/podklady/otevrene-otazky.md` | „Co dodá klient“ section in `docs/sitemap-a-meta.md` |
-| Glossary | `GLOSSARY.md` | Only once a domain appears (admin, enquiries, bookings) |
-| Decisions | `docs/adr/` | `docs/rozhodnuti.md` (ADR-lite, `D-nn`) |
+| Questions | Issues labelled `question` ([questions-and-client](questions-and-client.md)) | Same issues; „Co dodá klient“ in `docs/sitemap-a-meta.md` is the checklist of material the client owes |
+| Glossary | `GLOSSARY.md` | `GLOSSARY.md` stays as the header-only file from the template (the guidelines link it); terms are added once a domain appears (admin, enquiries, bookings) |
+| Decisions | `docs/adr/` | `docs/rozhodnuti.md` (ADR-lite, `D-nn`), named as the decision register in `CONTEXT.md › Sources of truth` |
 | Design | Brief → `.pen` → mockup → review rounds | Same, plus `docs/design-log.md` with dated client approvals |
 | Plan | `docs/plan/` phases, gates, scope, slices, risks | `docs/plan.md`: one table of pages and sections |
 | Tasking | `github-freelo` pairs | Pairs, or `freelo-only` for small jobs |
@@ -47,8 +48,9 @@ the domain, not from the template.
 | Before go-live | Handover and application documentation | `launch` mode: launch-readiness audit in `docs/nasazeni.md` |
 
 Templates: full tier under `assets/templates/docs/`, light tier under
-`assets/templates/light/docs/`. Both tiers use the root templates under
-`assets/templates/root/`.
+`assets/templates/light/docs/`. Both tiers take their root files from the template
+([root-files.md](root-files.md)) and the same guideline layers ([guidelines.md](guidelines.md)):
+the rendered guidelines are never rewritten for the light tier.
 
 ## Light-tier phases and gates
 

@@ -3,7 +3,7 @@
 Issues and specs for this repo live as GitHub issues in `{{GITHUB_REPO}}`. Every issue is paired
 with a Freelo task in project {{FREELO_PROJECT_NAME}} (`{{FREELO_PROJECT_ID}}`); the pairing,
 titles, labels, estimates and UAT rules are defined in the `## Tasking convention` section of
-[`CONTEXT.md`](../../CONTEXT.md) and in [`CONTRIBUTING.md`](../../CONTRIBUTING.md). Author new
+[`CONTEXT.md`](../../CONTEXT.md). Author new
 work with the `esoul-tasking` skill, which creates both sides and their reciprocal links after an
 approved preview. Use the `gh` CLI for GitHub operations.
 
@@ -23,10 +23,15 @@ approved preview. Use the `gh` CLI for GitHub operations.
 - **Create an issue**: use `esoul-tasking`; it creates the issue with
   `gh issue create --repo {{GITHUB_REPO}} --body-file <file>` and the paired Freelo task. Never
   create only one side.
-- **Title**: `Kontext: Akční výsledek`, identical on the issue, the Freelo task and the pull
-  request; no category prefix and no slice ID.
-- **Language**: issues are written in Czech and follow `.github/ISSUE_TEMPLATE/task.yml` or
-  `bug.yml`. A UAT scenario states the dimensions from `CONTEXT.md` with concrete values.
+- **Title**: `Context: Action result`, identical on the issue and the Freelo task, with no
+  category prefix and no slice ID; the pull request title wraps it in the commit format. A new
+  project writes it in English; a project with Czech history keeps Czech tracker titles and an
+  English commit-style pull request title that links the issue (`CONTEXT.md`).
+- **Language**: issue and Freelo text may stay Czech; issues follow `.github/ISSUE_TEMPLATE/task.yml`
+  or `bug.yml`. A UAT scenario states the dimensions from `CONTEXT.md` with concrete values.
+- **Questions**: an open question is an issue (or task) labelled `question`; list them with
+  `gh issue list --repo {{GITHUB_REPO}} --label question --state open`. The answer is recorded
+  in an ADR, the glossary or a guideline and the issue is closed.
 - **Read an issue**: `gh issue view <number> --repo {{GITHUB_REPO}} --comments`, also fetching
   labels. The Freelo backlink is in the issue's `Freelo` field. A later `Rozhodnutí <datum>`
   section of the issue takes precedence over the text above it.
@@ -40,7 +45,7 @@ new issues and Freelo tasks are created only through `esoul-tasking`.
 - **Apply / remove labels**:
   `gh issue edit <number> --repo {{GITHUB_REPO}} --add-label "..."` / `--remove-label "..."`
 - **Close**: `gh issue close <number> --repo {{GITHUB_REPO}} --comment "..."`. Closing the issue
-  does not move the Freelo task; Freelo status changes follow `CONTRIBUTING.md`.
+  does not move the Freelo task; Freelo status changes follow `## Tasking convention`.
 
 ## Dependencies
 
@@ -58,7 +63,7 @@ Never leave a temporary "create the relation manually" comment.
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature
-requests; `/triage` reads this flag.)_ Dependabot pull requests are dependency updates, not
+requests; `/triage` reads this flag.)_ Renovate pull requests are dependency updates, not
 requests. GitHub shares one number space across issues and PRs, so a bare `#42` may be either:
 resolve with `gh pr view 42` and fall back to `gh issue view 42`.
 

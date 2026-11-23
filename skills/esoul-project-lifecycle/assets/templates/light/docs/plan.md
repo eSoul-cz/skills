@@ -44,7 +44,8 @@ Strom stránek, meta a přesměrování jsou v [sitemap-a-meta.md](sitemap-a-met
 
 - **ID** `F<fáze>-<nn>` se nikdy nepřečísluje ani nepoužije znovu; zrušený řádek zůstává se
   stavem `zrušeno` a důvodem. Standardní řezy AI-ready webu mají ID `AI-<nn>`.
-- **Titulek** issue i Freelo tasku je `Kontext: Akční výsledek`, bez ID; ID je v hlavičce issue
+- **Titulek** issue i Freelo tasku je `Kontext: Akční výsledek` (v novém projektu anglicky,
+  projekt s českou historií drží české titulky), bez ID; ID je v hlavičce issue
   a na prvním řádku popisu Freelo tasku.
 - **Stav:** `čeká`, `rozpracováno`, `hotovo`, `zrušeno`.
 - **Úkol:** `#N` issue, nebo odkaz na Freelo task v režimu `freelo-only`; `—` dokud nevznikl.

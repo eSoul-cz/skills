@@ -15,11 +15,13 @@ ADR, the plan or an issue says so.
 | Design review feedback exports | `docs/podklady/pripominky-mockup-revize-N-YYYY-MM-DD.md` |
 | Screenshots and Lighthouse of the original and launched site | `assets/case-study/pred\|po/<date>/` ([case-study.md](case-study.md)) |
 | Previous system "as it was" | `docs/legacy/<area>.md` |
-| Raw legacy evidence (dumps, crawls) | gitignored `_reference/` or `assets/` when anonymized |
+| Raw legacy evidence (dumps, crawls) | A gitignored local folder, by convention `_reference/`, or `assets/` when anonymized |
 
-Never store client data in gitignored folders such as `storage/`, `tmp/` or Downloads. The single
-exception is unanonymized legacy evidence in the gitignored `_reference/`, which never reaches
-an agent unless anonymized.
+Client data does not live in other gitignored folders such as `storage/`, `tmp/` or Downloads.
+The guidelines (`security-and-data.md`, Anonymized dumps for agents) allow one gitignored local
+folder, by convention `_reference/`, to hold non-anonymised client material such as legacy
+evidence: it is never committed and never shared (not in LFS, issues or pull requests), what is
+derived from it is anonymised, and the project's `.gitignore` names the folder.
 
 ## Reading the files
 
@@ -35,7 +37,7 @@ Start from `assets/templates/docs/podklady/_poznamka.md`.
 
 - Frontmatter: `status: podklady-as-is`, `source:` (path in `assets/`), `snapshot:` (date received).
 - `## Co v podkladu je`, then one section per sheet or chapter, then `## Otevřené otázky`
-  (links to `Q-nn`), then `## Ověřeno` (how each claim was checked, e.g. extracted with
+  (links to the `question` issues, `#N`), then `## Ověřeno` (how each claim was checked, e.g. extracted with
   openpyxl, compared with the PDF).
 - Describe, do not decide. No future tense. Point to the target only as
   „Cílové řešení: ADR-00NN“.
@@ -55,14 +57,15 @@ Start from `assets/templates/docs/legacy/_template.md`.
 
 ## Personal data
 
-- Dumps are anonymized before an agent reads them. Keep the anonymization script and the vetted
-  column list in `scripts/` and say in the PR which dump version agents may use.
-- An agent that receives an unanonymized dump stops and reports it.
+- Dumps are anonymized before an agent reads them by default. Keep the anonymization script and
+  the vetted column list in `scripts/` and say in the PR which dump version agents may use.
+- An agent that finds a non-anonymised dump among its inputs asks the owner before reading it
+  and exports nothing from it (guidelines `security-and-data.md`).
 - Issues, PRs, fixtures and tests contain only synthetic or anonymized values. Parity fixtures
   may contain numbers and cell references, never names.
 
 ## After intake
 
-Each gap or ambiguity becomes a question in the register ([questions-and-client.md](questions-and-client.md)).
+Each gap or ambiguity becomes a `question` issue ([questions-and-client.md](questions-and-client.md)).
 Each decision with real alternatives becomes a `proposed` ADR ([adr.md](adr.md)). Open one PR per
 intake batch.
