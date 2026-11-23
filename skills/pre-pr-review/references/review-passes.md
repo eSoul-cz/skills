@@ -91,7 +91,7 @@ Your lens: <lens name>. Checklist:
 
 Read every hunk together with enough surrounding code, callers, and tests to judge it.
 Report only problems you can point to in the code. For each candidate return:
-- severity (<project scale>), title
+- severity (Critical, Major, Minor or Nitpick), title
 - location: path:line (line in the current file)
 - evidence: what the code does, quoting at most 5 lines
 - expected: the intended behavior and its source

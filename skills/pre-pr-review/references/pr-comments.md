@@ -32,7 +32,7 @@ Write it outside the repository (the scratchpad or a temp directory):
   "verdict": "<verdict and Not covered lines from the report>",
   "findings": [
     {
-      "severity": "High",
+      "severity": "Major",
       "title": "Total ignores the discount",
       "path": "app/Orders/Total.php",
       "line": 42,

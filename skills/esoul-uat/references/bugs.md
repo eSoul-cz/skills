@@ -40,7 +40,9 @@ The issue contains:
 - likely cause with `file:line`;
 - proposed fix;
 - severity: `kritická` (data loss, security, blocks a main flow), `vysoká` (main flow
-  wrong, no workaround), `střední` (workaround exists), `nízká` (cosmetic);
+  wrong, no workaround), `střední` (workaround exists), `nízká` (cosmetic). They map to
+  the review scale Critical, Major, Minor, Nitpick in that order, so a defect and a code
+  review finding read the same;
 - `## UAT`: the failing scenario's steps as the acceptance check.
 
 ## Screenshots in issues and tasks

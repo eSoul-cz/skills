@@ -88,7 +88,7 @@ A push, rebase, retarget, lower-layer update, or externally changed head/base in
 
 ## 5. Triage, fix, and reply
 
-Create a task for every finding needing work, grouped as Critical, Warning, or Info. Severity controls order, not whether a valid finding is addressed. Consolidate duplicate root causes. Each finding gets one disposition: valid (fix, verify, reply with the commit), invalid (reply with evidence), duplicate or fixed (link the fix), or uncertain (investigate, then ask a focused question and mark it blocked; never relabel it invalid to finish). The table, reply rules and approval request are in "Triage, fix, and reply" in loop.md.
+Create a task for every finding needing work, grouped as Critical, Major, Minor, or Nitpick (CodeRabbit's labels, the project's `code-review.md`). Critical and Major block the merge; Minor and Nitpick are fixed in the same PR or marked `Deferred` with a follow-up. Severity controls order, not whether a valid finding is addressed. Consolidate duplicate root causes. Each finding gets one disposition: valid (fix, verify, reply with the commit), invalid (reply with evidence), duplicate or fixed (link the fix), or uncertain (investigate, then ask a focused question and mark it blocked; never relabel it invalid to finish). The table, reply rules and approval request are in "Triage, fix, and reply" in loop.md.
 
 - A fix with a clear cause goes to `implementer`. For a finding that is a pattern, the brief asks to fix every instance (search for them), not only the flagged line.
 - Reply to inline findings in their original thread, with bodies from files or stdin, never interpolating reviewer text into shell code.
