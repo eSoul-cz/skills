@@ -149,7 +149,7 @@ It does not change when the verified files are committed (it equals the new comm
 - Every write to Freelo, GitHub issues, or other shared systems needs an approved preview first. Exception: the task lifecycle writes above (assignee, worker, state moves, finishing) for the task this session works on are mechanical status updates and need no preview; report them in the final summary. Content writes (title, description, estimate, new tasks, comments with substance) still need approval.
 - Destructive commands (reset, drop, force-push, bulk delete, search-replace on a database) need a backup or a dry run and explicit confirmation.
 - Prefer the repository's own scripts (Makefile, composer/npm scripts, `scripts/`) over ad-hoc commands.
-- Project data (client files, dumps, media, backups) goes to tracked `assets/` via Git LFS, never to `storage/` or other ignored folders: `esoul-project-data`.
+- Project source material without personal data and anonymised dumps go to tracked `assets/` via Git LFS, never to `storage/` or other ignored folders; non-anonymised exports, backups with personal data and generated PDFs are never committed, not even to LFS: `esoul-project-data`.
 - On a data task (label `data-migration`, imports, data fixes, reports), never change application code or the data model beyond what the issue specifies; propose the change as new work instead: `esoul-data-task-guard`.
 
 ## 5. Definition of done

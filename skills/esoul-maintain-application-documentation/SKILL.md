@@ -33,7 +33,7 @@ Create missing files from `assets/project-templates/`, resolving that path relat
 
 The tooling bootstrap creates `docs/documentation.toml` when it is missing. Treat it as project-owned after creation.
 
-Ensure these ignored paths unless project configuration explicitly commits PDFs:
+Ensure these paths are always ignored; generated PDFs are build artifacts, reproducible from their sources, and are never committed, not even to Git LFS:
 
 ```gitignore
 /docs/.documentation-work/

@@ -438,7 +438,7 @@ $esoul-data-task-guard the import found duplicate breeders; propose the fix
 
 ### `esoul-project-data`
 
-Client files, photos, admin media, SQL dumps, backups and import files go to the tracked `assets/` folder through Git LFS, and guides to `docs/`, never to `storage/`, `*.nosync`, `tmp/` or Downloads, where only one computer has them. Secrets never go to Git; throwaway intermediates stay in the session scratchpad.
+Source material without personal data (client files, photos, admin media, import files) and anonymised SQL dumps and backups go to the tracked `assets/` folder through Git LFS, and guides to `docs/`, never to `storage/`, `*.nosync`, `tmp/` or Downloads, where only one computer has them. Non-anonymised exports, backups with personal data and generated PDFs are never committed, not even to LFS; data is reviewed before it is committed, and a public-data exception is recorded in `CONTEXT.md` or an ADR. Secrets never go to Git; throwaway intermediates stay in the session scratchpad.
 
 Usage:
 

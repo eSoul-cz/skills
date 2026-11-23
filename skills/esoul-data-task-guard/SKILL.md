@@ -32,7 +32,7 @@ specifies and that was approved is in scope and may be implemented.
 
 ## What is allowed
 
-- Read code, migrations, schema and data (`SELECT`, `EXPLAIN`, `SHOW CREATE TABLE`, `describe`).
+- Read code, migrations, schema and data (`SELECT`, `EXPLAIN`, `SHOW CREATE TABLE`, `describe`). Ask the owner before reading production or sensitive data; dev and staging normally hold none. Never write to real data, and export nothing you read into the repository, issues or PRs.
 - Analyse data, quantify the impact, prepare an anonymized sample of the faulty records.
 - Write a **proposal** with a concrete diff, SQL or migration as an example in the text of the
   new work: the GitHub issue in `github-freelo` mode, the Freelo task description in
