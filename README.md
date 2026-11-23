@@ -2,6 +2,10 @@
 
 Reusable agent skills and companion tools for eSoul projects.
 
+**Version.** The agent plugin (`esoul-skills`) is at **0.24.0**; each release is tagged `plugin-<version>` (the bare `0.6.x` tags belong to the documentation tool). Maintainers are listed in [`CONTEXT.md`](CONTEXT.md).
+
+**Distribution.** `npx skills add eSoul-cz/skills` ([Install](#install)) is the canonical route, and the way a project pins the skills it needs. The Claude Code plugin below is a convenience for colleagues on Claude Code or Codex setups; it carries the same skills and the worker agents.
+
 ## The eSoul workspace (Claude Code / Claude in VS Code)
 
 The fastest way to set a colleague up with the full eSoul workflow is the bundled
@@ -39,9 +43,16 @@ upstream plugin stays available but is optional:
 claude plugin install mattpocock-skills@esoul      # optional: the rest of Matt Pocock's skills
 ```
 
-Do not use its tracker skills (`to-spec`, `to-tickets`, `triage`, `wayfinder`) or
-`setup-matt-pocock-skills` in eSoul repositories: they publish to GitHub instead
-of Freelo, and the setup skill renames `CONTEXT.md`.
+### Upstream skills that agents ignore
+
+The upstream plugin stays installed, but in eSoul repositories agents ignore these of its skills, because they replace an eSoul rule or tool:
+
+- the tracker set: `to-spec`, `to-tickets`, `triage`, `wayfinder`, `implement-spec` (they publish to GitHub instead of Freelo; use `esoul-tasking`);
+- `setup-matt-pocock-skills` (it renames `CONTEXT.md`);
+- `pr` (the repository's PR template and `esoul-review` write the PR body);
+- `git-guardrails-claude-code` (it blocks the `git push` that `esoul-review` needs).
+
+Grilling follows one rule: rounds of independent questions (`esoul-workflow` `references/grilling.md`), whichever grilling skill is loaded.
 
 To pick up upstream improvements, compare the adapted files with a newer checkout,
 port the changes by hand, then record the new version:
