@@ -17,7 +17,7 @@ Options:
                          inventory (default: first observation of this run).
   --reviewer LOGIN       Review account to track; repeatable (default: coderabbitai).
   --skip-reviewer LOGIN  Stop waiting for this reviewer, for example CodeRabbit while it is
-                         rate-limited and pre-pr-review stands in. Its checks count neither
+                         rate-limited and the esoul-review fallback review stands in. Its checks count neither
                          as CI nor as review failures; its activity is still reported.
                          Repeatable.
   --require-check NAME   Expected check/status context; repeatable. CI is not complete

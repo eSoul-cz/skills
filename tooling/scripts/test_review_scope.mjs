@@ -11,9 +11,9 @@ import {
     globToRegExp,
     parseCodeRabbitConfig,
     scanLine,
-} from '../../skills/pre-pr-review/scripts/review-scope.mjs';
+} from '../../skills/esoul-review/scripts/review-scope.mjs';
 
-const script = fileURLToPath(new URL('../../skills/pre-pr-review/scripts/review-scope.mjs', import.meta.url));
+const script = fileURLToPath(new URL('../../skills/esoul-review/scripts/review-scope.mjs', import.meta.url));
 
 // Built at runtime so this file itself never contains a credential-shaped literal.
 const FAKE_AWS_KEY = ['AKIA', 'Z7QW3RT5YU8IOP2A'].join('');

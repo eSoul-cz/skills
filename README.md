@@ -171,76 +171,52 @@ Usage:
 $gitmoji-commit commit your work
 ```
 
-### `final-pr-review`
+### `esoul-review`
 
-Finishes individual GitHub PRs and native stacked PRs: optional local CodeRabbit review before pushing, CI and remote review monitoring, fixes for valid findings, evidence-backed replies to invalid findings, and repeated verification until the current revision is approved. Does not merge, approve or use a ruleset bypass unless the owner explicitly authorises it for that PR or batch (recorded in the PR description), and never bypasses required human reviews.
+One review skill with two paths. **Path A** reviews a branch, work in progress or a change with no PR against its real base before the PR: it resolves the exact diff (committed, staged, unstaged and untracked changes), applies `.coderabbit.yaml` path filters, path instructions and profile, scans every changed file for credentials, runs the repository's own linters and tests (reusing verification receipts), and reviews the change along two axes in parallel sub-agents on explicit models: **Standards** (the project's guidelines, `AGENTS.md`, `CONTEXT.md` and a code-smell baseline) and **Spec** (the issue or task acceptance criteria and `## UAT`). The review flow is the vendored, eSoul-adapted `code-review` of mattpocock/skills; the skill adds the guidelines' severities (Critical, Major, Minor, Nitpick), verification, deduplication and independent verification of blocking findings under a risk trigger. **Path B** finishes the PR: it creates or updates the PR (single or native stacked), then loops on CI and CodeRabbit with fixes for valid findings, evidence-backed replies to invalid ones, and repeated verification until the current revision is approved.
 
-Uses `gitmoji-commit` for commits and `code-review` for local review when available, and falls back to `pre-pr-review` when local CodeRabbit is unavailable or out of quota. When CodeRabbit is rate-limited or out of credits on the PR, it posts a `pre-pr-review` fallback review and accepts that review in CodeRabbit's place once its findings are resolved, instead of waiting for CodeRabbit; it does not replace the human review (`wait-pr.mjs --skip-reviewer` stops the poller from waiting for it). Requires authenticated GitHub access and the repository's CodeRabbit integration; automatic CodeRabbit approval requires `reviews.request_changes_workflow` to be enabled.
+When CodeRabbit is rate-limited or out of credits on an open PR, the skill reviews the published head and posts the findings the way CodeRabbit would: one review with event `COMMENT`, inline comments with one-click suggestions on lines in the diff, everything else in the review body, and no duplicates on later heads. Path B does this automatically and accepts that review in CodeRabbit's place once its findings are resolved, instead of waiting for CodeRabbit (`wait-pr.mjs --skip-reviewer` stops the poller from waiting for it). The approval is a `COMMENT` review, not a GitHub approval, and does not replace the human review. The code never leaves the agent's own model.
+
+The skill never merges, approves on GitHub or uses a ruleset bypass unless the owner explicitly authorises it for that PR or batch (recorded in the PR description), and never bypasses required human reviews. It uses `gitmoji-commit` for commits. Requires authenticated GitHub access and the repository's CodeRabbit integration; automatic CodeRabbit approval requires `reviews.request_changes_workflow` to be enabled.
 
 Usage:
 
 ```text
-$final-pr-review create the PR, run local review before pushing, and iterate until CI passes and CodeRabbit approves
-$final-pr-review finish this GitHub stack bottom-up; skip local CodeRabbit review
+$esoul-review review my branch against origin/main before I open the PR
+$esoul-review create the PR, run local review before pushing, and iterate until CI passes and CodeRabbit approves
+$esoul-review CodeRabbit is rate-limited on https://github.com/OWNER/REPO/pull/123; post the review to the PR
+$esoul-review finish this GitHub stack bottom-up; skip local CodeRabbit review
 ```
 
 Install from this checkout:
 
 ```bash
-npx skills add . --skill final-pr-review --agent codex --global --yes
+npx skills add . --skill esoul-review --agent codex --global --yes
 ```
 
-Waiting for CI and remote review uses the bundled read-only poller, so agents do not write their own polling loops. It needs Node.js 18+ and authenticated `gh`, and works on one PR at a time. From the installed skill directory, run:
-
-```bash
-node scripts/wait-pr.mjs https://github.com/OWNER/REPO/pull/123 --expect-head HEAD_SHA --since LAST_INVENTORY_TIME
-```
-
-It exits with a JSON snapshot when CI fails, discussion or review activity appears, the revision changes, or CI and review settle on the current head. Run `node scripts/wait-pr.mjs --help` for all options and exit codes. Its regression tests use a fake `gh` and need no network:
-
-```bash
-node --test tooling/scripts/test_wait_pr.mjs
-```
-
-### `pre-pr-review`
-
-Reviews a branch locally before a PR is opened or updated, in place of CodeRabbit's pre-push review when its CLI is missing, rate-limited, or out of credits. Resolves the exact diff against the real base (committed, staged, unstaged, and untracked changes), applies `.coderabbit.yaml` path filters, path instructions, and profile, scans every changed file for credentials, runs the repository's own linters and tests, and reviews the change through four lenses: correctness, security and data boundaries, tests and contract, and maintainability. Larger changes run the lenses as parallel subagents. Every candidate finding is verified against the code before it is reported, using the project's severity scale, with evidence, a proposed fix, and verification. Fixes valid findings and re-reviews incrementally when asked.
-
-When CodeRabbit hits its rate limit or runs out of credits on an open PR, the skill reviews the published head and posts the findings to the PR the way CodeRabbit would: one review with event `COMMENT`, inline comments with one-click suggestions on lines in the diff, everything else in the review body, and no duplicates on later heads. `final-pr-review` does this automatically when it sees the limit and then continues with the fallback review in CodeRabbit's place: once every finding is resolved, the skill posts its approval of the current head, so the PR is approved either by CodeRabbit or by `pre-pr-review`, and a rate-limited or out-of-credits CodeRabbit no longer blocks finishing it. The approval is a `COMMENT` review, not a GitHub approval, so it never counts toward the required human review.
-
-The code never leaves the agent's own model. The verdict is not an approval: it is reported as a CodeRabbit substitution, and the human review is still required.
-
-Usage:
-
-```text
-$pre-pr-review review my branch against origin/main before I open the PR
-$pre-pr-review CodeRabbit is out of limit; review and fix the uncommitted changes only
-$pre-pr-review CodeRabbit is rate-limited on https://github.com/OWNER/REPO/pull/123; post the review to the PR
-```
-
-Resolving the scope uses the bundled read-only script (Node.js 18+, no dependencies). Run it from the repository under review (or pass `--repo <path>`), with `SKILL_DIR` set to the installed skill's directory:
+Three bundled read-only scripts (Node.js 22+, no dependencies; the last two need authenticated `gh`) keep agents from writing their own git and polling code. Run them from the repository under review, with `SKILL_DIR` set to the installed skill's directory. Resolving the scope prints the reviewed and excluded files with reasons, the matching path instructions, redacted credential hits, and warnings about stale bases or large changes:
 
 ```bash
 node "$SKILL_DIR/scripts/review-scope.mjs" --base origin/main
 ```
 
-It prints the reviewed and excluded files with reasons, the matching path instructions, redacted credential hits, and warnings about stale bases or large changes. Its regression tests build throwaway git repositories and need no network:
+Waiting for CI and remote review works on one PR at a time and exits with a JSON snapshot when CI fails, discussion or review activity appears, the revision changes, or CI and review settle on the current head (`--help` lists all options and exit codes):
 
 ```bash
-node --test tooling/scripts/test_review_scope.mjs
+node "$SKILL_DIR/scripts/wait-pr.mjs" https://github.com/OWNER/REPO/pull/123 --expect-head HEAD_SHA --since LAST_INVENTORY_TIME
 ```
 
-Detecting the limit and posting use the second bundled script (Node.js 18+ and authenticated `gh`). `check` is read-only; `post` is a dry run that prints the exact payload unless `--post` is given:
+Detecting the CodeRabbit limit and posting the fallback review use the third script. `check` is read-only; `post` is a dry run that prints the exact payload unless `--post` is given. The findings format is in `references/pr-comments.md`:
 
 ```bash
 node "$SKILL_DIR/scripts/post-review.mjs" check https://github.com/OWNER/REPO/pull/123
 node "$SKILL_DIR/scripts/post-review.mjs" post https://github.com/OWNER/REPO/pull/123 --findings findings.json [--post]
 ```
 
-The findings format is in `references/pr-comments.md`. Its regression tests use a fake `gh` and need no network:
+Their regression tests build throwaway git repositories or use a fake `gh` and need no network:
 
 ```bash
-node --test tooling/scripts/test_post_review.mjs
+node --test tooling/scripts/test_review_scope.mjs tooling/scripts/test_wait_pr.mjs tooling/scripts/test_post_review.mjs
 ```
 
 ### `esoul-maintain-application-documentation`

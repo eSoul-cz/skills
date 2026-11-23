@@ -11,7 +11,7 @@ const usage = `Usage:
 
 check  Read-only. Reports whether CodeRabbit's latest word on the PR is a rate-limit or
        usage-limit notice, when it resets, and the current head SHA.
-post   Publishes pre-pr-review findings as one GitHub review with event COMMENT (never
+post   Publishes esoul-review findings as one GitHub review with event COMMENT (never
        APPROVE or REQUEST_CHANGES). Findings on lines in the PR diff become inline
        comments, with a suggestion block when given; others go to the review body.
        Findings already posted in an unresolved thread are skipped. Without --post it
@@ -39,30 +39,30 @@ const SEVERITY_ICONS = {
 const TEXT = {
     en: {
         title: '## 🤖 Pre-PR review (CodeRabbit fallback)',
-        note: (reason) => `> [!NOTE]\n> ${reason} This review was generated locally by an agent with the \`pre-pr-review\` skill. It is neither a CodeRabbit approval nor a human review.`,
+        note: (reason) => `> [!NOTE]\n> ${reason} This review was generated locally by an agent with the \`esoul-review\` skill. It is neither a CodeRabbit approval nor a human review.`,
         defaultReason: 'CodeRabbit could not review this revision.',
         stats: (head, inline, outside, duplicates) => `**Revision:** \`${head.slice(0, 12)}\` · **Inline findings:** ${inline} · **Outside the diff:** ${outside} · **Already reported:** ${duplicates}`,
         outside: (count) => `Findings outside the diff range (${count})`,
         resolved: (count) => `Resolved findings outside the diff (${count})`,
         proposed: 'Proposed change:',
         preExisting: 'Pre-existing',
-        footer: '<sub>pre-pr-review · CodeRabbit fallback</sub>',
+        footer: '<sub>esoul-review · CodeRabbit fallback</sub>',
         retried: '> [!WARNING]\n> GitHub rejected the inline positions, so every finding is listed in this body.',
-        approved: '### ✅ Approved by `pre-pr-review` (CodeRabbit substitute)\nNo open finding remains on this revision. The human review is still required.',
+        approved: '### ✅ Approved by `esoul-review` (CodeRabbit substitute)\nNo open finding remains on this revision. The human review is still required.',
         pending: (count) => `### ⏳ Not approved yet\n${count} finding(s) of this fallback review are still open.`,
     },
     cs: {
         title: '## 🤖 Pre-PR review (náhrada za CodeRabbit)',
-        note: (reason) => `> [!NOTE]\n> ${reason} Tuto review vytvořil agent lokálně skillem \`pre-pr-review\`. Není to schválení CodeRabbitem ani lidské review.`,
+        note: (reason) => `> [!NOTE]\n> ${reason} Tuto review vytvořil agent lokálně skillem \`esoul-review\`. Není to schválení CodeRabbitem ani lidské review.`,
         defaultReason: 'CodeRabbit tuto revizi nezreviewoval.',
         stats: (head, inline, outside, duplicates) => `**Revize:** \`${head.slice(0, 12)}\` · **Inline nálezy:** ${inline} · **Mimo diff:** ${outside} · **Už nahlášeno:** ${duplicates}`,
         outside: (count) => `Nálezy mimo rozsah diffu (${count})`,
         resolved: (count) => `Vyřešené nálezy mimo diff (${count})`,
         proposed: 'Navržená změna:',
         preExisting: 'Existovalo už před PR',
-        footer: '<sub>pre-pr-review · náhrada za CodeRabbit</sub>',
+        footer: '<sub>esoul-review · náhrada za CodeRabbit</sub>',
         retried: '> [!WARNING]\n> GitHub odmítl pozice inline komentářů, proto jsou všechny nálezy v tomto těle.',
-        approved: '### ✅ Schváleno skillem `pre-pr-review` (náhrada za CodeRabbit)\nNa této revizi nezůstal žádný otevřený nález. Lidské review je dál povinné.',
+        approved: '### ✅ Schváleno skillem `esoul-review` (náhrada za CodeRabbit)\nNa této revizi nezůstal žádný otevřený nález. Lidské review je dál povinné.',
         pending: (count) => `### ⏳ Zatím neschváleno\nOtevřených nálezů této náhradní review: ${count}.`,
     },
 };

@@ -1,4 +1,4 @@
-# GitHub operations for final PR review
+# GitHub operations for the PR loop
 
 Primary-source contracts checked 2026-09-05. Native stacks are a public-preview feature; confirm the installed CLI and target host support the documented operations. Commands are recipes, not permission to mutate arbitrary PRs. Replace placeholders with discovered values; do not run angle-bracket placeholders literally. Use the harness's equivalent specialized tools when available.
 

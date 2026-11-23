@@ -1,6 +1,6 @@
 # Posting a fallback review to the PR
 
-Detail for step 8 of `pre-pr-review`: CodeRabbit hit its rate limit or ran out of credits on an open PR, and the findings go into the PR as review comments instead.
+Detail for the CodeRabbit-limited branch of `esoul-review` (step A9, and Path B's CodeRabbit substitution): CodeRabbit hit its rate limit or ran out of credits on an open PR, and the findings go into the PR as review comments instead.
 
 ## Detect the limit
 
@@ -17,7 +17,7 @@ The comments are anchored to the PR head commit, so review that revision, not lo
 - If the local branch is at the PR head with a clean worktree, review there.
 - Otherwise fetch the head (`git fetch <remote> pull/<number>/head`, which also works for forks) and review it in a temporary worktree outside the repository (`git worktree add --detach <scratch-dir>/pr-<number> <head-sha>`). Remove it afterwards (`git worktree remove`).
 
-Run the scope script with `--type committed --base <PR base SHA>` after fetching the base; that is the diff GitHub shows. Then follow steps 2–5 as usual.
+Run the scope script with `--type committed --base <PR base SHA>` after fetching the base; that is the diff GitHub shows. Then follow steps A2–A5 as usual.
 
 ## Findings file
 
@@ -51,7 +51,7 @@ Write it outside the repository (the scratchpad or a temp directory):
 
 - `language`: `cs` or `en` for the fixed texts. Take it from `.coderabbit.yaml` `language` (`cs-CZ` → `cs`); otherwise match the PR description. Write `reason`, `summary`, `verdict`, titles, and bodies in the same language.
 - `line` and `startLine` are line numbers in the head version of the file. A finding becomes an inline comment only when its whole range lies in one hunk of the PR diff; otherwise it goes to the review body under "Outside the diff range", with its location.
-- `preExisting: true` marks a problem the PR did not introduce (reported only at the two highest severities, see SKILL.md step 5). Its heading gets a `Pre-existing` tag (`Existovalo už před PR` in Czech), so it does not read as the author's fault. It still counts as open until answered.
+- `preExisting: true` marks a problem the PR did not introduce (reported only as Critical or Major, see SKILL.md step A5). Its heading gets a `Pre-existing` tag (`Existovalo už před PR` in Czech), so it does not read as the author's fault. It still counts as open until answered.
 - `suggestion` is optional and only for a fix that replaces exactly those lines; GitHub then offers it as a one-click commit. Leave it out for anything larger, and describe the fix in `body` as a short diff instead.
 - `id` defaults to a hash of path and normalized title; an explicit id may contain only letters, digits, `_`, and `-`. Reuse an id from the dry run's `existing` list when a finding was already reported with different wording.
 - `resolved` records findings that earlier fallback reviews listed in their body (outside the diff). They have no thread to resolve, so they stay open, and block the approval, until a later review lists them here with the fix commit or evidence. The dry run's `openInBodies` names them; an unknown id is rejected.
@@ -71,15 +71,15 @@ The dry run prints the exact review payload, which findings go inline or to the 
 - refuses a closed PR, and exits 3 when the PR head moved after the review (review the new head instead);
 - skips findings that already have an unresolved fallback thread, and body findings listed in an earlier fallback review and not yet recorded under `resolved`; a finding whose thread was resolved, or whose body entry was recorded as resolved, is posted again when found again;
 - rejects an id listed both in `findings` and in `resolved`;
-- approves the head (`approved: true`, a "✅ Approved by `pre-pr-review`" section, and a `<!-- pre-pr-review:approved head=<sha> -->` marker) when the findings file is empty, no fallback thread is open, and every body-only finding is recorded as resolved; otherwise the body says how many findings are still open (`openFindings`);
+- approves the head (`approved: true`, a "✅ Approved by `esoul-review`" section, and a `<!-- pre-pr-review:approved head=<sha> -->` marker) when the findings file is empty, no fallback thread is open, and every body-only finding is recorded as resolved; otherwise the body says how many findings are still open (`openFindings`);
 - reports `up-to-date` and posts nothing when this head already has a fallback review, nothing is new, and the approval state has not changed; a first review with no findings is still posted once, so the PR shows it was reviewed;
 - if GitHub rejects the inline positions (HTTP 422), posts once more with every finding in the body.
 
-Each comment carries a hidden `<!-- pre-pr-review:finding:<id> -->` marker and the review a `<!-- pre-pr-review:review head=<sha> -->` marker; do not remove them when editing.
+Each comment carries a hidden `<!-- pre-pr-review:finding:<id> -->` marker and the review a `<!-- pre-pr-review:review head=<sha> -->` marker; do not remove them when editing. The markers keep the prefix of the retired `pre-pr-review` skill, so fallback reviews posted before the merge stay recognised.
 
 ## After posting
 
 - The threads come from the authenticated account, usually the PR author, and no bot will answer them. Handle them like any reviewer's findings. After pushing a fix, reply in the thread with the commit and verification, then resolve the thread yourself. A finding you reject gets an evidence-backed reply and is resolved with it.
 - On every new head while CodeRabbit is still limited, run `check` and the PR-mode review again; the script posts only what is new.
 - To approve, resolve every fallback thread, review the current head once more, and post a findings file that leaves out findings already answered with evidence and lists every `openInBodies` finding under `resolved`. An empty `findings` array with nothing open produces the approval, even on a head that already has a fallback review.
-- Never post `@coderabbitai` commands from this skill. `final-pr-review` treats the fallback review as CodeRabbit's substitute for that head and does not wait for a reset or credits; if CodeRabbit reviews the head after all, its findings are handled like any other.
+- Never post `@coderabbitai` commands from this reference. Path B treats the fallback review as CodeRabbit's substitute for that head and does not wait for a reset or credits; if CodeRabbit reviews the head after all, its findings are handled like any other.

@@ -95,7 +95,7 @@ modes load. One line per rule and its owner:
 - Dependencies: GitHub `blocked_by` is the source of truth, mirrored in Freelo: `esoul-tasking`.
 - Merging: squash, `Jenkins` check, one human approval, no bypass; agents never merge.
 - Freelo states: Backlog, To Do, In progress, Code review, Testing, Done; recurring work in `LTT`.
-- PR finishing: `final-pr-review`.
+- PR review and finishing: `esoul-review`.
 - Process tiers: `full` for applications, `light` for websites: [tiers.md](references/tiers.md).
 - **Case-study snapshots**: every project with a public website captures screenshots and mobile Lighthouse of the original site at bootstrap and of the launched site at go-live. Owner: this skill, [case-study](references/case-study.md).
 - **AI readiness**: every public website is AI-ready by default (slices AI-01…AI-06, `docs/ai-readiness.md`); launch is blocked by a failing `must` check without a lead-confirmed exception: [ai-readiness](references/ai-readiness.md).
@@ -134,7 +134,7 @@ modes load. One line per rule and its owner:
 | Issue and Freelo writes | `esoul-tasking` (requires `esoul-freelo-task-authoring`, `freelo`) |
 | Implementation of one issue | `esoul-workflow` |
 | Commits | `gitmoji-commit` |
-| PR review loop | `final-pr-review` |
+| PR review loop | `esoul-review` |
 | Mockup bundles and review | `esoul-mockup-authoring` |
 | Application guides and PDFs | `esoul-maintain-application-documentation` |
 | Decision interviews | [domain-modeling](references/domain-modeling.md) here; rounds of questions as in `esoul-workflow` › references/grilling.md |

@@ -14,9 +14,9 @@ import {
     parseWait,
     planReview,
     rateLimitState,
-} from '../../skills/pre-pr-review/scripts/post-review.mjs';
+} from '../../skills/esoul-review/scripts/post-review.mjs';
 
-const script = fileURLToPath(new URL('../../skills/pre-pr-review/scripts/post-review.mjs', import.meta.url));
+const script = fileURLToPath(new URL('../../skills/esoul-review/scripts/post-review.mjs', import.meta.url));
 const HEAD = 'a'.repeat(40);
 const BASE = 'b'.repeat(40);
 const PR_URL = 'https://github.com/o/r/pull/7';
@@ -225,7 +225,7 @@ test('approves a head only when nothing was found and no fallback thread is open
     const clean = planReview({ input: { head: HEAD, language: 'cs', findings: [] }, files, threads: [resolvedThread], reviewBodies: [] });
     assert.equal(clean.approved, true);
     assert.ok(clean.payload.body.startsWith(`<!-- pre-pr-review:review head=${HEAD} -->\n<!-- pre-pr-review:approved head=${HEAD} -->`));
-    assert.match(clean.payload.body, /✅ Schváleno skillem `pre-pr-review` \(náhrada za CodeRabbit\)/);
+    assert.match(clean.payload.body, /✅ Schváleno skillem `esoul-review` \(náhrada za CodeRabbit\)/);
     assert.equal(clean.payload.event, 'COMMENT', 'never a GitHub approval');
 
     const stillOpen = planReview({ input: { head: HEAD, findings: [] }, files, threads: [openThread], reviewBodies: [] });

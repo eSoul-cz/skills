@@ -1,0 +1,7 @@
+interface:
+  display_name: "eSoul Review"
+  short_description: "Review a branch before a PR, then finish the PR through CI and CodeRabbit"
+  default_prompt: "Use $esoul-review to review my branch against its PR base and report verified findings."
+
+policy:
+  allow_implicit_invocation: true

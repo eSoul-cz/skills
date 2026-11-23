@@ -1,7 +1,7 @@
 # Local review with the CodeRabbit CLI
 
-Read this reference only when the local pass runs the CodeRabbit CLI. When `pre-pr-review` runs
-instead, it resolves its own scope and scans for credentials.
+Read this reference only when the local pass runs the CodeRabbit CLI. When Path A's own review
+runs instead, it resolves its own scope and scans for credentials.
 
 1. Check the installed CLI version, official installation provenance, authentication, and
    `coderabbit review --help`. Agent mode requires at least v0.4.0. Prefer verified
@@ -9,9 +9,9 @@ instead, it resolves its own scope and scans for credentials.
    upgrade or sign the user in.
 2. Inspect the full selected diff, including new files, for credentials and sensitive data
    **before** sending anything to CodeRabbit. Its CLI transmits code to an external service. Do
-   the same before publishing commits. When `pre-pr-review` is installed, its scope script does
-   this deterministically:
-   `node "<pre-pr-review dir>/scripts/review-scope.mjs" --base <remote>/<branch>` (read `secrets`).
+   the same before publishing commits. The scope script of this skill does this
+   deterministically:
+   `node "$SKILL_DIR/scripts/review-scope.mjs" --base <remote>/<branch>` (read `secrets`).
 3. Run `coderabbit review --agent --base <actual-base-ref>` using a fetched, correct base. For a
    stacked layer use its immediate predecessor, not the stack trunk. Only use `--base-commit` with
    a verified comparison commit supported by the installed CLI.
@@ -22,5 +22,5 @@ instead, it resolves its own scope and scans for credentials.
    excluded.
 
 Authentication failures, rate limits, unsupported options, billing confirmation, or incomplete
-review output are not clean reviews; fall back to `pre-pr-review` rather than reporting them as
+review output are not clean reviews; fall back to Path A's own review rather than reporting them as
 passed. Do not opt into paid credits automatically.

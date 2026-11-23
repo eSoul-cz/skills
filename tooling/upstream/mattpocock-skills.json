@@ -4,6 +4,11 @@
   "note": "Upstream files the eSoul skills adapt. check_upstream.mjs compares them with a newer upstream checkout; port the changes by hand, then run it with --accept.",
   "files": [
     {
+      "vendored": "skills/esoul-review/references/code-review.md",
+      "upstream": "skills/engineering/code-review/SKILL.md",
+      "sha256": "9c921a8d88138a41401d8897ca1bb852088ab1b7b605cdd04edc13e3e8aab6dd"
+    },
+    {
       "vendored": "skills/esoul-workflow/references/design-principles.md",
       "upstream": "skills/engineering/codebase-design/DEEPENING.md",
       "sha256": "f3dd099ce99289bd213914d8ee3e2429b78309c3957ca4583f7659551b1d53c1"
