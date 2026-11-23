@@ -1,7 +1,8 @@
 # Project mapping and cache in CONTEXT.md
 
 The `## Freelo` section of root `CONTEXT.md` maps the repository to its Freelo project and
-caches the IDs every run needs. Freelo allows roughly one request per 2.4 seconds, and task
+caches the IDs every run needs; it is the machine-read cache that the prose in `## Tracker`
+points to. Freelo allows roughly one request per 2.4 seconds, and task
 label UUIDs can only be collected by paging through existing tasks, so resolving them on every
 run is the slowest part of authoring. Resolve them once, write them here, and reuse them.
 

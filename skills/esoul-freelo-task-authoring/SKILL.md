@@ -17,7 +17,8 @@ labels, estimate, relations, read-back). Prefer available Freelo MCP tools;
 otherwise the authenticated `freelo` CLI with `--agent`. Never call the API with `curl`.
 
 Use applicable `AGENTS.md` content already in context; do not read it again. Read only the
-convention sections you need (`## Freelo`, `## Tasking convention`) from root `CONTEXT.md`,
+convention sections you need (`## Freelo`, `## Tasking convention`; `## Tracker` names the
+tracker in prose and points to `## Freelo`, the cache) from root `CONTEXT.md`,
 falling back to `GLOSSARY.md`, by section. Look up domain terms in `GLOSSARY.md` when the task
 uses them; never read the whole glossary up front. Repository instructions are authoritative.
 
@@ -44,17 +45,20 @@ cache as the reference describes.
   title only. In an orchestrated session the searches run through `esoul-skills:ops` with a
   compact-fields brief (`freelo` skill, Delegation). Reuse the results for revised previews; search again only for a task whose scope
   or outcome changed.
-- Write in Czech; keep established programming terms (migrace, commandy, requesty); give
-  domain concepts as `chovatel (Breeder)` when code uses an English name.
+- Write descriptions in Czech; keep established programming terms (migrace, commandy, requesty);
+  give domain concepts as `chovatel (Breeder)` when code uses an English name. The title
+  language follows the project (Title, below).
 - Never copy secrets, credentials, production personal data or raw sensitive datasets.
 
-Skip the interview when the request is complete. Otherwise ask one question at a time with a
-recommended answer, as in [references/interview.md](references/interview.md).
+Skip the interview when the request is complete. Otherwise ask in rounds of independent
+questions, each with a recommended answer, as in [references/interview.md](references/interview.md).
 
 ## 3. Shape the task
 
-- **Title:** `<Context>: <Actionable result>`, infinitive, colon not dash; categories are
-  labels, not prefixes (a repository convention may define otherwise).
+- **Title:** `<Context>: <Actionable result>`, colon not dash; categories are labels, never
+  prefixes. The language follows the project: English imperative in a new project, Czech in an
+  existing Czech project; how to tell, and the PR title:
+  [references/task-content.md](references/task-content.md).
 - **Description:** the done state must be clear; short narrative for simple work, optional
   sections (`Cíl`, `Technický kontext`, `Rozsah`, `Mimo rozsah`, `Akceptační kritéria`,
   `Závislosti`, `Ověření`, `Podklady`) for complex work. Self-contained, except in an

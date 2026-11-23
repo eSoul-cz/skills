@@ -10,9 +10,11 @@ project's `AGENTS.md`, guidelines and ADRs take precedence.
 - A PR does one thing that its title can say in one line. Everything else found on the way (a
   `.gitignore` line, a stray rename, a fix in another domain, UAT counters, a refactor that
   "was nearby") goes to a follow-up task or a separate PR, never into this one.
-- Budget: about 400 changed lines of production code, tests and generated files excluded. Over
-  the budget, split into slices or a stacked PR (`final-pr-review`, references/stacks.md) unless
-  the change cannot be shipped in parts; then say why in the PR description.
+- Budget: about 400 changed lines of agent-written production logic (tests and generated files
+  excluded) and roughly 30 files per PR; mechanical changes in their own commit (formatter output,
+  generated files, lock files) do not count towards the files (guidelines `general/workflow.md` ›
+  Pull requests). Over either, split into slices or a stacked PR (`esoul-review`) unless the
+  change cannot be shipped in parts; then the PR description says how to review it in parts.
 - Do not change existing defaults (default filter, tab, sort, page size) as a side effect. A
   changed default is its own decision and is named in the PR description.
 - Before review, list the intentions in the diff. More than one means split, or name the reason

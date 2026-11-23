@@ -1,6 +1,6 @@
 # Adaptive interview
 
-Skip the interview when the request is simple or already complete. Otherwise ask exactly one question at a time, wait for the answer, and include a recommended answer. Resolve decision dependencies in order. Do not ask questions answerable from the codebase, repository instructions, `CONTEXT.md`, `GLOSSARY.md`, or Freelo.
+Skip the interview when the request is simple or already complete. Otherwise ask in rounds, as in `esoul-workflow` [grilling](../../esoul-workflow/references/grilling.md): ask together every question whose prerequisites are settled, each numbered with a recommended answer worded so that "yes" accepts it, wait for the answers, then ask the questions that depended on them. Do not ask questions answerable from the codebase, repository instructions, `CONTEXT.md`, `GLOSSARY.md`, or Freelo.
 
 Continue until the following are clear enough for the task type:
 

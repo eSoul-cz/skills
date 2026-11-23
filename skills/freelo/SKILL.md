@@ -29,7 +29,8 @@ This file is the core. Read a reference only when the task needs it:
 If this skill is already loaded in the session, do not load it again.
 
 Every request costs ~2.4 s, so reuse what the session already fetched, and in a repository read
-project, tasklist and label IDs from the `## Freelo` section of `CONTEXT.md` before listing them.
+project, tasklist and label IDs from the `## Freelo` section of `CONTEXT.md` (the cache that
+`## Tracker` points to) before listing them.
 
 ## Work reports: active work only
 

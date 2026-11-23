@@ -10,7 +10,7 @@ The single entry point for eSoul work. It decides *how much process* a task need
 ## 1. Load context before touching anything
 
 1. Use the repository context that is already loaded; do not read it again. The harness loads `CLAUDE.md` (and the `AGENTS.md` and memory files it imports or injects) at session start and after every compaction, and files you already read in this session are still in context. Read only what is missing, and only the part you need:
-   - a convention (tasking, commits, Freelo, project profile): the section, not the file. This line prints the whole section from `CONTEXT.md`, or from `GLOSSARY.md` when `CONTEXT.md` lacks it; every eSoul skill uses the same line:
+   - a convention (tasking, commits, tracker, Freelo, project profile): the section, not the file. `## Tracker` names the tracker in prose and points to `## Freelo`, the machine-read cache of IDs. This line prints the whole section from `CONTEXT.md`, or from `GLOSSARY.md` when `CONTEXT.md` lacks it, and nothing when the section is absent; every eSoul skill uses the same line:
      `for f in CONTEXT.md GLOSSARY.md; do awk -v h='## Tasking convention' '$0==h{p=1;s=$0 ORS;next} /^## /{p=0} p{s=s $0 ORS; if(NF)n=1} END{if(n)printf "%s",s; exit !n}' "$f" 2>/dev/null && break; done`;
    - domain vocabulary: look up the specific term in `GLOSSARY.md` or the context named in `GLOSSARY-MAP.md` (legacy `CONTEXT.md` or `CONTEXT-MAP.md`) when the task uses it, never the whole glossary up front;
    - decisions: `docs/adr/index.md`, then only the ADRs for the area being touched.
@@ -33,10 +33,10 @@ Pick the smallest size that fits, and say which size you picked in one line.
 
 | Size | Signals | Flow |
 |---|---|---|
-| **S** | One obvious change, a few files, no design choice, no new dependency | Context → change → verify → commit |
-| **M** | A feature or change with at least one real decision, new UI, schema or API change, or unclear acceptance | Clarify → (task) → build in slices → verify → review → commit → PR |
+| **S** | One obvious change, a few files, no design choice, no new dependency | Context → issue or task → change → verify → commit |
+| **M** | A feature or change with at least one real decision, new UI, schema or API change, or unclear acceptance | Clarify → task → build in slices → verify → review → commit → PR |
 | **L** | More than one session of work, several modules, or unknown unknowns | Plan first, split into tasks, then run each task as M |
-| **Bug** | Something is broken, failing, throwing, or slow | Diagnose → fix with regression test → verify → commit |
+| **Bug** | Something is broken, failing, throwing, or slow | Diagnose → issue or task → fix with regression test → verify → commit |
 | **Analysis** | A question to answer from data | Follow references/data-analysis.md end to end |
 
 Escalate the size as soon as a hidden decision appears. Never de-escalate silently.
@@ -61,10 +61,13 @@ Keep the session small: one task per session, `/clear` or a handoff between task
 - Stop when nothing is silently assumed and the user confirms. For M tasks, one round is usually enough; do not interrogate an S task.
 - For logic or UI whose shape is unclear, build a throwaway prototype ([references/prototype.md](references/prototype.md)) or, for a design the client reviews, an eSoul mockup (`esoul-mockup-authoring`) before production code.
 
-### Create or update the task (M, L, when the user wants it tracked)
+### Issue or task (every size)
 
-- Use `esoul-tasking`, which resolves the repository tasking convention (`freelo-only` or `github-freelo`) and requires approval before every remote write.
-- If the Matt Pocock plugin is installed, do not use its `to-spec`, `to-tickets`, `triage`, `wayfinder` or `setup-matt-pocock-skills` unless the repository is explicitly configured for them. eSoul tracks work in Freelo, and the setup skill renames `CONTEXT.md`, which holds eSoul conventions. The parts eSoul uses are adapted in this skill's references.
+- Every change starts from an issue or task with a clear outcome and acceptance criteria (guidelines `general/workflow.md` › Tasking). When none exists, create it through `esoul-tasking`: for S a minimal issue or pair, shown to the user like any other.
+- Small admin work (dependency updates, `Jenkinsfile` changes and similar) MAY go without one, only when the user says so. Never assume the exception: ask unless an issue or task exists.
+- When `esoul-guidelines.json` lists `profile/internal` in `layers`, a plan slice or the owner's request is enough (guidelines `profile/internal/workflow.md`).
+- `esoul-tasking` resolves the repository tasking convention (`freelo-only` or `github-freelo`), sets the title language and requires approval before every remote write.
+- If the Matt Pocock plugin is installed, do not use its `to-spec`, `to-tickets`, `triage`, `wayfinder`, `implement-spec` or `setup-matt-pocock-skills` unless the repository is explicitly configured for them. eSoul tracks work in Freelo, and the setup skill renames `CONTEXT.md`, which holds eSoul conventions. The parts eSoul uses are adapted in this skill's references.
 
 ### Task lifecycle (every size, when a Freelo task or issue exists)
 
@@ -91,7 +94,7 @@ Use `esoul-project-lifecycle` instead of this flow when the task is about the pr
 ### Build (S, M)
 
 - Work in vertical slices: one behavior end to end, verified, before the next.
-- Hold every M, L and Bug slice to [references/quality-bar.md](references/quality-bar.md): one intention per PR within about 400 production lines, rules enforced on the server, the root cause fixed, one source of truth per rule, deterministic queries. Copy its rules and self-check into each implementer brief, and check the returned self-check before review.
+- Hold every M, L and Bug slice to [references/quality-bar.md](references/quality-bar.md): one intention per PR within its size budget, rules enforced on the server, the root cause fixed, one source of truth per rule, deterministic queries. Copy its rules and self-check into each implementer brief, and check the returned self-check before review.
 - Test-first at seams agreed with the user ([references/tdd.md](references/tdd.md)) when the project has a test suite and the logic is non-trivial (domain rules, calculations, parsers, pricing, permissions). Skip ceremony for markup, copy, and styling changes; verify those visually instead.
 - When the shape of an interface is in question (where a seam goes, whether a class earns its place, how an integration is faked), use [references/design-principles.md](references/design-principles.md) after the stack profile and project guidelines.
 - Keep changes minimal and in the style of the surrounding code. No drive-by refactors; note them for later instead.
@@ -129,19 +132,20 @@ receipt · tree <tree12> · <command> → <pass | fail: short result>
 d=$(mktemp -d); GIT_INDEX_FILE="$d/index" git read-tree HEAD && GIT_INDEX_FILE="$d/index" git add -A && GIT_INDEX_FILE="$d/index" git write-tree; rm -rf "$d"
 ```
 
-It does not change when the verified files are committed (it equals the new commit's `HEAD^{tree}`), so `gitmoji-commit`, `pre-pr-review` and `final-pr-review` reuse a receipt with the same tree instead of running the check again. Re-run only what a later change can affect, and run the full suite once on the tree that will be pushed. Receipts cover checks of file content (tests, linters, builds). Checks of the index or of staging, such as `git diff --cached --check`, are not receipted and always run.
+It does not change when the verified files are committed (it equals the new commit's `HEAD^{tree}`), so `gitmoji-commit` and `esoul-review` reuse a receipt with the same tree instead of running the check again. Re-run only what a later change can affect, and run the full suite once on the tree that will be pushed. Receipts cover checks of file content (tests, linters, builds). Checks of the index or of staging, such as `git diff --cached --check`, are not receipted and always run.
 
 ### Review (M, L)
 
-- One local review per revision. A diff revision gets at most one local review; later passes review only the delta `git diff <last reviewed head>..HEAD`, unless the delta is large or touches a risk trigger (authorization, money, migrations or destructive data scripts, personal data, concurrency). When the PR will be finished through `final-pr-review`, its pre-push pass (CodeRabbit CLI, or `pre-pr-review` as fallback) is the review: do not also run `code-review`. `pre-pr-review`'s tests-and-contract lens already checks the change against the issue.
-- Run `code-review` (when installed) against the branch base only when no PR follows, or when the user asks for it. Fix valid findings.
-- Run `pre-pr-review` directly only when the PR will not be finished through `final-pr-review`, or when the user asks for a local review.
+- The review step is `esoul-review`: the local review before a PR (built on the upstream `code-review` flow) and the PR loop with CodeRabbit. Never run a second review of the same revision.
+- A diff revision gets one local review; later passes review only the delta `git diff <last reviewed head>..HEAD`, unless the delta is large or touches a risk trigger (authorization, money, migrations or destructive data scripts, personal data, concurrency). Fix valid findings.
+- Run `esoul-review` locally, without a PR, only when the user asks for a review.
 - For documentation changes, use `esoul-maintain-application-documentation` in verify mode.
 
 ### Commit and ship
 
 - Commit with `gitmoji-commit` (one intention per commit, repository convention first).
-- Finish PRs with `final-pr-review` (CI green, CodeRabbit findings resolved). Never merge, approve, use a ruleset bypass, deploy, or push to protected branches unless separately asked. Merging, approving and a bypass need the owner's explicit authorisation for that PR or batch, recorded in the PR description (with the reason for a bypass).
+- Open the PR as guidelines `general/workflow.md` › Pull requests say (commit-format title, issue link, template with the checks run and the `No test:` line, Deploy notes). The title is an English commit-style title linked to the issue or task (`esoul-tasking` › Titles).
+- Finish PRs with `esoul-review` (CI green, CodeRabbit findings resolved). Never merge, approve, use a ruleset bypass, deploy, or push to protected branches unless separately asked. Merging, approving and a bypass need the owner's explicit authorisation for that PR or batch, recorded in the PR description (with the reason for a bypass).
 
 ## 4. Guardrails
 

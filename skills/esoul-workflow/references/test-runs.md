@@ -49,7 +49,7 @@ Order of the final run, before the PR is opened and before a slice is reported f
 
 - **Receipts.** Every L1 and L2 check records a receipt
   (`receipt · tree <tree12> · <command> → <result>`, see `esoul-workflow` Verify). A receipt for
-  the current tree is never run again, in `gitmoji-commit`, `pre-pr-review` or `final-pr-review`.
+  the current tree is never run again, in `gitmoji-commit` or `esoul-review`.
 - **After a failure, rerun the failure first.** Fix, rerun the failing test file alone, then the
   area (L1). The whole suite runs again only once, on the tree that will be pushed.
 - **After review fixes**, rerun only what the fixes can affect, then the full suite once, and

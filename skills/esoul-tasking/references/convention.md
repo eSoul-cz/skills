@@ -1,6 +1,6 @@
 # Recording the tasking convention
 
-Record the chosen mode using this compact form (the example shows `freelo-only`; write `github-freelo` instead when that is the chosen mode):
+Record the chosen mode and the title language using this compact form (the example shows `freelo-only` and English titles; write `github-freelo` or `czech` when those are chosen):
 
 ```md
 ## Tasking convention
@@ -8,7 +8,10 @@ Record the chosen mode using this compact form (the example shows `freelo-only`;
 Use the `esoul-tasking` skill for task authoring.
 
 - Mode: `freelo-only`
+- Title language: `english`
 ```
+
+`Title language` is `english` for a new project (issue, task and PR share an English title) and `czech` for an existing Czech project (issue and task keep Czech titles, the PR title is an English commit-style title linked to them); rule in `esoul-freelo-task-authoring` › Title. A section without the line: read the language of the project's existing issue and task titles; when that does not decide, ask once and add the line.
 
 Create root `CONTEXT.md` if absent; write conventions only there, never to `GLOSSARY.md`. When updating a tasking section found only in the `GLOSSARY.md` fallback, move it into `CONTEXT.md` instead of duplicating it. Keep edits idempotent; preserve unrelated sections, the companion's separate `## Freelo` mapping, and any additional applicable tasking rules. Do not leave duplicate or contradictory tasking sections. If the authoritative instructions are ambiguous or contain an unsupported mode, ask rather than inventing a mapping. Without a repository root or a writable context file, report the missing prerequisite instead of choosing a global configuration location.
 

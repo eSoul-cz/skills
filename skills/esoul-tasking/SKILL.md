@@ -11,6 +11,12 @@ Author work in one of two modes:
 - `github-freelo`: one GitHub issue with the full specification and one Freelo task with the
   management summary per result, with reciprocal links.
 
+Every change has an issue and/or task (guidelines `general/workflow.md` › Tasking), so this
+skill also serves S work: `esoul-workflow` asks for a minimal issue or pair here unless the
+user says it is small admin work (dependency updates, `Jenkinsfile` changes and similar); never
+assume that exception. Under `profile/internal` in `esoul-guidelines.json` a plan slice or the
+owner's request is enough (guidelines `profile/internal/workflow.md`).
+
 This file is the core; read a reference only when the step needs it. Skills already loaded
 in this session are not loaded again.
 
@@ -32,10 +38,11 @@ credentials in chat.
 ## 1. Resolve the convention
 
 Use applicable `AGENTS.md` content already in context; do not read it again. Read only the
-`## Tasking convention` and `## Freelo` sections of root `CONTEXT.md`, falling back to
-`GLOSSARY.md`, once per session:
+`## Tasking convention` and `## Freelo` sections of root `CONTEXT.md` (`## Tracker` names the
+tracker in prose and points to `## Freelo`, the cache), falling back to `GLOSSARY.md`, once per
+session:
 `for f in CONTEXT.md GLOSSARY.md; do awk -v h='## Tasking convention' '$0==h{p=1;s=$0 ORS;next} /^## /{p=0} p{s=s $0 ORS; if(NF)n=1} END{if(n)printf "%s",s; exit !n}' "$f" 2>/dev/null && break; done`
-(the same with `h='## Freelo'`). Order:
+(the same with `h='## Freelo'`; an absent section prints nothing). Order:
 
 1. A tasking convention in `AGENTS.md` is authoritative; synchronize it into `CONTEXT.md`.
 2. Otherwise respect the convention in `CONTEXT.md` or its `GLOSSARY.md` fallback.
@@ -63,10 +70,12 @@ GitHub label names come from one `gh label list` per session.
 
 ## 3. Titles, labels, specifications
 
-- Title, labels and estimate follow `esoul-freelo-task-authoring` (title format, labels by
-  UUID, estimates). Delta: both entities get the same title, each has at least one existing
-  label in its own system (exact GitHub label names, real Freelo UUIDs), and the convention's
-  category table (GitHub label ↔ Freelo label) decides the pair.
+- Title, labels and estimate follow `esoul-freelo-task-authoring` (title shape and language,
+  labels by UUID, estimates). Delta: the issue and the Freelo task carry the same title, and the
+  PR title wraps its message part in the commit format (`:emoji: [context] Message`, English);
+  each entity has at least one existing label in its own system (exact GitHub label names, real
+  Freelo UUIDs), and the convention's category table (GitHub label ↔ Freelo label) decides the
+  pair.
 - `freelo-only`: the companion's full self-contained description, including verification.
 - `github-freelo`: the issue is the source of truth (outcome, verified areas, scope,
   acceptance criteria, verification, dependencies as native `blocked_by`, link to Freelo);

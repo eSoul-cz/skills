@@ -1,6 +1,6 @@
 # Task lifecycle
 
-Applies to both tasking conventions: `freelo-only` (Freelo task only) and `github-freelo` (issue plus paired Freelo task). The Freelo project and tasklist IDs are in the repository `## Freelo` section of `CONTEXT.md` (or the project tasking skill); read only that section.
+Applies to both tasking conventions: `freelo-only` (Freelo task only) and `github-freelo` (issue plus paired Freelo task). The Freelo project and tasklist IDs are in the repository `## Freelo` section of `CONTEXT.md` (the cache that `## Tracker` points to; or the project tasking skill); read only that section.
 
 These writes concern the task this session works on. They are mechanical status updates and need no approved preview, but list them in the final summary. Content writes (title, description, estimate, new tasks, substantive comments) still need approval (`esoul-tasking`).
 

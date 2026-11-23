@@ -2,13 +2,19 @@
 
 ### Title
 
-Use a concise, actionable result. Prefer an infinitive. When context materially aids scanning, prefer the specific application module, or otherwise a useful one-word context, and use exactly:
+Use a concise, actionable result. When context materially aids scanning, prefer the specific application module, or otherwise a useful one-word context, and use exactly:
 
 ```text
 <Context>: <Actionable result>
 ```
 
-Use a colon, not a dash. Omit the prefix when no useful context is clear. Represent work categories such as frontend, backend, or data with existing task labels, not category prefixes.
+Use a colon, not a dash. Omit the prefix when no useful context is clear. Represent work categories such as frontend, backend, or data with existing task labels, never with prefixes such as `[FE]`, and never put a slice or phase identifier in the title (guidelines `general/workflow.md` › Tasking).
+
+Language of the title (descriptions and Freelo text stay Czech):
+
+- **New project:** English imperative (`Checkout: Add delivery selection`), identical on the issue, the Freelo task and the pull request.
+- **Existing Czech project:** the issue and the Freelo task keep Czech titles (infinitive, `Objednávka: Přidat výběr dopravy`). The pull request title is an English commit-style title (`:sparkles: [checkout] Add delivery selection`) linked to them with `Closes #<issue>`.
+- **Which one:** `Title language` in `CONTEXT.md` › `## Tasking convention`; without it, the language of the project's existing issue and task titles. When that does not decide, ask once and record the answer there (`esoul-tasking` › `references/convention.md`).
 
 ### Description
 
