@@ -41,3 +41,7 @@ When the shape of that interface is itself in question (how deep the module is, 
   file or `--filter` is `light` and does not wait; run the full suite once, in the background.
 - Record a verification receipt for each passing run (`esoul-workflow` › Verify) so later steps do
   not repeat it.
+- How many tests a seam gets follows the project's `docs/project_guidelines/testing.md`: unit
+  tests first, extend an existing feature test instead of adding one, full scenarios only for
+  tier 1 flows, and more tests are not more safety. Temporary tests are deleted before the PR is
+  opened and before the final run ([test-runs.md](test-runs.md)).
