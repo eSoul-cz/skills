@@ -75,7 +75,7 @@ Default to separate user and developer or operator guides, but let the approved 
 
 ## Handle Screenshots Safely
 
-Read [screenshots.md](references/screenshots.md) before capturing, inspecting, redacting, promoting, or deleting screenshots. Raw captures must remain under the ignored `docs/.documentation-work/raw-screenshots/`. Every published screenshot requires a tracked `docs/user-guide/SCREENSHOTS.md` entry and user approval. Never capture production by default.
+Read [screenshots.md](references/screenshots.md) before capturing, inspecting, redacting, promoting, or deleting screenshots. Raw captures must remain under the ignored `raw-screenshots/` inside the configured `work_dir` (`docs/.documentation-work/raw-screenshots/` with the default). Every published screenshot requires a tracked `docs/user-guide/SCREENSHOTS.md` entry and user approval. Never capture production by default.
 
 ## Review and Publish
 
