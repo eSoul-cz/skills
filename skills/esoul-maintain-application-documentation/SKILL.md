@@ -1,6 +1,6 @@
 ---
 name: esoul-maintain-application-documentation
-description: Create, refresh, verify, review, and render application documentation as audience-specific Markdown and reproducible PDFs. Use for application user guides, developer or operator guides, documentation specifications, screenshot plans and redaction, documentation correctness or completeness reviews, branded client documents, and documentation CI integration. Supports create, refresh, and read-only verify modes.
+description: Create, refresh, verify, review, and render application documentation as audience-specific Markdown and reproducible PDFs. Use for application user guides, developer or operator guides, documentation specifications, screenshot plans and redaction, documentation correctness or completeness reviews, and documentation CI integration. Supports create, refresh, and read-only verify modes. Not for branded client documents such as contracts and reports (esoul-office-documents renders them) or for writing client offers (esoul-offer-authoring).
 ---
 
 # Maintain Application Documentation
@@ -17,7 +17,7 @@ Produce evidence-backed application documentation through a stable project comma
 
 ## Use Specification-First Authoring
 
-For `create`, run `$grill-with-docs` when it is available and specify the documentation one question at a time. Otherwise, perform the same approval-gated interview directly. Maintain consistent domain language. Create `docs/documentation-spec.md` and `docs/documentation-decisions.md` from the bundled templates. Require explicit approval of the specification before substantial authoring or screenshot capture.
+For `create`, specify the documentation in an approval-gated interview run by the grilling rule: rounds of independent questions (`esoul-workflow`, `references/grilling.md`). Investigate discoverable answers instead of asking. Maintain consistent domain language. Create `docs/documentation-spec.md` and `docs/documentation-decisions.md` from the bundled templates. Require explicit approval of the specification before substantial authoring or screenshot capture.
 
 For `refresh`, reuse the approved specification. Propose reopening the interview when the requested change or discovered evidence changes audience, scope, terminology, source authority, information architecture, publication policy, or other specification assumptions. Start immediately only when the user explicitly requested refresh with grilling.
 
@@ -41,6 +41,8 @@ Read `output_dir` and `work_dir` from `docs/documentation.toml` (defaults `docs/
 ```
 
 A generated PDF that Git already tracks stays tracked after the ignore rule is added: propose removing it from the index with `git rm --cached <file>` (the local file stays), as its own commit (guidelines `documentation.md`, Generated documentation).
+
+The `commit_pdf_outputs` option of `docs/documentation.toml` is deprecated and must stay `false` (the template forces it); when a project sets it to `true`, set it to `false` to clear the `validate` warning.
 
 Do not copy executable files or renderer sources out of this skill. The installed skill is intentionally independent from the documentation tool distribution.
 

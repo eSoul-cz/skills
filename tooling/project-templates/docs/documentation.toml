@@ -3,6 +3,8 @@ documentation_version = ""
 primary_language = "en"
 output_dir = "docs/pdf"
 work_dir = "docs/.documentation-work"
+# Deprecated: keep false. Generated PDFs are never committed, not even to LFS
+# (guidelines general/documentation.md); the renderer warns when this is true.
 commit_pdf_outputs = false
 
 [project]

@@ -12,7 +12,7 @@ docs/
   .documentation-work/          # ignored intermediates and raw captures
   user-guide/                    # authored Markdown
   developer-guide/               # authored Markdown
-  pdf/                           # generated, ignored by default
+  pdf/                           # generated, always ignored, never committed
 ```
 
 Preserve compatible existing layouts by configuring actual paths. Never relocate existing docs without approval.

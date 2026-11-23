@@ -125,6 +125,7 @@ func validateProject(root string, cfg config) validationResult {
 	if workErr == nil {
 		validateDedicatedDirectory(root, workDir, "work_dir", &result)
 	}
+	validateDeprecatedOptions(cfg, &result)
 	validateGitState(root, cfg, &result)
 	validateProjectLogo(root, cfg.Project.Logo, &result)
 	validatePDFConfig(root, cfg.PDF, &result)
@@ -275,6 +276,12 @@ func validateDedicatedDirectory(root, directory, key string, result *validationR
 	gitDir := filepath.Join(root, ".git")
 	if filepath.Clean(directory) == filepath.Clean(root) || inside(gitDir, directory) {
 		result.error(fmt.Sprintf("Configuration key '%s' must use a dedicated directory outside .git.", key))
+	}
+}
+
+func validateDeprecatedOptions(cfg config, result *validationResult) {
+	if cfg.CommitPDFOutputs {
+		result.warn("commit_pdf_outputs is deprecated and must be false: generated PDFs are never committed, not even to LFS. Set it to false and keep the PDF output directory ignored by Git.")
 	}
 }
 
