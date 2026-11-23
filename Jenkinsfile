@@ -1,13 +1,18 @@
 @Library(['dockerHelpers']) _
 
 pipeline {
-	agent any
+	// A branch or pull request build only verifies, which takes minutes: it may run on the
+	// Quick node (label quick, reserved for the quick jobs of the infrastructure repositories)
+	// or on a general one, and has to end within the 15 minutes that node allows. A tag build
+	// publishes the multi-arch images and waits for the image builders, so it stays on a
+	// general node with the long limit.
+	agent { label env.TAG_NAME ? 'general' : 'quick || general' }
 
 	options {
 		disableConcurrentBuilds()
 		skipDefaultCheckout(true)
 		timestamps()
-		timeout(time: 120, unit: 'MINUTES')
+		timeout(time: env.TAG_NAME ? 120 : 15, unit: 'MINUTES')
 	}
 
 	environment {
