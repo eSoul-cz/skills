@@ -27,7 +27,7 @@ A push, rebase, retarget, lower-layer update, or externally changed head/base in
 
 ## Triage, fix, and reply
 
-Create a task for every finding needing work, grouped as Critical, Major, Minor, or Nitpick. Critical and Major block the merge; Minor and Nitpick are fixed in the same PR or marked `Deferred`. Severity controls order, not whether a valid finding is addressed. Consolidate duplicate root causes without losing any remote discussion.
+Create a task for every finding needing work, grouped as Critical, Major, Minor, or Nitpick. Critical and Major block the merge; Minor and Nitpick are fixed in the same PR or marked `Deferred`. A project that still uses the older scale maps it one to one (Blocker to Critical, High to Major, Medium to Minor, Low to Nitpick), so its Blocker and High findings block too. Severity controls order, not whether a valid finding is addressed. Consolidate duplicate root causes without losing any remote discussion.
 
 | Disposition | Required action |
 | --- | --- |
@@ -40,7 +40,7 @@ Do not make speculative style churn to appease a bot. A genuine in-scope improve
 
 **Converge; do not loop.** Each round costs a push, a full CI build, and another review that tends to find a few more old things rather than new bugs.
 
-- Only blocking findings (Critical and Major) justify a new round. Non-blocking valid findings (Minor and Nitpick) are fixed in the same batch as a blocking fix. When only non-blocking findings remain, fix them all in one final batch; findings that the review of that batch raises at non-blocking severity are not fixed in another round: answer them in their thread as accepted with a one-line reason (the `Accepted` state of the project's `code-review.md`), or mark them `Deferred` with a linked follow-up, unless the user asks for the fix.
+- Only blocking findings (Critical and Major, or Blocker and High on the older scale) justify a new round. Non-blocking valid findings (Minor and Nitpick) are fixed in the same batch as a blocking fix. When only non-blocking findings remain, fix them all in one final batch; findings that the review of that batch raises at non-blocking severity are not fixed in another round: answer them in their thread as accepted with a one-line reason (the `Accepted` state of the project's `code-review.md`), or mark them `Deferred` with a linked follow-up, unless the user asks for the fix.
 - A finding on code this PR did not change (pre-existing) is answered, not fixed here, unless it is blocking and the fix is small and in scope; otherwise propose a follow-up issue and Freelo pair and leave the decision to the user.
 - When a finding is a pattern, fix every instance in the batch (search for them) and say so in the reply, so the next review does not find the same bug one line further.
 - Every local re-review gets the ledger's decided findings, so it does not raise them again. A remote reviewer that repeats a decided finding gets a link to the earlier reply, not a new fix.
