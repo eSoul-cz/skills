@@ -33,12 +33,14 @@ Create missing files from `assets/project-templates/`, resolving that path relat
 
 The tooling bootstrap creates `docs/documentation.toml` when it is missing. Treat it as project-owned after creation.
 
-Ensure these paths are always ignored; generated PDFs are build artifacts, reproducible from their sources, and are never committed, not even to Git LFS:
+Read `output_dir` and `work_dir` from `docs/documentation.toml` (defaults `docs/pdf` and `docs/.documentation-work`) and make sure both resulting paths are always ignored; generated PDFs are build artifacts, reproducible from their sources, and are never committed, not even to Git LFS. With the defaults:
 
 ```gitignore
 /docs/.documentation-work/
 /docs/pdf/
 ```
+
+A generated PDF that Git already tracks stays tracked after the ignore rule is added: propose removing it from the index with `git rm --cached <file>` (the local file stays), as its own commit.
 
 Do not copy executable files or renderer sources out of this skill. The installed skill is intentionally independent from the documentation tool distribution.
 

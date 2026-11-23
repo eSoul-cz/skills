@@ -41,10 +41,11 @@ sensitive originals.
   for a check) belong in the session scratchpad, not in the repository or storage.
 - **Runtime data on the server** (volumes, databases) is not managed through Git; only a local
   copy or an anonymised dump meant for handover goes to `assets/`.
-- **Never committed, not even to LFS:** non-anonymised exports, database backups and dumps that
-  hold personal data, and generated PDFs (build artifacts, reproducible from their sources).
+- **Never committed, not even to LFS:** non-anonymised exports and database backups and dumps
+  that hold personal data (except data recorded as public, below), and generated PDFs (build
+  artifacts, reproducible from their sources).
 - **Public data** (a public register, data the application is meant to publish) is not covered by
-  the personal-data ban; whether data counts as public is recorded per application in
-  `CONTEXT.md` or an ADR.
+  the personal-data ban, and neither are exports of it; whether data counts as public is recorded
+  per application in `CONTEXT.md` or an ADR.
 - **Data is reviewed before it is committed:** the author checks that it holds nothing personal or
   private beyond the recorded exceptions, and a reviewer confirms it.
