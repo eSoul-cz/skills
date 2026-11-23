@@ -92,8 +92,7 @@ forbidden; the cases below are part of the task, not incidental:
 - **A new rule or boundary** — state it in `AGENTS.md` when every agent needs it, with the detail
   here.
 - **A missing convention or cache** — record the commit convention, the tasking convention or the
-  Freelo cache in `CONTEXT.md`. Commit it only when the user asks for a commit; then commit it on
-  its own and mention it in the pull request description.
+  Freelo cache in `CONTEXT.md` as its own commit and mention it in the pull request description.
 
 A finding about stale documentation is a normal review finding: it names the stale sentence and
 the source that contradicts it.

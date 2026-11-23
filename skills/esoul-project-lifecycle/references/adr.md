@@ -2,10 +2,10 @@
 
 ## ADR or guideline?
 
-Write an ADR when a rule could reasonably have gone the other way and has meaningful,
-hard-to-reverse consequences: domain model, money and precision, integrations and their
-ownership, state machines, authorization model, data migration strategy, hosting topology,
-content editing model. A rule that is simply how the project is written, or a tool choice, is a
+Write an ADR when a rule could reasonably have gone the other way and has meaningful
+consequences that someone may later question: domain model, money and precision, integrations
+and their ownership, state machines, authorization model, data migration strategy, hosting
+topology, content editing model. A rule that is simply how the project is written, or a tool choice, is a
 project guideline. Light-tier projects use `docs/rozhodnuti.md` (`D-nn` entries with date,
 reason, rejected options) instead of ADRs until they escalate.
 
