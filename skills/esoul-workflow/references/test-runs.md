@@ -41,7 +41,7 @@ What a test contains and how many a change gets is the project's `docs/project_g
 - **More tests are not more safety.** A review finding or an escaped mutant is a reason to look at the behaviour, not by itself to add a test; a change that makes a test redundant deletes it.
 - **Temporary tests are deleted before the PR is opened and before the final run or any measuring**, so the checks judge what will be merged.
 - **Suite budget.** The CI test stage has 10 minutes; a PR that adds more than 30 s of summed test time says why in its description; a feature test over 1 s in a full run is called out. JUnit with per-test times shows where the time goes.
-- **Mutation testing** is an optional local diagnostic where the stack provides it, for changed logic with boundaries or branching (not glue code). It is never a gate, has no threshold and leaves nothing in the PR. Delete temporary tests first.
+- **Mutation testing** is an optional local diagnostic where the stack provides it, for changed logic with boundaries or branching (not glue code). It is never a gate, has no threshold and leaves nothing in the PR. Delete temporary tests first. Where a project's older `testing.md` still calls it a soft gate or asks for escaped mutants in the PR, this rule applies until that file is regenerated.
 
 Order of the final run, before the PR is opened and before a slice is reported finished: write or adjust the behavioural tests; delete temporary tests and whatever does not belong in the suite; run the whole suite and static analysis once on the tree that will be pushed (formatters ran before each commit); optionally mutation testing; list the checks and their results in the PR, or the `No test:` line.
 
