@@ -43,9 +43,11 @@ sensitive originals.
   copy or an anonymised dump meant for handover goes to `assets/`.
 - **Never committed, not even to LFS:** non-anonymised exports and database backups and dumps
   that hold personal data (except data recorded as public, below), and generated PDFs (build
-  artifacts, reproducible from their sources).
+  artifacts, reproducible from their sources; one already committed is removed with
+  `git rm --cached`, guidelines `documentation.md`).
 - **Public data** (a public register, data the application is meant to publish) is not covered by
-  the personal-data ban, and neither are exports of it; whether data counts as public is recorded
+  the personal-data ban, and neither are exports of it, which need no anonymisation (guidelines
+  `security-and-data.md`, Personal and client data); whether data counts as public is recorded
   per application in `CONTEXT.md` or an ADR.
 - **Data is reviewed before it is committed:** the author checks that it holds nothing personal or
   private beyond the recorded exceptions, and a reviewer confirms it.

@@ -40,7 +40,7 @@ Read `output_dir` and `work_dir` from `docs/documentation.toml` (defaults `docs/
 /docs/pdf/
 ```
 
-A generated PDF that Git already tracks stays tracked after the ignore rule is added: propose removing it from the index with `git rm --cached <file>` (the local file stays), as its own commit.
+A generated PDF that Git already tracks stays tracked after the ignore rule is added: propose removing it from the index with `git rm --cached <file>` (the local file stays), as its own commit (guidelines `documentation.md`, Generated documentation).
 
 Do not copy executable files or renderer sources out of this skill. The installed skill is intentionally independent from the documentation tool distribution.
 

@@ -32,7 +32,7 @@ specifies and that was approved is in scope and may be implemented.
 
 ## What is allowed
 
-- Read code, migrations, schema and data (`SELECT`, `EXPLAIN`, `SHOW CREATE TABLE`, `describe`). Read production or sensitive data only after the owner's explicit approval, and not at all without it or when it is declined; dev and staging normally hold none. Never write to real data: a data fix reaches it only as a reviewed migration or a command through the application's normal write path (never manual SQL), which you propose as new work. Export no original sensitive data you read into the repository, issues or PRs; an anonymized sample of the faulty records, free of identifying information, may go into the new work's text.
+- Read code, migrations, schema and data (`SELECT`, `EXPLAIN`, `SHOW CREATE TABLE`, `describe`). Read production or sensitive data only after the owner's explicit approval, and not at all without it or when it is declined; dev and staging normally hold none. Write to data only in the **local** environment and only with the owner's approval (for example running an approved data fix); never to production, and not to staging (guidelines `security-and-data.md`). A data fix reaches a real environment only as a reviewed migration or a command through the application's normal write path (never manual SQL), which you propose as new work. Export no original data you read into the repository, issues or PRs; an anonymised sample of the faulty records may go into the new work's text when it is needed to describe the problem (guidelines `security-and-data.md`, Personal and client data).
 - Analyse data, quantify the impact, prepare an anonymized sample of the faulty records.
 - Write a **proposal** with a concrete diff, SQL or migration as an example in the text of the
   new work: the GitHub issue in `github-freelo` mode, the Freelo task description in
@@ -60,15 +60,15 @@ Never create the task silently, and never make the change with the intention of 
 
 On top of what `esoul-tasking` requires:
 
-- **Finding:** what exactly does not match in the data, with numbers and an anonymized sample.
+- **Finding:** what exactly does not match in the data, with numbers and, when needed, an anonymised sample.
 - **Cause:** why, with a link to the place in code or the migration.
 - **Proposed fix:** concrete, with a diff or SQL as an example.
 - **Impact on existing data:** backfill, recalculation, repeated import?
 - **Cost of not fixing it,** so the work can be prioritized.
 - A link to the data task where the finding came from.
 
-Never copy production personal data, credentials or tokens into the issue or Freelo. Use
-anonymized samples or say where the data can be found.
+Never copy the original data (production personal data, credentials, tokens) into the issue or Freelo. Use
+anonymised samples or say where the data can be found.
 
 ## When the user says "just do it"
 
