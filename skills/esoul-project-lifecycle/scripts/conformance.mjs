@@ -3,11 +3,13 @@
 //
 // Usage: node scripts/conformance.mjs <project-root> [--tier full|light] [--github owner/repo] [--json]
 //
-// Checks required files, CONTEXT.md sections, leftover {{PLACEHOLDERS}}, broken relative links,
-// ADR index consistency, slice IDs, AI-readiness inputs and, with --github, issues and repository merge settings.
+// Checks required files (including the guideline config, lock and index), CONTEXT.md sections, leftover
+// {{PLACEHOLDERS}}, broken relative links, ADR index consistency, slice IDs, AI-readiness inputs and,
+// with --github, issues and repository merge settings.
 //
-// Node >= 20, no dependencies. Never writes to the project, GitHub or Freelo. Exit code 1 when
-// any error is found, 2 on invalid usage, 0 otherwise.
+// Node >= 22, no dependencies. Never writes to the project, GitHub or Freelo. Exit code 1 when
+// any error is found, 2 on invalid usage, 0 otherwise. `esoul-guidelines check` is a separate,
+// read-only command (references/audit.md); this script only requires its files.
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
@@ -21,27 +23,28 @@ export const REQUIRED_FILES = Object.freeze({
         'CLAUDE.md',
         'CONTEXT.md',
         'GLOSSARY.md',
-        'CONTRIBUTING.md',
-        // GitHub reads CODEOWNERS from any of these locations.
-        ['CODEOWNERS', '.github/CODEOWNERS', 'docs/CODEOWNERS'],
         '.coderabbit.yaml',
         '.github/ISSUE_TEMPLATE/task.yml',
         '.github/ISSUE_TEMPLATE/bug.yml',
         '.github/PULL_REQUEST_TEMPLATE.md',
         'Jenkinsfile',
+        'esoul-guidelines.json',
+        'esoul-guidelines.lock',
+        'docs/project_guidelines/index.md',
         'docs/podklady/README.md',
-        'docs/podklady/otevrene-otazky.md',
         'docs/adr/index.md',
         'docs/adr/0000-template.md',
         'docs/plan/README.md',
         'docs/plan/seznam-slices.md',
-        'docs/project_guidelines/index.md',
     ],
     light: [
         ['AGENTS.md', 'CLAUDE.md'],
         'CONTEXT.md',
         '.coderabbit.yaml',
         'Jenkinsfile',
+        'esoul-guidelines.json',
+        'esoul-guidelines.lock',
+        'docs/project_guidelines/index.md',
         'docs/sitemap-a-meta.md',
         'docs/rozhodnuti.md',
         'docs/plan.md',
@@ -52,17 +55,21 @@ export const REQUIRED_FILES = Object.freeze({
     ],
 });
 
+// The guideline's CONTEXT.md headings are required; `## Freelo` (the machine-read cache the
+// tracker section points to) is recommended.
 export const CONTEXT_SECTIONS = Object.freeze({
-    full: ['Project profile', 'Freelo', 'Tasking convention', 'Commit convention'],
-    light: ['Project profile', 'Freelo', 'Tasking convention'],
+    full: ['Project profile', 'Tracker', 'Tasking convention', 'Commit convention'],
+    light: ['Project profile', 'Tracker', 'Tasking convention'],
 });
+
+export const RECOMMENDED_CONTEXT_SECTIONS = Object.freeze(['Freelo']);
 
 export const CATEGORY_LABELS = Object.freeze([
     'frontend', 'backend', 'data-migration', 'infrastructure', 'documentation', 'integration', 'bug',
 ]);
 
 const TIERS = ['full', 'light'];
-const STACKS = /^(laravel|medusa-nuxt|astro|other:[\w.-]+)$/;
+const STACKS = /^(laravel|astro|lsr|lunar|other:[\w.-]+)$/;
 const ARCHETYPES = ['A-static', 'B-admin', 'C-headless'];
 const TASKING_MODES = ['github-freelo', 'freelo-only'];
 const ADR_STATUS = /^(proposed|accepted|deprecated|superseded by adr-\d{4})$/i;
@@ -75,7 +82,7 @@ const ANY_MUSTACHE = /\{\{/g;
 const SKIP_SEGMENTS = new Set(['node_modules', 'vendor']);
 const SCANNED_EXT = /\.(md|markdown|ya?ml)$/i;
 // Extensionless project files that templates also fill.
-const SCANNED_NAMES = /(^|\/)(CODEOWNERS|Jenkinsfile)$/;
+const SCANNED_NAMES = /(^|\/)Jenkinsfile$/;
 const SHARED_ACCOUNT = 'esoul-cz-user';
 
 // ---------------------------------------------------------------------------------------------
@@ -262,7 +269,7 @@ export function readProfile(root, findings, tierFlag) {
             findings.error('profile-tier', `Process tier \`${recorded}\` is not one of: ${TIERS.join(', ')}.`, 'CONTEXT.md');
         }
         if (profile.stack && !profile.stack.includes('{{') && !STACKS.test(profile.stack)) {
-            findings.warn('profile-stack', `Stack \`${profile.stack}\` is not laravel, medusa-nuxt, astro or other:<name>.`, 'CONTEXT.md');
+            findings.warn('profile-stack', `Stack \`${profile.stack}\` is not laravel, astro, lsr, lunar or other:<name>.`, 'CONTEXT.md');
         }
         if (profile.stack === 'astro' && !ARCHETYPES.includes(profile.archetype ?? '')) {
             findings.warn('profile-archetype', `Astro project without an archetype (${ARCHETYPES.join(' | ')}).`, 'CONTEXT.md');
@@ -356,6 +363,11 @@ export function checkContext(context, sectionMap, tier, findings) {
         if (!findSection(sectionMap, name)) {
             const report = tier === 'full' ? findings.error.bind(findings) : findings.warn.bind(findings);
             report('context-section', `CONTEXT.md has no \`## ${name}\` section.`, 'CONTEXT.md');
+        }
+    }
+    for (const name of RECOMMENDED_CONTEXT_SECTIONS) {
+        if (!findSection(sectionMap, name)) {
+            findings.info('context-section-recommended', `CONTEXT.md has no \`## ${name}\` section (recommended: the cache of tracker IDs that \`## Tracker\` points to).`, 'CONTEXT.md');
         }
     }
     if (/_Avoid_\s*:/.test(context)) {

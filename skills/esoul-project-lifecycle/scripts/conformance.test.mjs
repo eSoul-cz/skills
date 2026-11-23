@@ -7,7 +7,7 @@ import path from 'node:path';
 import { after, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { fencedLines, makeGh, runConformance, sections } from './conformance.mjs';
+import { fencedLines, makeGh, REQUIRED_FILES, runConformance, sections } from './conformance.mjs';
 
 const SCRIPT = fileURLToPath(new URL('./conformance.mjs', import.meta.url));
 const temp = mkdtempSync(path.join(tmpdir(), 'esoul-conformance-'));
@@ -44,6 +44,10 @@ const context = (tier, stack = 'laravel', mode = 'github-freelo') => `# Demo —
 - Stack profile: \`esoul-project-lifecycle/references/stacks/${stack}.md\`
 - Environments: staging https://staging.example.test, production https://example.test
 - UAT dimensions: Role, Předpoklad
+
+## Tracker
+
+Work is tracked as GitHub issues, paired with Freelo tasks (see \`## Freelo\`).
 
 ## Freelo
 
@@ -96,15 +100,14 @@ function fullFiles(overrides = {}) {
         'CLAUDE.md': '@AGENTS.md\n',
         'CONTEXT.md': context('full'),
         'GLOSSARY.md': '# Glossary\n\n**Order (`Objednávka`)**: a placed cart.\n_Avoid_: purchase\n',
-        'CONTRIBUTING.md': '# Contributing\n',
-        '.github/CODEOWNERS': '* @eSoul-cz/devs\n',
         '.coderabbit.yaml': 'language: cs-CZ\n',
         '.github/ISSUE_TEMPLATE/task.yml': 'name: Task\n',
         '.github/ISSUE_TEMPLATE/bug.yml': 'name: Bug\n',
         '.github/PULL_REQUEST_TEMPLATE.md': '## Ověření\n',
         Jenkinsfile: 'pipeline {}\n',
         'docs/podklady/README.md': '# Podklady\n',
-        'docs/podklady/otevrene-otazky.md': '# Otázky\n',
+        'esoul-guidelines.json': '{"layers":["general","framework/laravel"]}\n',
+        'esoul-guidelines.lock': '{"schema_version":1}\n',
         'docs/adr/index.md': adrIndex([['0001-use-laravel.md', 'accepted']]),
         'docs/adr/0000-template.md': '---\nstatus: proposed\ndate: YYYY-MM-DD\n---\n# Decision statement\n',
         'docs/adr/0001-use-laravel.md': adr('accepted'),
@@ -121,6 +124,9 @@ function lightFiles(overrides = {}) {
         'CONTEXT.md': context('light', 'astro', 'freelo-only').replace('`—`', '`A-static`'),
         '.coderabbit.yaml': 'language: cs-CZ\n',
         Jenkinsfile: 'pipeline {}\n',
+        'esoul-guidelines.json': '{"layers":["general","framework/astro"]}\n',
+        'esoul-guidelines.lock': '{"schema_version":1}\n',
+        'docs/project_guidelines/index.md': '# Guidelines\n',
         'docs/sitemap-a-meta.md': '# Sitemap\n',
         'docs/rozhodnuti.md': '# Rozhodnutí\n',
         'docs/plan.md': '# Plán\n',
@@ -167,13 +173,13 @@ test('full tier reports missing files, placeholders, ADR and slice defects', () 
 | F1-02 | Zrušeno | Change logs may repeat IDs |
 `,
     });
-    delete files['.github/CODEOWNERS'];
+    delete files['esoul-guidelines.lock'];
     delete files['GLOSSARY.md'];
     const root = project(files, { untracked: { 'notes.md': '{{UNTRACKED_IS_IGNORED}}\n' } });
     const result = runConformance(root);
 
     const missing = find(result, 'missing-file').map((f) => f.file);
-    assert.deepEqual(missing, ['GLOSSARY.md', 'CODEOWNERS or .github/CODEOWNERS or docs/CODEOWNERS']);
+    assert.deepEqual(missing, ['GLOSSARY.md', 'esoul-guidelines.lock']);
 
     const placeholders = find(result, 'placeholder');
     assert.deepEqual(placeholders.map((f) => f.file).sort(), ['AGENTS.md', 'docs/adr/0000-template.md']);
@@ -358,13 +364,13 @@ test('broken relative links are warnings; per-item templates, URLs and placehold
     assert.match(warnings[0].message, /AGENTS\.md → docs\/adr\/index\.md/);
 });
 
-test('CODEOWNERS placeholders are errors and HTML comments are not link-checked', () => {
+test('Jenkinsfile placeholders are errors and HTML comments are not link-checked', () => {
     const root = project(fullFiles({
-        CODEOWNERS: '* {{LEAD_OWNERS}}\n',
+        Jenkinsfile: 'pipeline { agent "{{AGENT_LABEL}}" }\n',
         'docs/data-model.md': '# Data model\n<!-- e.g. [ADR](adr/NNNN-x.md) -->\n',
     }));
     const result = runConformance(root);
-    assert.ok(find(result, 'placeholder').some((f) => f.file === 'CODEOWNERS'));
+    assert.ok(find(result, 'placeholder').some((f) => f.file === 'Jenkinsfile'));
     assert.equal(find(result, 'broken-link').length, 0);
 });
 
@@ -428,4 +434,57 @@ test('AI readiness: website types need docs/ai-readiness.md and the AI slices, a
     const full = runConformance(project(fullFiles({ 'docs/plan/seznam-slices.md': fullSlices(five) })));
     assert.equal(find(full, 'slice-other-ids').length, 0);
     assert.match(find(full, 'slice-summary')[0].message, /8 slice row\(s\)/);
+});
+
+test('the guideline files are required in both tiers', () => {
+    for (const [tier, files] of [['full', fullFiles()], ['light', lightFiles()]]) {
+        const stripped = { ...files };
+        delete stripped['esoul-guidelines.json'];
+        delete stripped['esoul-guidelines.lock'];
+        delete stripped['docs/project_guidelines/index.md'];
+        const missing = find(runConformance(project(stripped)), 'missing-file').map((f) => f.file);
+        assert.deepEqual(
+            missing.filter((file) => file.includes('guidelines')).sort(),
+            ['docs/project_guidelines/index.md', 'esoul-guidelines.json', 'esoul-guidelines.lock'],
+            tier,
+        );
+    }
+});
+
+test('the required files are exactly the lifecycle files, the template root files and the guideline files', () => {
+    assert.deepEqual(REQUIRED_FILES.full, [
+        'AGENTS.md', 'CLAUDE.md', 'CONTEXT.md', 'GLOSSARY.md', '.coderabbit.yaml',
+        '.github/ISSUE_TEMPLATE/task.yml', '.github/ISSUE_TEMPLATE/bug.yml', '.github/PULL_REQUEST_TEMPLATE.md',
+        'Jenkinsfile', 'esoul-guidelines.json', 'esoul-guidelines.lock', 'docs/project_guidelines/index.md',
+        'docs/podklady/README.md', 'docs/adr/index.md', 'docs/adr/0000-template.md', 'docs/plan/README.md',
+        'docs/plan/seznam-slices.md',
+    ]);
+    assert.deepEqual(find(runConformance(project(fullFiles())), 'missing-file'), []);
+});
+
+test('CONTEXT.md needs the guideline headings; ## Freelo is recommended, not required', () => {
+    const without = (heading) => context('full').replace(new RegExp(`## ${heading}\\n[\\s\\S]*?(?=\\n## |$)`), '');
+
+    const noTracker = runConformance(project(fullFiles({ 'CONTEXT.md': without('Tracker') })));
+    assert.deepEqual(find(noTracker, 'context-section').map((f) => f.message), ['CONTEXT.md has no `## Tracker` section.']);
+    assert.equal(find(noTracker, 'context-section')[0].severity, 'error');
+
+    const noFreelo = runConformance(project(fullFiles({ 'CONTEXT.md': without('Freelo') })));
+    assert.deepEqual(find(noFreelo, 'context-section'), []);
+    assert.deepEqual(codes(noFreelo, 'error'), []);
+    assert.deepEqual(codes(noFreelo, 'warning'), []);
+    assert.match(find(noFreelo, 'context-section-recommended')[0].message, /## Freelo/);
+
+    const noCommit = runConformance(project(fullFiles({ 'CONTEXT.md': without('Commit convention') })));
+    assert.match(find(noCommit, 'context-section')[0].message, /## Commit convention/);
+
+    const lightNoTracker = runConformance(project(lightFiles({ 'CONTEXT.md': lightFiles()['CONTEXT.md'].replace(/## Tracker\n[\s\S]*?(?=\n## )/, '') })));
+    assert.equal(find(lightNoTracker, 'context-section')[0].severity, 'warning');
+});
+
+test('stacks: laravel, astro, lsr, lunar and other:<name> are known; any other name is not', () => {
+    const stackWarning = (stack) => find(runConformance(project(fullFiles({ 'CONTEXT.md': context('full', stack) }))), 'profile-stack');
+    for (const stack of ['laravel', 'astro', 'lsr', 'lunar', 'other:wordpress']) assert.deepEqual(stackWarning(stack), [], stack);
+    assert.equal(stackWarning('django').length, 1);
+    assert.match(stackWarning('django')[0].message, /laravel, astro, lsr, lunar or other:<name>/);
 });

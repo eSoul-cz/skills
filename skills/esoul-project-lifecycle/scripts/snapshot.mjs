@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * eSoul case-study snapshots of a client's ORIGINAL site (před) and the launched one (po).
- * Node >= 18; Playwright and Lighthouse are resolved at runtime from ~/.cache/esoul-uat.
+ * Node >= 22; Playwright and Lighthouse are resolved at runtime from ~/.cache/esoul-uat.
  *
  *   snapshot.mjs --check
  *   snapshot.mjs discover --base https://old.example.cz [--max 200] [--json]
