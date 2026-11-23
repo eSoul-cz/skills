@@ -37,7 +37,7 @@ to `GLOSSARY.md`. List the tasklists the project actually has, by their Freelo n
   the table, or the user says the project changed. Update the affected lines and the
   verification date; never drop labels that are still valid.
 
-The edit is a normal repository change. Commit it on its own, never inside a feature commit, and mention it in the pull request description (recording the `## Freelo` cache is allowed in any pull request). When `CONTEXT.md` is protected, take it through the repository's usual documentation flow.
+The edit is a normal repository change. Commit it only when the user asks for a commit (creating a task or confirming the project does not authorise one); then commit it on its own, never inside a feature commit, and mention it in the pull request description (recording the `## Freelo` cache is allowed in any pull request). When `CONTEXT.md` is protected, take it through the repository's usual documentation flow.
 
 ## Conflicts
 

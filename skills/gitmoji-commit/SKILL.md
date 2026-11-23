@@ -100,9 +100,9 @@ campaign-specific classes. Preserve the existing rounding behavior.
 
 For each planned commit:
 
-1. Stage only its files or hunks. Use partial staging when one file contains multiple intentions.
-2. Inspect the complete staged diff and confirm it contains no unrelated changes.
-3. Run the stack's formatter on the files being committed before every commit (`tools.md`; it is cheap). Tests and static analysis run once on the tree that will be pushed, not per commit.
+1. Run the stack's formatter (`tools.md`; it is cheap) on the files of this commit before staging them, so the staged diff holds the formatted result. A file that also carries changes you will not commit stays unformatted, and the report names it. Tests and static analysis run once on the tree that will be pushed, not per commit.
+2. Stage only its files or hunks. Use partial staging when one file contains multiple intentions.
+3. Inspect the complete staged diff and confirm it contains no unrelated changes.
 4. Always run `git diff --cached --check`: it inspects the index, which a receipt does not cover, and it is instant. Then run proportionate project checks, except those with a passing verification receipt (`receipt · tree <tree> · <command> → pass`, see `esoul-workflow`) for the worktree being committed: do not re-run those just to commit. Run project checks for intermediate commits whose content was never verified on its own.
 5. Create the commit with the planned subject and optional body.
 6. Respect repository hooks. Never use `--no-verify` without explicit user authorization.
