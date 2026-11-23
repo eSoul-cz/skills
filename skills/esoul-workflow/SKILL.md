@@ -70,7 +70,7 @@ Keep the session small: one task per session, `/clear` or a handoff between task
 
 Keep the tracker true to the work; mechanical status writes are your job, not the user's. Details, commands and the after-merge rule are in [references/task-lifecycle.md](references/task-lifecycle.md).
 
-- **Start of work** (before or at branch creation): set the person the session works for as assignee on the GitHub issue and as worker on the paired Freelo task, and move the Freelo task to `In progress`.
+- **Start of work** (before or at branch creation): set the person the session works for as assignee on the GitHub issue and as worker on the paired Freelo task, and move the Freelo task to `In progress`. Name the branch `<prefix>/<issue-number>-<english-kebab>` (`<prefix>/<english-kebab>` without an issue), without diacritics, with a prefix from `feature/ fix/ chore/ data/ docs/ design/ ci/ release/ refactor/ test/`; one branch is one issue.
 - **PR opened**: move the task to `Code review` and add the work report (`freelo` skill).
 - **Review finds defects**: back to `In progress`.
 - **After merge**: `Testing`, or `Done` and finish where the project has no testing step. Never leave a task with merged work in `Backlog` or `To Do`.
@@ -145,7 +145,7 @@ It does not change when the verified files are committed (it equals the new comm
 
 ## 4. Guardrails
 
-- Production is read-only by default: no writes to production databases, servers, or live sites without explicit instruction for that specific action.
+- Production is read-only by default: no manual or unapproved write to a production database, server, live site or an external system's production environment. A data correction ships as a reviewed migration or as a command through the application's normal write path, never as manual SQL. You may trigger Jenkins jobs when the owner asks; never deploy outside Jenkins, push images or artifacts, or change CI credentials.
 - Every write to Freelo, GitHub issues, or other shared systems needs an approved preview first. Exception: the task lifecycle writes above (assignee, worker, state moves, finishing) for the task this session works on are mechanical status updates and need no preview; report them in the final summary. Content writes (title, description, estimate, new tasks, comments with substance) still need approval.
 - Destructive commands (reset, drop, force-push, bulk delete, search-replace on a database) need a backup or a dry run and explicit confirmation.
 - Prefer the repository's own scripts (Makefile, composer/npm scripts, `scripts/`) over ad-hoc commands.

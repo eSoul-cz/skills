@@ -17,6 +17,8 @@ The person the session works for: the authenticated `gh` user for GitHub (`gh ap
 | Review finds defects | - | move back to `In progress` |
 | After merge | issue closes with the PR | move to `Testing`; where the project has no testing step, move to `Done` and `freelo tasks finish <id> --agent` |
 
+Branch name at the start of work: `<prefix>/<issue-number>-<english-kebab>` derived from the title, without diacritics (`<prefix>/<english-kebab>` when no issue exists). Prefixes: `feature/`, `fix/`, `chore/`, `data/`, `docs/`, `design/`, `ci/`, `release/`, `refactor/`, `test/`. One branch is one issue.
+
 - The task keeps its worker through every move.
 - Never leave a task with merged work in `Backlog` or `To Do`.
 - A task already in `In progress` with the right worker needs no write.
