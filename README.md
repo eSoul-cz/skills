@@ -173,9 +173,9 @@ $gitmoji-commit commit your work
 
 ### `final-pr-review`
 
-Finishes individual GitHub PRs and native stacked PRs: optional local CodeRabbit review before pushing, CI and remote review monitoring, fixes for valid findings, evidence-backed replies to invalid findings, and repeated verification until the current revision is approved. Does not merge or bypass required human reviews.
+Finishes individual GitHub PRs and native stacked PRs: optional local CodeRabbit review before pushing, CI and remote review monitoring, fixes for valid findings, evidence-backed replies to invalid findings, and repeated verification until the current revision is approved. Does not merge, approve or use a ruleset bypass unless the owner explicitly authorises it for that PR or batch (recorded in the PR description), and never bypasses required human reviews.
 
-Uses `gitmoji-commit` for commits and `code-review` for local review when available, and falls back to `pre-pr-review` when local CodeRabbit is unavailable or out of quota. When CodeRabbit is rate-limited or out of credits on the PR, it posts a `pre-pr-review` fallback review and accepts that skill's approval instead of waiting for CodeRabbit (`wait-pr.mjs --skip-reviewer` stops the poller from waiting for it). Requires authenticated GitHub access and the repository's CodeRabbit integration; automatic CodeRabbit approval requires `reviews.request_changes_workflow` to be enabled.
+Uses `gitmoji-commit` for commits and `code-review` for local review when available, and falls back to `pre-pr-review` when local CodeRabbit is unavailable or out of quota. When CodeRabbit is rate-limited or out of credits on the PR, it posts a `pre-pr-review` fallback review and accepts that review in CodeRabbit's place once its findings are resolved, instead of waiting for CodeRabbit; it does not replace the human review (`wait-pr.mjs --skip-reviewer` stops the poller from waiting for it). Requires authenticated GitHub access and the repository's CodeRabbit integration; automatic CodeRabbit approval requires `reviews.request_changes_workflow` to be enabled.
 
 Usage:
 
