@@ -26,7 +26,7 @@ Start from `assets/templates/docs/adr/0000-template.md`.
   this section or the issue, never into a separate report file.
 - **Decision**: present tense, no "should". Link open questions instead of inventing answers.
 - **Consequences**: including the unpleasant ones.
-- **Alternatives considered**: at least two rejected options with the reason.
+- **Alternatives considered**: record at least one considered alternative with the reason it was not chosen when there is one (RECOMMENDED); an ADR without a real alternative is allowed.
 - **Implementation status as of YYYY-MM-DD**: required once `accepted`. The files and tests
   that implement it, then every gap with the issue that closes it, or "No issue". While the
   repository has no application code it says only "No application code yet."

@@ -48,7 +48,7 @@ usually means the alternatives were not evaluated honestly.
 
 ## Alternatives considered
 
-Include at least two rejected alternatives and explain why each was not selected.
+Record at least one considered alternative and explain why it was not selected when there is one (RECOMMENDED). An ADR without a real alternative is allowed.
 
 ## Implementation status as of YYYY-MM-DD
 

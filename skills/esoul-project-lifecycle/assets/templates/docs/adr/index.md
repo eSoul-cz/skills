@@ -42,7 +42,7 @@ client's assignment is not an ADR either; the assignment is summarised in
 - Name new files `NNNN-english-slug.md` and write them in English, with the terms from
   [GLOSSARY.md](../../GLOSSARY.md). The title is a statement of the decision, not a topic.
   Start from [0000-template.md](0000-template.md) and keep the sections Context / Decision /
-  Consequences / Alternatives considered (at least two rejected) / Implementation status.
+  Consequences / Alternatives considered (at least one, when there is one) / Implementation status.
 - **Changing a record:** a record that was never accepted is amended in place with a dated
   revision note under its title; an accepted record gets a dated `> Note of YYYY-MM-DD` that
   fills in, confirms or narrows a point; when the substance of an accepted decision flips, a
