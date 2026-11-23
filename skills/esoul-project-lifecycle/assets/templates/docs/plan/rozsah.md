@@ -35,7 +35,7 @@ nestaví. -->
 ## 4. Co se rozhodlo nestavět
 
 <!-- Datovaný seznam položek, které se nestaví (rozsah —), s odkazem na rozhodnutí
-     (ADR, Q-nn, rozhodnutí eSoul v podkladech a otázkách). -->
+     (ADR, otázka `#N`, rozhodnutí eSoul v podkladech a otázkách). -->
 
 ## 5. Dohoda o navýšení
 

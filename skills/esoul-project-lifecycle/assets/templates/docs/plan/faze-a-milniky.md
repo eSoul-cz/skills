@@ -60,7 +60,7 @@ fáze i klient.
      konkrétními kritérii, ne obecnými. -->
 
 **Co se u každé brány kontroluje:** stav slices na kritických cestách a co je blokuje; otevřené
-otázky registru, u kterých se jede podle výchozího stavu, a dopad jejich pozdní odpovědi;
+otázky (issues `question`), u kterých se jede podle výchozího stavu, a dopad jejich pozdní odpovědi;
 dohoda o navýšení rozsahu; rizika z [rizik](rizika.md); prognóza další brány a termínu — ano, s
 rizikem, nebo ne.
 
@@ -74,7 +74,7 @@ Kritická cesta je řetězec závislostí slices, jehož zdržení posune před�
 
 ## 6. Pořadí prací
 
-1. Podklady, registr otázek a ADR.
+1. Podklady, otázky (issues `question`) a ADR.
 2. Návrh v Pencilu a jeho schválení klientem.
 3. Plán: fáze, brány, rozsah, slices, rizika.
 4. Nultá etapa (F0) a založení párů issue + Freelo task ze slices.

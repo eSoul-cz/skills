@@ -32,7 +32,7 @@ se to staví.
 | [Fáze a milníky](faze-a-milniky.md) | Termín, fáze s cíli a ADR, diagram závislostí, brány, kritické cesty, pořadí prací, předání a provozní dopad. |
 | [Seznam slices](seznam-slices.md) | Úplný seznam slices po fázích s kategorií, závislostmi, rozsahem, obrazovkami, odkazem na issue a akceptací; zrušené slices, počty a změny. |
 | [Rozsah díla a navýšení](rozsah.md) | Co je uvnitř díla, co je navýšení, co je nová položka a co se nestaví, s odůvodněním. |
-| [Podklady a otázky](podklady-a-otazky.md) | Co blokuje každá otevřená otázka registru a co platí do odpovědi, co dluží klient, rozhodnutí na straně eSoul. |
+| [Podklady a otázky](podklady-a-otazky.md) | Co blokuje každá otevřená otázka (issue `question`) a co platí do odpovědi, co dluží klient, rozhodnutí na straně eSoul. |
 | [Rizika](rizika.md) | Rizika dodávky s dopadem, tím, co s nimi plán dělá, a dotčenými slices. |
 
 ## Fáze v kostce
@@ -59,7 +59,7 @@ Stav k {{DATE}}.
 | z toho `accepted` | 0 |
 | z toho `proposed` | 0 |
 | z toho `superseded` | 0 |
-| Otevřené otázky v registru | 0 — viz [otevrene-otazky.md](../podklady/otevrene-otazky.md) |
+| Otevřené otázky (issues `question`) | 0 — `gh issue list --label question --state open` |
 | Slices | viz [počty](seznam-slices.md#4-počty-slices) |
 | Úkoly | GitHub issues v milnících fází a tasky `pm` jen ve Freelu |
 | Aplikační kód | **žádný** |
@@ -78,15 +78,14 @@ kontrakt a má přednost před textem plánu.
 Pravidla samotného plánu:
 
 1. **Práce je rozdělená na vertikální slices.** Každý slice je pár GitHub issue + Freelo task se
-   stejným titulkem podle [CONTRIBUTING.md](../../CONTRIBUTING.md); slice `pm` je jen Freelo
-   task. Jakmile issue existuje, je zadáním slice ono.
+   stejným titulkem podle `## Tasking convention` v [CONTEXT.md](../../CONTEXT.md); slice `pm`
+   je jen Freelo task. Jakmile issue existuje, je zadáním slice ono.
 2. **Odhady patří do Freela**, ne do plánu. Odhad je lidský čas (zadání agentovi, kontrola,
    review, UAT, opravy) po 15 minutách; úkol jde do `To Do` jen se schváleným odhadem.
 3. **Každý slice nese zařazení rozsahu** (`S`, `P`, `N`, `E`, `—`). Značka zůstává kvůli
    dohledatelnosti, co je nad smlouvu, i když se to staví v původní ceně.
-4. **Otázky na klienta vede jen registr**
-   [otevrene-otazky.md](../podklady/otevrene-otazky.md). Plán říká jen, co která blokuje a co
-   platí do odpovědi.
+4. **Otázky na klienta vede jen tracker:** issue se štítkem `question`. Plán říká jen, co která
+   blokuje a co platí do odpovědi.
 
 ## Jednotné identifikátory
 
@@ -96,7 +95,7 @@ Identifikátory se nikdy nepřečíslují ani nepoužijí znovu.
   milník v GitHubu.
 - **Slices:** `F<fáze>-<nn>`, například `F1-17`.
 - **Brány:** `G0` připraveno k vývoji, `G1` … akceptace fází.
-- **Otázky:** `Q-nn` = položka registru [otevrene-otazky.md](../podklady/otevrene-otazky.md).
+- **Otázky:** issue (nebo task) se štítkem `question`, odkaz `#N`.
 - **Podklady a přístupy od klienta:** `K-nn` ([podklady a otázky](podklady-a-otazky.md)).
 - **Rizika:** `R-nn` ([rizika](rizika.md)).
 - **Rozhodnutí:** `ADR-NNNN` ([index ADR](../adr/index.md)).
@@ -148,7 +147,7 @@ konkrétní částku. Odmítnutá role se ověřuje explicitním stavem (`403`, 
 |---|---|
 | **Hotovo.** | Na začátku buňky Akceptace označuje dokončený slice. |
 | **Zrušeno.** | Na začátku buňky Akceptace označuje zrušený slice; následuje datum a důvod. |
-| `Q-nn` | Otevřená otázka registru; do odpovědi platí výchozí stav z [podkladů a otázek](podklady-a-otazky.md). |
+| `#N` u otázky | Otevřená otázka (issue `question`); do odpovědi platí výchozí stav z [podkladů a otázek](podklady-a-otazky.md). |
 | (podmíněně) | Závislost platí, jen když se realizuje varianta, na kterou odkazuje. |
 | TBD | Fakt, který zatím nikdo nedodal; nikdy se nedomýšlí. |
 
@@ -157,7 +156,7 @@ konkrétní částku. Odmítnutá role se ověřuje explicitním stavem (`403`, 
 - Odhady pracnosti, jejich součty, ceny práce a jména osob. Odhady jsou ve Freelu.
 - Kalendářní data kromě termínu dokončení a termínů bran; jejich stav se aktualizuje u každé
   brány.
-- Přepis rozhodnutí z ADR a otázek z registru; plán na ně odkazuje.
+- Přepis rozhodnutí z ADR a otázek z trackeru; plán na ně odkazuje.
 - Nic z toho, co smlouva vylučuje — viz [rozsah](rozsah.md#1-co-je-dílo).
 
 ## Jak plán aktualizovat

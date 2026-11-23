@@ -32,11 +32,12 @@ snapshot: {{DATE}}
   v `.gitattributes`). **Nikdy se neupravují** — jsou důkazem o tom, co bylo předáno. Opravená
   nebo novější verze je nový soubor s datem v názvu, ne přepis starého. Poznámky jsou výtah
   z nich, ne jejich náhrada.
-- Data projektu se nikdy neukládají do gitignorovaných složek (`storage/`, `tmp/`, stažené
-  soubory); patří sem a do `assets/`. Jedinou výjimkou jsou neanonymizované důkazy o starém
-  systému v gitignorované `_reference/`.
-- Otázky, které z podkladů nejde vyčíst, vede jen registr
-  [otevrene-otazky.md](otevrene-otazky.md). Poznámka na ně odkazuje číslem `Q-nn`.
+- Data projektu se neukládají do gitignorovaných složek (`storage/`, `tmp/`, stažené soubory);
+  patří sem a do `assets/`. Výjimku dává guideline `security-and-data.md`: gitignorovaná lokální
+  složka (podle konvence `_reference/`) smí obsahovat neanonymizovaný klientský materiál pro
+  práci na projektu, nikdy se necommituje ani nesdílí.
+- Otázky, které z podkladů nejde vyčíst, vedeme jen v trackeru: každá je issue se štítkem
+  `question`. Poznámka na ně odkazuje číslem issue `#N`.
 
 ## Reálná data
 
@@ -49,8 +50,8 @@ Podklady jsou ostrá provozní data, ne anonymizovaná ukázka. Z toho plyne:
 - jedinou výjimkou jsou parity fixtury, pokud je předepisuje ADR: nesou jen **čísla** z podkladů
   (částky, hodiny, data, vzorce a odkazy na buňky ve tvaru `soubor › list › buňka`), nikdy jména
   lidí, klientů ani zakázek, popisy činností ani poznámky;
-- agent nikdy nepracuje s neanonymizovaným dumpem ani exportem osobních údajů; pro vývoj
-  slouží jen anonymizovaná data.
+- agent pracuje s anonymizovaným dumpem nebo exportem; čtení neanonymizovaných dat řídí
+  guideline `security-and-data.md` (potvrzení vlastníka, nic z nich se nevynáší do repozitáře).
 
 <!-- Doplňte, jaké druhy reálných údajů podklady obsahují (jména, sazby, ceny, kontakty …),
      bez citace samotných hodnot. -->
@@ -79,16 +80,12 @@ Podklady jsou ostrá provozní data, ne anonymizovaná ukázka. Z toho plyne:
 ## Pořadí čtení
 
 <!-- Číslovaný seznam poznámek v pořadí, ve kterém dávají smysl novému člověku na projektu:
-     nejdřív zadání a rozsah, pak kotva domény, pak výpočty, nakonec odpovědi klienta a registr
-     otázek. Registr otevrene-otazky.md je vždy poslední. -->
-
-1. [`otevrene-otazky.md`](otevrene-otazky.md) — co se bez klienta rozhodnout pořád nedá.
+     nejdřív zadání a rozsah, pak kotva domény, pak výpočty, nakonec odpovědi klienta. -->
 
 ## Dokumenty
 
 | Dokument | O čem je | Cílové řešení |
 |---|---|---|
-| [otevrene-otazky.md](otevrene-otazky.md) | registr otázek na klienta a doporučení | — |
 
 ## Odkud jsou soubory
 

@@ -6,7 +6,7 @@ snapshot: YYYY-MM-DD
 
 <!-- Šablona poznámky k podkladu. Kopie se jmenuje podle podkladu v kebab-case
      (docs/podklady/nazev-podkladu.md); tento soubor zůstává beze změny. Před uložením smažte
-     všechny komentáře a nahraďte YYYY-MM-DD, ADR-NNNN a Q-nn skutečnými hodnotami.
+     všechny komentáře a nahraďte YYYY-MM-DD, ADR-NNNN a #N skutečnými hodnotami.
      Žádný budoucí čas: poznámka popisuje, co v podkladu je, ne co se postaví. -->
 
 # Název podkladu
@@ -36,11 +36,11 @@ snapshot: YYYY-MM-DD
 
 ## Otevřené otázky
 
-<!-- Každý bod, který z podkladu nejde vyčíst a blokuje stavbu, je položka registru;
+<!-- Každý bod, který z podkladu nejde vyčíst a blokuje stavbu, je issue se štítkem `question`;
      sem patří jen odkaz. Body, které nic neblokují, se nezapisují nikam. Zodpovězená otázka
      zůstane jako jedna věta s odkazem na ADR, které ji uzavírá. -->
 
-- [Q-nn](otevrene-otazky.md#q-nn) — krátké znění otázky.
+- #N — krátké znění otázky.
 
 ## Ověřeno
 
