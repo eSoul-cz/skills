@@ -1,4 +1,4 @@
-@Library(['dockerHelpers']) _
+@Library(['testing', 'dockerHelpers']) _
 
 pipeline {
 	// A branch or pull request build only verifies, which takes minutes: it may run on the
@@ -42,10 +42,13 @@ pipeline {
 			steps {
 				script {
 					def releaseTag = env.TAG_NAME?.trim()
-					if (releaseTag && !(releaseTag ==~ /\d+\.\d+\.\d+/)) {
+					// A `plugin-<version>` tag releases the agent plugin (README): it only verifies. A bare
+					// `<version>` tag releases the documentation tooling.
+					env.PLUGIN_RELEASE = (releaseTag && releaseTag ==~ /plugin-\d+\.\d+\.\d+/) ? 'true' : 'false'
+					if (releaseTag && env.PLUGIN_RELEASE != 'true' && !(releaseTag ==~ /\d+\.\d+\.\d+/)) {
 						error("Release tag is not semantic: ${releaseTag}")
 					}
-					env.DOCUMENTATION_TOOLS_VERSION = releaseTag ?: '0.0.0'
+					env.DOCUMENTATION_TOOLS_VERSION = (releaseTag && env.PLUGIN_RELEASE != 'true') ? releaseTag : '0.0.0'
 					echo(releaseTag
 						? "Using authoritative release tag ${releaseTag}."
 						: 'Using development tooling version 0.0.0.')
@@ -56,6 +59,26 @@ pipeline {
 		stage('Verify skills') {
 			steps {
 				sh 'tooling/scripts/test_skills'
+			}
+		}
+
+		// The rules rendered by `esoul-guidelines` are current and unedited. The image has no PHP project around it;
+		// its entrypoint is the command itself and runCommandInTest runs `/bin/sh -c <command>`, so the entrypoint is cleared.
+		stage('Verify guidelines') {
+			steps {
+				withCredentials([string(credentialsId: env.SCALEWAY_REGISTRY_CREDENTIALS_ID, variable: 'SECRET')]) {
+					dockerRegistryLogin(registryUrl: 'rg.fr-par.scw.cloud/testing-images', password: env.SECRET)
+				}
+				runCommandInTest(
+					image: 'rg.fr-par.scw.cloud/testing-images/esoul-guidelines:0.3',
+					options: '--entrypoint=',
+					command: 'esoul-guidelines check'
+				)
+			}
+			post {
+				always {
+					dockerRegistryLogout('rg.fr-par.scw.cloud/testing-images')
+				}
 			}
 		}
 
@@ -71,7 +94,10 @@ pipeline {
 
 		stage('Build and publish tooling images') {
 			when {
-				buildingTag()
+				allOf {
+					buildingTag()
+					expression { env.PLUGIN_RELEASE != 'true' }
+				}
 			}
 
 			steps {
