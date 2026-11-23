@@ -75,22 +75,22 @@ Subject rules:
 - start with one Gitmoji shortcode and one space;
 - include a literal `[context]` only when it materially narrows the subsystem, package, application, or workflow;
 - write context in concise lowercase kebab-case;
-- use an imperative message with a lowercase initial letter;
+- use an imperative message that starts with an uppercase letter (`Add`, `Fix`, `Remove`; not `Added`);
 - omit the trailing period;
 - keep the complete subject at 72 characters or fewer when practical.
 
 Examples:
 
 ```text
-:sparkles: [checkout] add delivery selection
-:bug: prevent duplicate payment callbacks
-:white_check_mark: [checkout] cover delivery selection
+:sparkles: [checkout] Add delivery selection
+:bug: Prevent duplicate payment callbacks
+:white_check_mark: [checkout] Cover delivery selection
 ```
 
 Add a body only when the subject is not explanatory enough. Separate it with one blank line. Use it to explain reasoning, relevant context, trade-offs, or the parts of a larger coherent change; do not merely repeat the subject.
 
 ```text
-:recycle: [pricing] isolate discount calculation
+:recycle: [pricing] Isolate discount calculation
 
 Move rule selection behind a single boundary so callers no longer depend on
 campaign-specific classes. Preserve the existing rounding behavior.
@@ -102,10 +102,11 @@ For each planned commit:
 
 1. Stage only its files or hunks. Use partial staging when one file contains multiple intentions.
 2. Inspect the complete staged diff and confirm it contains no unrelated changes.
-3. Always run `git diff --cached --check`: it inspects the index, which a receipt does not cover, and it is instant. Then run proportionate project checks, except those with a passing verification receipt (`receipt · tree <tree> · <command> → pass`, see `esoul-workflow`) for the worktree being committed: do not re-run those just to commit. Run project checks for intermediate commits whose content was never verified on its own.
-4. Create the commit with the planned subject and optional body.
-5. Respect repository hooks. Never use `--no-verify` without explicit user authorization.
-6. Re-inspect the worktree because hooks may modify files.
-7. Record the resulting commit hash and subject before continuing.
+3. Run the stack's formatter on the files being committed before every commit (`tools.md`; it is cheap). Tests and static analysis run once on the tree that will be pushed, not per commit.
+4. Always run `git diff --cached --check`: it inspects the index, which a receipt does not cover, and it is instant. Then run proportionate project checks, except those with a passing verification receipt (`receipt · tree <tree> · <command> → pass`, see `esoul-workflow`) for the worktree being committed: do not re-run those just to commit. Run project checks for intermediate commits whose content was never verified on its own.
+5. Create the commit with the planned subject and optional body.
+6. Respect repository hooks. Never use `--no-verify` without explicit user authorization.
+7. Re-inspect the worktree because hooks may modify files.
+8. Record the resulting commit hash and subject before continuing.
 
 After the sequence, report the commits created, checks run, and any preserved uncommitted changes.
