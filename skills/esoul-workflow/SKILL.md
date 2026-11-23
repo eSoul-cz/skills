@@ -141,7 +141,7 @@ It does not change when the verified files are committed (it equals the new comm
 ### Commit and ship
 
 - Commit with `gitmoji-commit` (one intention per commit, repository convention first).
-- Finish PRs with `final-pr-review` (CI green, CodeRabbit findings resolved). Never merge, deploy, or push to protected branches unless separately asked.
+- Finish PRs with `final-pr-review` (CI green, CodeRabbit findings resolved). Never merge, approve, use a ruleset bypass, deploy, or push to protected branches unless separately asked. Merging, approving and a bypass need the owner's explicit authorisation for that PR or batch, recorded in the PR description (with the reason for a bypass).
 
 ## 4. Guardrails
 
