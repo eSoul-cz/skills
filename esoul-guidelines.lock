@@ -1,0 +1,84 @@
+{
+    "schema_version": 1,
+    "package_version": "v0.3.4",
+    "layers": [
+        "general",
+        "profile/internal"
+    ],
+    "exclude": [],
+    "files": {
+        "AGENTS.md": {
+            "block": "agents",
+            "sha256": "df46ccec16d680a9f3bcbe54b9195e3035fc11cbb08c1ed1c671b05e810520d2"
+        },
+        "docs/project_guidelines/code-review.md": {
+            "block": "code-review",
+            "sha256": "bca4e91718762d52c68c82dc380b459c72f70857974c16ade78aa69a64ee8f30",
+            "sources": {
+                "general/code-review.md": "b62bc2a89cb5e421ab8aa361ace6359d390acd30f61b257d9ddc67c8d7aa7d56",
+                "profile/internal/code-review.md": "285390a1e5416b4bdfb5563fc228abbd3a2bd572ae0aa87e05db93574d97362c"
+            }
+        },
+        "docs/project_guidelines/dependencies.md": {
+            "block": "dependencies",
+            "sha256": "2d37c9dd6c0b515a04f99b3f045610113d1157ab9e80a4686bd757546e70cf64",
+            "sources": {
+                "general/dependencies.md": "f6f260f75b71e1dafe8e712e61b1b9cf75f9ae7c0c3eb984f44b9a8d1eae8ee2"
+            }
+        },
+        "docs/project_guidelines/deployment.md": {
+            "block": "deployment",
+            "sha256": "6b870ec2de6b1be3ac5b3453969b472343f1c813edec20f5cc3691bbda9e989a",
+            "sources": {
+                "general/deployment.md": "2f3cbfcdb399e27e006a692a6656d04c0cdcc8ba6429032b53b0f46bcc09cc28"
+            }
+        },
+        "docs/project_guidelines/documentation.md": {
+            "block": "documentation",
+            "sha256": "704d6286dbcb2f8b1b7203c67cec6aa0c0bde7c17f96923ee821eb44e8bac1aa",
+            "sources": {
+                "general/documentation.md": "4748f9bca548a69d8c4e3cc0150160fe76aebaf0c7212ee2b095f8ed00083a50"
+            }
+        },
+        "docs/project_guidelines/domain.md": {
+            "block": "domain",
+            "sha256": "4ddc59d5b3aaab075bb86e653722dd1c900706ff8994e14fe7aa22a8cc10ef93",
+            "sources": {
+                "general/domain.md": "bb56a67c92fa62ac373974313f842aaf91c394b4ea5bc24b44c1e87fd6a63e9f"
+            }
+        },
+        "docs/project_guidelines/index.md": {
+            "block": "index",
+            "sha256": "728e30c69dc95dc6592ed54e1648f01675f70b0cc763b36abd5225df638ff236"
+        },
+        "docs/project_guidelines/public-website.md": {
+            "block": "public-website",
+            "sha256": "e3e5f3e83540ae29d25a1b8c87587d555f5652715131e7bde06c54ca62d52304",
+            "sources": {
+                "general/public-website.md": "854a9400151ed404bab1d1ebad3bc76349afb8ffa071f231b9f3fba876c8b4cf"
+            }
+        },
+        "docs/project_guidelines/security-and-data.md": {
+            "block": "security-and-data",
+            "sha256": "d9ad76bd229196158b18303583fc3f358391b390394b777ef80766b58b09b788",
+            "sources": {
+                "general/security-and-data.md": "08c938cbe9006bc1204b0fd9b06a4c4ff912e09849ba28392695360025d696c3"
+            }
+        },
+        "docs/project_guidelines/testing.md": {
+            "block": "testing",
+            "sha256": "87d67b998372f7e3ec36caf08b5ff257222dea9738a3b30fe93dece642124eb9",
+            "sources": {
+                "general/testing.md": "816fff945efef9a04a9caf1373e532bcb015c1b7496632dba2d6fc7216e411d6"
+            }
+        },
+        "docs/project_guidelines/workflow.md": {
+            "block": "workflow",
+            "sha256": "43c9d39807205b967e51c8e643824b82243b0441219c81590c2f8f45c1ef53db",
+            "sources": {
+                "general/workflow.md": "e016a9aab1d0120ab4276e87314d1fd5828463278e0111b9f8497d6fefd23584",
+                "profile/internal/workflow.md": "f1f909068f54ce22ae53d0e830a872c70017851682c63dd65d2ffdd37bdc9506"
+            }
+        }
+    }
+}
