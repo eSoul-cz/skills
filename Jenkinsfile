@@ -62,18 +62,14 @@ pipeline {
 			}
 		}
 
-		// The rules rendered by `esoul-guidelines` are current and unedited. The image has no PHP project around it;
-		// its entrypoint is the command itself and runCommandInTest runs `/bin/sh -c <command>`, so the entrypoint is cleared.
+		// The rules rendered by `esoul-guidelines` are current and unedited. The check runs the installer version the project recorded
+		// in esoul-guidelines.lock (that release's PHAR, checksum verified, in the PHP test image), so a guidelines release cannot break it.
 		stage('Verify guidelines') {
 			steps {
 				withCredentials([string(credentialsId: env.SCALEWAY_REGISTRY_CREDENTIALS_ID, variable: 'SECRET')]) {
 					dockerRegistryLogin(registryUrl: 'rg.fr-par.scw.cloud/testing-images', password: env.SECRET)
 				}
-				runCommandInTest(
-					image: 'rg.fr-par.scw.cloud/testing-images/esoul-guidelines:0.3',
-					options: '--entrypoint=',
-					command: 'esoul-guidelines check'
-				)
+				esoulGuidelinesCheck()
 			}
 			post {
 				always {

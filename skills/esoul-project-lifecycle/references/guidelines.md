@@ -26,8 +26,9 @@ When both fail, installing a tool needs the user's approval; ask, then install b
   guidelines README, "Repositories without PHP": Composer global
   (`composer global require esoul-cz/guidelines`), the PHAR of a GitHub release (download it with
   its `.sha256` and verify the checksum before use), or the Docker image
-  `rg.fr-par.scw.cloud/testing-images/esoul-guidelines:0.3`. Prefer Composer global or the PHAR
-  on a developer machine and the Docker image in CI.
+  `rg.fr-par.scw.cloud/testing-images/esoul-guidelines:0.3`. On a developer machine prefer Composer
+  global or the PHAR of the version recorded in `esoul-guidelines.lock` (`package_version`); the Docker
+  image is an optional local convenience. CI never uses an image: it runs the recorded version (section 4).
 
 ## 2. Initialise and review the layers
 
@@ -77,19 +78,16 @@ Project rules go **below** the managed block or in project files next to it
 edited) or outdated content (run `sync`).
 
 - PHP project: add `esoul-guidelines check` next to the other read-only checks of `tools.md`.
-- Project without PHP: run the Docker image as a pipeline step. The step runs `/bin/sh -c`, so
-  the image's own entrypoint must be cleared (`--entrypoint=`); see `extraChecks` in the
-  published `template-astro-static` `Jenkinsfile`.
+- Project without PHP: CI runs the version the project recorded in `esoul-guidelines.lock`
+  (`package_version`), not an image: it downloads that release's `esoul-guidelines.phar` and
+  `.sha256` from GitHub, fails on a checksum mismatch and runs `php esoul-guidelines.phar check` in the
+  PHP test image. `astroPipeline` (eSoul Jenkins libraries) does it by itself as the stage
+  `Guidelines check` whenever the lock exists, so an Astro `Jenkinsfile` needs no configuration. Any
+  other Jenkinsfile that loads the `testing` library calls the step, after the registry login for the
+  test images:
 
   ```groovy
-  extraChecks: [
-      [
-          name: 'Guidelines',
-          image: 'rg.fr-par.scw.cloud/testing-images/esoul-guidelines:0.3',
-          options: '--entrypoint=',
-          command: 'esoul-guidelines check',
-      ],
-  ],
+  esoulGuidelinesCheck()
   ```
 
 ## 5. Project-specific rules
