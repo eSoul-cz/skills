@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * eSoul UAT catalogue and run tool. No dependencies, Node >= 18.
+ * eSoul UAT catalogue and run tool. No dependencies, Node >= 22.
  *
  *   uat.mjs validate <scenarios-dir>
  *   uat.mjs stats    <scenarios-dir | run-dir>

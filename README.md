@@ -62,7 +62,7 @@ chapters) and `ops` (Haiku, commits and tracker chores). The skills start them a
 a usage report that shows where the weekly limit goes. The plugin's hooks make this automatic:
 a SessionStart hook injects the usage rules into every session, and a PreToolUse guard denies
 Explore, forks and general-purpose agents without an explicit `model` (disable it with
-`ESOUL_AGENT_GUARD=off`). The guard needs Node 18+ on `PATH` and is skipped otherwise.
+`ESOUL_AGENT_GUARD=off`). The guard needs Node 22+ on `PATH` and is skipped otherwise.
 
 ```bash
 node skills/esoul-model-routing/scripts/usage-report.mjs --days 7
@@ -290,7 +290,7 @@ npx skills add . \
 
 Authors self-contained static bundles for the eSoul mockups module, with desktop/mobile frames, directly addressable interaction states, and image-only designs. Includes an original, neutral five-frame Workshop Notes example and a loopback-only design preview.
 
-Requires Node.js 20+, an application checkout containing `App\Services\Mockups\BundleValidator` and `config/mockups/manifest.schema.json`, and that checkout's Composer dependencies and compatible PHP runtime. The skill does not bundle a second validator or a checkout-relative schema symlink. Local preview does not implement comments, pinning, or persistence; those must be verified in the actual application.
+Requires Node.js 22+, an application checkout containing `App\Services\Mockups\BundleValidator` and `config/mockups/manifest.schema.json`, and that checkout's Composer dependencies and compatible PHP runtime. The skill does not bundle a second validator or a checkout-relative schema symlink. Local preview does not implement comments, pinning, or persistence; those must be verified in the actual application.
 
 Bundle JavaScript runs on a separate, automatically allocated loopback port. The UI pins that origin and validates measurement messages by sender, origin, per-load nonce, declared identity, and bounded height. Both ports close when the preview stops; the measurement probe is injected locally and is not part of published bundles.
 
@@ -332,7 +332,7 @@ Plans, verifies, runs, and reports user acceptance testing of eSoul applications
 
 Optionally, a bridge (`scripts/gdoc.mjs` and `assets/gdoc/Code.gs`, Node.js 22+) keeps the scenarios and their results in a living Google Doc and writes Playwright results (`[ABC-01] …` test titles) into an `Automatický test` column; setup in `references/gdoc.md`.
 
-Requires Node.js 18+. The sweep needs `playwright` (`npm install --prefix ~/.cache/esoul-uat playwright@1`) and Google Chrome; the catalogue and run tool has no dependencies.
+Requires Node.js 22+. The sweep needs `playwright` (`npm install --prefix ~/.cache/esoul-uat playwright@1`) and Google Chrome; the catalogue and run tool has no dependencies.
 
 ```bash
 npx skills add eSoul-cz/skills --skill esoul-uat --agent codex --global --yes

@@ -1,13 +1,16 @@
 ---
 name: esoul-uat
 description: Plan, verify, run and report UAT of eSoul apps, e-shops and websites as an end user in an isolated Chrome (functionality and design). Use for UAT, test scenarios, acceptance runs, "click through the app", responsive or design QA, or turning findings into bugs via esoul-tasking.
+compatibility: Node.js 22+ for the helper scripts; a browser (dedicated Chrome profile) for runs.
 ---
 
 # eSoul UAT
 
 Test the product the way its users will use it, record what happened with evidence, and
 turn failures into well-specified work. Functionality and design are tested in the same run.
-The scenario catalogue lives in the project repository; credentials never do.
+The scenario catalogue lives in the project repository; credentials never do. Where the project
+has the `package/test-evidence` layer, its PHPUnit acceptance report is the automated
+counterpart of these browser scenarios.
 
 ## 1. Load context
 

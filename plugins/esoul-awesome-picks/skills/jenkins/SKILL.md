@@ -1,7 +1,7 @@
 ---
 name: jenkins
-description: Create and manage Jenkins CI/CD pipelines, configure agents, manage plugins,
-  and automate builds.
+description: Generic Jenkins CI/CD work (pipelines, agents, plugins, builds) outside the eSoul
+  stack. For eSoul pipelines and shared libraries use `esoul-jenkins-libraries`.
 category: devops
 risk: critical
 source: https://github.com/BagelHole/DevOps-Security-Agent-Skills

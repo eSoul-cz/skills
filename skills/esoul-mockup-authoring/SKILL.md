@@ -1,7 +1,7 @@
 ---
 name: esoul-mockup-authoring
 description: Author, adapt, validate, locally preview, and publish ready-built interactive mockups for the eSoul mockups module. Use for desktop/mobile frames, addressable interaction states, image-only designs, and iterations from revision-bound feedback. Core workflow uses GitHub and the staff UI, not MCP.
-compatibility: Node.js 20+ and the application's supported PHP runtime with Composer dependencies; an eSoul application checkout supplies the authoritative bundle validator. Browser access is required for visual verification.
+compatibility: Node.js 22+ and the application's supported PHP runtime with Composer dependencies; an eSoul application checkout supplies the authoritative bundle validator. Browser access is required for visual verification.
 metadata:
   author: eSoul
   version: "1.0.1"

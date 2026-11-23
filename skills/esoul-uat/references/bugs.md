@@ -24,9 +24,9 @@ bug, marked important, and are reported to the user immediately, not only at the
 
 ## Bug content
 
-Use `assets/templates/bug-issue.md`. Title per the repository's tasking convention (it
-decides prefixes such as `[FE]`, `[BE]` when the project uses any). The category follows where the fix
-belongs, not the fact that testing found it.
+Use `assets/templates/bug-issue.md`. Title as `esoul-tasking` defines it (`Context: Action result`
+in the project's title language, no category prefix). The category is a label and follows where
+the fix belongs, not the fact that testing found it.
 
 The issue contains:
 

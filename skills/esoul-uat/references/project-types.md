@@ -7,8 +7,8 @@ derive it:
 
 | Profile | Product type |
 |---|---|
-| Stack `laravel`, `other:*` with tier `full` | `application` |
-| Stack `medusa-nuxt`; WordPress with WooCommerce; any stack whose plan or ADRs contain cart, checkout, or orders | `eshop` |
+| Stack `laravel` or `lsr`, `other:*` with tier `full` | `application` |
+| WordPress with WooCommerce; any stack whose plan or ADRs contain cart, checkout, or orders | `eshop` |
 | Stack `astro` archetype `B-admin` or `C-headless`; WordPress without a shop | `website-admin` |
 | Stack `astro` archetype `A-static`; landing pages | `website` |
 
