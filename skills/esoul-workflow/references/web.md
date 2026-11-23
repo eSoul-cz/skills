@@ -4,9 +4,9 @@ Applies to eSoul web applications and their frontends. Repository `AGENTS.md` / 
 
 ## Known stack (verify per repository)
 
-- PHP, Laravel and Symfony applications, Composer. The PHP version is in the project's `docs/project_guidelines/tools.md`; Node and the package manager are in its `package.json` (`engines`, `packageManager`), not copied here.
+- PHP, Laravel and Symfony applications, Composer. Versions of PHP, Node and the package manager are in the project's `docs/project_guidelines/tools.md`, not copied here.
 - eSoul packages (GitHub `eSoul-cz/`): `cqrs` and `laravel-cqrs` (commands and queries), `laravel-ott-jwt`, `laravel-rabbitmq-roadrunner-driver`. Follow the existing command/query split when a project uses CQRS: writes go through commands and handlers, reads through queries. Do not call repositories directly from controllers if the project routes them through the bus.
-- Runtime: Docker images from `eSoul-cz/ci-images` (PHP FPM, RoadRunner, Node, Playwright; tags in the project's Dockerfile and `Jenkinsfile`). CI runs in Jenkins (`Jenkinsfile`).
+- Runtime: Docker images from `eSoul-cz/ci-images` (PHP FPM, RoadRunner, Node, Playwright; versions in the project's `tools.md`). CI runs in Jenkins (`Jenkinsfile`).
 - Mockups live in the eSoul mockups module (`esoul-mockup-authoring`); desktop frame 1440px, mobile 390px.
 
 ## Before coding
