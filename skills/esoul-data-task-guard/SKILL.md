@@ -32,7 +32,7 @@ specifies and that was approved is in scope and may be implemented.
 
 ## What is allowed
 
-- Read code, migrations, schema and data (`SELECT`, `EXPLAIN`, `SHOW CREATE TABLE`, `describe`).
+- Read code, migrations, schema and data (`SELECT`, `EXPLAIN`, `SHOW CREATE TABLE`, `describe`). Read production or sensitive data only after the owner's explicit approval, and not at all without it or when it is declined; dev and staging normally hold none. Never write to real data: a data fix reaches it only as a reviewed migration or a command through the application's normal write path (never manual SQL), which you propose as new work. Export no original sensitive data you read into the repository, issues or PRs; an anonymized sample of the faulty records, free of identifying information, may go into the new work's text.
 - Analyse data, quantify the impact, prepare an anonymized sample of the faulty records.
 - Write a **proposal** with a concrete diff, SQL or migration as an example in the text of the
   new work: the GitHub issue in `github-freelo` mode, the Freelo task description in
@@ -72,7 +72,8 @@ anonymized samples or say where the data can be found.
 
 ## When the user says "just do it"
 
-An explicit instruction from the user overrides this skill. Say in one sentence that it is a
+An explicit instruction from the user to change application code or the data model overrides this
+skill (it does not replace the owner's approval to read production or sensitive data). Say in one sentence that it is a
 change to application code or the data model outside the normal cycle; if the user insists, make
 the change. Do not argue repeatedly. Still create the task so the change is traceable, unless the
 user says otherwise.

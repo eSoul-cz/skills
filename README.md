@@ -173,9 +173,9 @@ $gitmoji-commit commit your work
 
 ### `final-pr-review`
 
-Finishes individual GitHub PRs and native stacked PRs: optional local CodeRabbit review before pushing, CI and remote review monitoring, fixes for valid findings, evidence-backed replies to invalid findings, and repeated verification until the current revision is approved. Does not merge or bypass required human reviews.
+Finishes individual GitHub PRs and native stacked PRs: optional local CodeRabbit review before pushing, CI and remote review monitoring, fixes for valid findings, evidence-backed replies to invalid findings, and repeated verification until the current revision is approved. Does not merge, approve or use a ruleset bypass unless the owner explicitly authorises it for that PR or batch (recorded in the PR description), and never bypasses required human reviews.
 
-Uses `gitmoji-commit` for commits and `code-review` for local review when available, and falls back to `pre-pr-review` when local CodeRabbit is unavailable or out of quota. When CodeRabbit is rate-limited or out of credits on the PR, it posts a `pre-pr-review` fallback review and accepts that skill's approval instead of waiting for CodeRabbit (`wait-pr.mjs --skip-reviewer` stops the poller from waiting for it). Requires authenticated GitHub access and the repository's CodeRabbit integration; automatic CodeRabbit approval requires `reviews.request_changes_workflow` to be enabled.
+Uses `gitmoji-commit` for commits and `code-review` for local review when available, and falls back to `pre-pr-review` when local CodeRabbit is unavailable or out of quota. When CodeRabbit is rate-limited or out of credits on the PR, it posts a `pre-pr-review` fallback review and accepts that review in CodeRabbit's place once its findings are resolved, instead of waiting for CodeRabbit; it does not replace the human review (`wait-pr.mjs --skip-reviewer` stops the poller from waiting for it). Requires authenticated GitHub access and the repository's CodeRabbit integration; automatic CodeRabbit approval requires `reviews.request_changes_workflow` to be enabled.
 
 Usage:
 
@@ -438,7 +438,7 @@ $esoul-data-task-guard the import found duplicate breeders; propose the fix
 
 ### `esoul-project-data`
 
-Client files, photos, admin media, SQL dumps, backups and import files go to the tracked `assets/` folder through Git LFS, and guides to `docs/`, never to `storage/`, `*.nosync`, `tmp/` or Downloads, where only one computer has them. Secrets never go to Git; throwaway intermediates stay in the session scratchpad.
+Source material without personal data (client files, photos, admin media, import files) and anonymised SQL dumps and backups go to the tracked `assets/` folder through Git LFS, and guides to `docs/`, never to `storage/`, `*.nosync`, `tmp/` or Downloads, where only one computer has them. Non-anonymised exports, backups with personal data and generated PDFs are never committed, not even to LFS; data is reviewed before it is committed, and a public-data exception is recorded in `CONTEXT.md` or an ADR. Secrets never go to Git; throwaway intermediates stay in the session scratchpad.
 
 Usage:
 

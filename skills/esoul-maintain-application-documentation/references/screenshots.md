@@ -6,10 +6,10 @@ Create `docs/user-guide/SCREENSHOTS.md` lazily from the bundled template. Requir
 
 Capture through available browser tooling when possible. Otherwise prepare exact human capture steps. Use only a local environment or an explicitly approved non-production environment by default. Obtain explicit approval before production capture or before starting/seeding an environment when that changes state.
 
-Store raw captures only under:
+Store raw captures only in `raw-screenshots/` inside the configured `work_dir`, which is always ignored:
 
 ```text
-docs/.documentation-work/raw-screenshots/
+docs/.documentation-work/raw-screenshots/    # with the default work_dir
 ```
 
 Never place raw captures directly in the published images directory. Warn that deleting a file does not remove it from Git history if it was already committed.

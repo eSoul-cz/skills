@@ -1,6 +1,6 @@
 ---
 name: esoul-project-data
-description: Use whenever you save, back up, unpack or prepare project data (client files, photos, media, SQL dumps, backups, import files, exports) or a guide for colleagues. Data goes to assets/ via Git LFS, guides to docs/; never to gitignored storage/, *.nosync, tmp/ or Downloads.
+description: Use whenever you save, back up, unpack or prepare project data (client files, photos, media, SQL dumps, backups, import files, exports) or a guide for colleagues. Source material without personal data and anonymised dumps go to assets/ via Git LFS, guides to docs/; non-anonymised exports, backups with personal data and generated PDFs are never committed; never to gitignored storage/, *.nosync, tmp/ or Downloads.
 ---
 
 # Project data belongs in Git, not in storage
@@ -10,8 +10,8 @@ A colleague cannot find it, and it disappears with the disk. Therefore:
 
 | What | Where |
 | --- | --- |
-| Client files (XLSX, DOCX, PDF, original photos from file transfers) | `assets/<topic>/…` in the main repository, Git LFS |
-| Admin media, SQL dumps for transfer, backups before an import | `assets/…`, Git LFS |
+| Client source files without personal data (XLSX, DOCX, PDF, original photos from file transfers) | `assets/<topic>/…` in the main repository, Git LFS |
+| Admin media without personal data; **anonymised** SQL dumps for transfer and backups before an import | `assets/…`, Git LFS |
 | Case-study screenshots and Lighthouse reports | `assets/case-study/…`, Git LFS (owner: `esoul-project-lifecycle` case-study reference) |
 | Processed files for an import (resized photos, caches) | `assets/…`, Git LFS |
 | Guides, runbooks, procedures for colleagues | `docs/…` (plain Git), linked from the README |
@@ -40,4 +40,12 @@ sensitive originals.
 - **Purely temporary intermediates** that are thrown away right after (previews, contact sheets
   for a check) belong in the session scratchpad, not in the repository or storage.
 - **Runtime data on the server** (volumes, databases) is not managed through Git; only a local
-  copy or a dump meant for handover goes to `assets/`.
+  copy or an anonymised dump meant for handover goes to `assets/`.
+- **Never committed, not even to LFS:** non-anonymised exports and database backups and dumps
+  that hold personal data (except data recorded as public, below), and generated PDFs (build
+  artifacts, reproducible from their sources).
+- **Public data** (a public register, data the application is meant to publish) is not covered by
+  the personal-data ban, and neither are exports of it; whether data counts as public is recorded
+  per application in `CONTEXT.md` or an ADR.
+- **Data is reviewed before it is committed:** the author checks that it holds nothing personal or
+  private beyond the recorded exceptions, and a reviewer confirms it.

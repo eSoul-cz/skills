@@ -2,11 +2,11 @@
 
 ## ADR or guideline?
 
-Write an ADR only when genuine alternatives have meaningful, hard-to-reverse consequences:
-domain model, money and precision, integrations and their ownership, state machines,
-authorization model, data migration strategy, hosting topology, content editing model.
-A rule that could not reasonably have gone the other way, or a tool choice, is a project
-guideline. Light-tier projects use `docs/rozhodnuti.md` (`D-nn` entries with date, decision,
+Write an ADR when a rule could reasonably have gone the other way and has meaningful
+consequences that someone may later question: domain model, money and precision, integrations
+and their ownership, state machines, authorization model, data migration strategy, hosting
+topology, content editing model. A rule that is simply how the project is written, or a tool choice, is a
+project guideline. Light-tier projects use `docs/rozhodnuti.md` (`D-nn` entries with date,
 reason, rejected options) instead of ADRs until they escalate.
 
 ## Format
@@ -26,7 +26,7 @@ Start from `assets/templates/docs/adr/0000-template.md`.
   this section or the issue, never into a separate report file.
 - **Decision**: present tense, no "should". Link open questions instead of inventing answers.
 - **Consequences**: including the unpleasant ones.
-- **Alternatives considered**: at least two rejected options with the reason.
+- **Alternatives considered**: record at least one considered alternative with the reason it was not chosen when there is one (RECOMMENDED); an ADR without a real alternative is allowed.
 - **Implementation status as of YYYY-MM-DD**: required once `accepted`. The files and tests
   that implement it, then every gap with the issue that closes it, or "No issue". While the
   repository has no application code it says only "No application code yet."

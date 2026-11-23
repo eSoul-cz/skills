@@ -31,12 +31,12 @@ Apply each item to the changed code and what it touches. A checklist item is a q
 
 ### 3. Tests and contract
 
-- Each acceptance criterion and the `## UAT` scenario map to code that implements it. Unrelated refactoring or features mixed in is a finding: report each unrelated change (config, `.gitignore`, another domain, docs counters, a changed default) with the proposal to move it to its own PR. A diff over about 400 production lines that could ship in parts is a finding with a proposed split.
-- New or changed behavior has a test at a meaningful seam, or the PR description has a `Bez testu: <reason>` line that holds up; a behaviour change with neither is a finding. A bug fix has a regression test that fails without the fix.
+- Each acceptance criterion and the `## UAT` scenario map to code that implements it. Unrelated refactoring or features mixed in is a finding: report each unrelated change (config, `.gitignore`, another domain, docs counters, a changed default) with the proposal to move it to its own PR. A diff over about 400 production lines or roughly 30 files that could ship in parts is a finding with a proposed split; mechanical changes (formatter output, generated files, lock files) in their own commit do not count.
+- New or changed behavior has a test at a meaningful seam, or the PR description has a `No test: <reason>` line that holds up; a behaviour change with neither is a finding. Documentation-only and dependency-only PRs need no line. A bug fix has a regression test that fails without the fix.
 - A new or changed data transformation rule (ETL step, legacy import, data fix, mapping) without an automated test that feeds source rows and asserts the expected target rows is a finding; a manual check on a real dump does not replace it.
 - A test whose outcome depends on the production database engine (collation or case-insensitive uniqueness, `NULL` ordering, JSON functions, raw SQL, locking) while the suite runs on another engine is a finding unless it is in the `db-engine` group. A new test in the excluded `sandbox` or `quarantine` group needs its reason (provider API; linked flaky-test issue).
-- A test added to a new suite where an area suite exists, a path proven again at the integration layer, a sleep or widened timeout, or a retry that hides flakiness is a finding (project `testing.md`).
-- Tests assert behavior through the module's interface, not implementation details or the text of an error message; a test that reaches past the interface (mocked internal collaborators, private methods, querying the database instead of the interface) is a finding. Expected values come from an independent source, not recomputed the way the code does. No sleeping, real network, or order dependence.
+- A test added to a new suite where an area suite exists, a path proven again at the integration layer, a sleep or widened timeout, or a retry that hides flakiness is a finding (project `testing.md`). A test beyond the tier its flow needs (`How much to test`), or more than 30 s of added test time without a reason in the description, is overengineering and a finding.
+- Tests assert behavior through the module's interface, not implementation details. They assert an error's type, keys, codes or status, never the text of a user-facing error message; the text of an internal error (an exception or a developer-facing validation or configuration error) MAY be asserted. A test that reaches past the interface (mocked internal collaborators, private methods, querying the database instead of the interface) is a finding. Expected values come from an independent source, not recomputed the way the code does. No sleeping, real network, or order dependence.
 - Accepted ADRs and `AGENTS.md` MUST rules are respected; a changed target contract comes with an ADR update.
 - New terms follow `GLOSSARY.md`; documentation made stale by the change is updated in the same PR.
 - An open client question implemented by guesswork is a finding.
@@ -91,7 +91,7 @@ Your lens: <lens name>. Checklist:
 
 Read every hunk together with enough surrounding code, callers, and tests to judge it.
 Report only problems you can point to in the code. For each candidate return:
-- severity (<project scale>), title
+- severity (Critical, Major, Minor or Nitpick), title
 - location: path:line (line in the current file)
 - evidence: what the code does, quoting at most 5 lines
 - expected: the intended behavior and its source

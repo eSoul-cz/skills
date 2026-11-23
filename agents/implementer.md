@@ -19,7 +19,7 @@ Rules:
   - Sorted or paginated queries end with a unique tiebreaker and decide `NULL` order; joins on mapping tables match at most one row.
   - No schema changes outside migrations; partial updates distinguish "not sent" from "cleared"; no prop shadowing or lost reactivity in Vue.
   - Short comments in the surrounding language (Czech with diacritics); long rationale goes to Open points for the PR description.
-- Test-first where the brief names test seams. While iterating run only the affected test file; before reporting run the test directories of the touched area. Leave the full suite and mutation testing to the orchestrator. A behaviour change without a test needs one line "Bez testu: <reason>" in Open points.
+- Test-first where the brief names test seams. While iterating run only the affected test file; before reporting run the test directories of the touched area. Leave the full suite to the orchestrator; mutation testing is an optional local diagnostic, not part of your run. A behaviour change without a test needs one line "No test: <reason>" in Open points.
 - A test that fails and passes on the same code is a defect: report it, never rerun until green or add sleeps.
 - If two different approaches fail on the same problem, stop and report what you tried and what you observed. Do not try a third time.
 - Do not commit, push, or write to Freelo or GitHub unless the brief says so.
@@ -29,5 +29,5 @@ Answer format:
 1. Status: done | blocked (why).
 2. What changed: files with one line each.
 3. Verification: the commands you ran and their results.
-3a. Self-check: intentions in the diff and production lines changed; where the server enforces each UI rule; root cause (bugs); reused or new helpers; query tiebreakers; changed defaults; tests added per behaviour (or "Bez testu: <reason>"), and for a data transformation the fixture test of each changed rule, and which of them depend on the database engine.
+3a. Self-check: intentions in the diff and production lines changed; where the server enforces each UI rule; root cause (bugs); reused or new helpers; query tiebreakers; changed defaults; tests added per behaviour (or "No test: <reason>"), and for a data transformation the fixture test of each changed rule, and which of them depend on the database engine.
 4. Open points: assumptions, follow-ups, anything the orchestrator must decide.

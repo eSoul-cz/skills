@@ -1,13 +1,10 @@
 ---
 name: freelo
 description: >
-  Use when interacting with Freelo.io project management through the `freelo`
-  CLI — managing projects, tasklists, tasks, subtasks, comments, time tracking,
-  work reports, labels, notes, files, custom fields, templates, pinned items,
-  workers, notifications, events, invoices, or searching in Freelo. Trigger
-  this skill whenever the user mentions Freelo, wants to manage tasks or
-  projects, track time, create work reports, check invoices, or do anything
-  related to Freelo.io.
+  Use for Freelo.io operations through the `freelo` CLI: projects, tasklists,
+  tasks, subtasks, comments, time tracking, work reports, labels, notes,
+  files, custom fields, templates, pinned items, workers, notifications,
+  events, invoices, and searching in Freelo.
 ---
 
 # Freelo CLI — Agent Skill

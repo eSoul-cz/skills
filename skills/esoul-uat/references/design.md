@@ -89,7 +89,8 @@ and compare it side by side with the frame:
 Data differs between design and app; compare structure and styling, not content. Do not
 pixel-diff. Report a finding only when a user or the designer would see it as different, and
 give each a severity: `blocker` (unusable, overlapping controls, hidden actions), `major`
-(wrong component, broken layout on a device), `minor` (spacing, colour off the token).
+(wrong component, broken layout on a device), `minor` (spacing, colour off the token). They
+map to the review scale Critical, Major, Minor, so a finding and a defect read the same.
 
 Without a design source, compare against the project's design-system rules when they exist
 (component contracts, tokens) and report only clear inconsistencies.

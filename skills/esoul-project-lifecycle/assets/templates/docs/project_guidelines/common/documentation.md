@@ -14,7 +14,7 @@ Putting knowledge in the wrong place is how a project ends up with three answers
 |---|---|---|---|
 | [CONTEXT.md](../../CONTEXT.md) | Project conventions: profile, Freelo, tasking, commits, languages, UAT dimensions, sources of truth | Domain terms, decisions, rules for code | English |
 | [GLOSSARY.md](../../GLOSSARY.md) | The domain language: English term, Czech original, definition, `_Avoid_` synonyms | Decisions, formulas, process | English + Czech terms |
-| [docs/adr/](../adr/index.md) | A decision with real alternatives and consequences, its status, why the alternatives lost, its implementation gaps | Vocabulary, day-to-day conventions | English |
+| [docs/adr/](../adr/index.md) | A decision that could reasonably have gone the other way, with its consequences and status; the considered alternatives and why they lost, when there are any; its implementation gaps | Vocabulary, day-to-day conventions | English |
 | `docs/project_guidelines/` | The rules the code follows: layers, naming, validation, testing, review | Decisions still open, schedules | English |
 | [docs/plan/](../plan/README.md) | Phases, gates, scope, slices, risks: what is built next and what blocks it | How code is written | Czech |
 | `docs/podklady/` | The client's own material, unedited, plus notes on what it contains; the question register | Anything we decided ourselves | Czech |
@@ -30,8 +30,8 @@ matching section of [docs/data-model.md](../data-model.md) in the same pull requ
 ### ADR or guideline
 
 - A rule that could reasonably have gone the other way, with consequences someone may later
-  question, is an **ADR**. Write it only when there are genuine alternatives (at least two
-  rejected ones).
+  question, is an **ADR**. Record at least one considered alternative when there is one
+  (RECOMMENDED); an ADR without a real alternative is allowed.
 - A rule that is simply how this project is written (a tool choice such as a formatter, a naming
   scheme, a directory layout) is a **guideline**.
 - A formula lives in a guideline with its source reference; the ADR next to it explains the
@@ -91,14 +91,17 @@ forbidden; the cases below are part of the task, not incidental:
   `CONTRIBUTING.md` and the pull request template when the binding list changes.
 - **A new rule or boundary** — state it in `AGENTS.md` when every agent needs it, with the detail
   here.
+- **A missing convention or cache** — record the commit convention, the tasking convention or the
+  Freelo cache in `CONTEXT.md` as its own commit and mention it in the pull request description.
 
 A finding about stale documentation is a normal review finding: it names the stale sentence and
 the source that contradicts it.
 
 ## ADRs
 
-Use an ADR only for a decision with genuine alternatives. Write it in English from the template;
-an `accepted` ADR keeps *Implementation status as of YYYY-MM-DD* with its files, tests and gaps
+Use an ADR for a decision that could reasonably have gone the other way. Write it in English from
+the template; an `accepted` ADR keeps *Implementation status as of YYYY-MM-DD* with its files,
+tests and gaps
 (each gap linked to an issue or marked "No issue"). Never reuse a number and never delete a
 superseded record: change its status and link forward. Status authority is in
 [domain.md](domain.md#adr-status-authority).

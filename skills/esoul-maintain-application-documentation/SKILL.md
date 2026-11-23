@@ -33,12 +33,14 @@ Create missing files from `assets/project-templates/`, resolving that path relat
 
 The tooling bootstrap creates `docs/documentation.toml` when it is missing. Treat it as project-owned after creation.
 
-Ensure these ignored paths unless project configuration explicitly commits PDFs:
+Read `output_dir` and `work_dir` from `docs/documentation.toml` (defaults `docs/pdf` and `docs/.documentation-work`) and make sure both resulting paths are always ignored; generated PDFs are build artifacts, reproducible from their sources, and are never committed, not even to Git LFS. With the defaults:
 
 ```gitignore
 /docs/.documentation-work/
 /docs/pdf/
 ```
+
+A generated PDF that Git already tracks stays tracked after the ignore rule is added: propose removing it from the index with `git rm --cached <file>` (the local file stays), as its own commit.
 
 Do not copy executable files or renderer sources out of this skill. The installed skill is intentionally independent from the documentation tool distribution.
 
@@ -73,7 +75,7 @@ Default to separate user and developer or operator guides, but let the approved 
 
 ## Handle Screenshots Safely
 
-Read [screenshots.md](references/screenshots.md) before capturing, inspecting, redacting, promoting, or deleting screenshots. Raw captures must remain under the ignored `docs/.documentation-work/raw-screenshots/`. Every published screenshot requires a tracked `docs/user-guide/SCREENSHOTS.md` entry and user approval. Never capture production by default.
+Read [screenshots.md](references/screenshots.md) before capturing, inspecting, redacting, promoting, or deleting screenshots. Raw captures must remain under the ignored `raw-screenshots/` inside the configured `work_dir` (`docs/.documentation-work/raw-screenshots/` with the default). Every published screenshot requires a tracked `docs/user-guide/SCREENSHOTS.md` entry and user approval. Never capture production by default.
 
 ## Review and Publish
 
@@ -86,7 +88,7 @@ docs/documentation validate
 docs/documentation build
 ```
 
-Run both commands through `esoul-skills:test-runner`. Inspect every rendered PDF page, but not in the main session: delegate the page-by-page visual inspection to `esoul-skills:reviewer`, briefed to view every rendered page image in `docs/.documentation-work/rendered/` and return only a defect list with page numbers (use `esoul-skills:uat-runner` only when a browser is needed). Open only the pages with reported defects. A publish-ready result requires structural validation, successful PDF builds, visual inspection, privacy and accessibility checks, plus the semantic review gate.
+Run both commands through `esoul-skills:test-runner`. Inspect every rendered PDF page, but not in the main session: delegate the page-by-page visual inspection to `esoul-skills:reviewer`, briefed to view every rendered page image in `rendered/` inside the configured `work_dir` (`docs/.documentation-work/rendered/` with the default) and return only a defect list with page numbers (use `esoul-skills:uat-runner` only when a browser is needed). Open only the pages with reported defects. A publish-ready result requires structural validation, successful PDF builds, visual inspection, privacy and accessibility checks, plus the semantic review gate.
 
 ## Load Focused References
 

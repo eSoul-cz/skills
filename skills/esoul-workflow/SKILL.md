@@ -70,7 +70,7 @@ Keep the session small: one task per session, `/clear` or a handoff between task
 
 Keep the tracker true to the work; mechanical status writes are your job, not the user's. Details, commands and the after-merge rule are in [references/task-lifecycle.md](references/task-lifecycle.md).
 
-- **Start of work** (before or at branch creation): set the person the session works for as assignee on the GitHub issue and as worker on the paired Freelo task, and move the Freelo task to `In progress`.
+- **Start of work** (before or at branch creation): set the person the session works for as assignee on the GitHub issue and as worker on the paired Freelo task, and move the Freelo task to `In progress`. Name the branch `<prefix>/<issue-number>-<english-kebab>` (`<prefix>/<english-kebab>` without an issue), without diacritics, with a prefix from `feature/ fix/ chore/ data/ docs/ design/ ci/ release/ refactor/ test/`; one branch is one issue.
 - **PR opened**: move the task to `Code review` and add the work report (`freelo` skill).
 - **Review finds defects**: back to `In progress`.
 - **After merge**: `Testing`, or `Done` and finish where the project has no testing step. Never leave a task with merged work in `Backlog` or `To Do`.
@@ -108,8 +108,8 @@ Use `esoul-project-lifecycle` instead of this flow when the task is about the pr
 Do not claim done without evidence. Run what applies and report the actual results:
 
 - Type checks, linters, and formatters the repository defines.
-- Tests by run level ([references/test-runs.md](references/test-runs.md)): the affected test file while iterating, the touched area before a commit, the full suite and mutation testing once per tree that will be pushed; skip what the change cannot affect. Outside S tasks, run them through `esoul-skills:test-runner` so only receipts and failures come back.
-- A behaviour change carries a test, or its PR says `Bez testu: <reason>`.
+- Tests by run level ([references/test-runs.md](references/test-runs.md)): the affected test file while iterating, the touched area before a commit, the full suite once per tree that will be pushed; skip what the change cannot affect. Mutation testing is an optional local diagnostic, not a step of the run. Outside S tasks, run them through `esoul-skills:test-runner` so only receipts and failures come back.
+- A behaviour change carries a test, or its PR says `No test: <reason>`.
 - When the machine runs `test-queue`, test, E2E and build commands wait in a shared queue: run long suites in the background and read `[testq]` lines as queue state, not failures.
 - For UI: load the page in a browser (Playwright or the available browser tool) at desktop 1440px and mobile 390px, check the console for errors, and look at the result.
 - For acceptance of a whole module or release, use `esoul-uat`: it runs the project's UAT scenarios across roles and devices, checks layout and design, and files approved bugs.
@@ -141,15 +141,15 @@ It does not change when the verified files are committed (it equals the new comm
 ### Commit and ship
 
 - Commit with `gitmoji-commit` (one intention per commit, repository convention first).
-- Finish PRs with `final-pr-review` (CI green, CodeRabbit findings resolved). Never merge, deploy, or push to protected branches unless separately asked.
+- Finish PRs with `final-pr-review` (CI green, CodeRabbit findings resolved). Never merge, approve, use a ruleset bypass, deploy, or push to protected branches unless separately asked. Merging, approving and a bypass need the owner's explicit authorisation for that PR or batch, recorded in the PR description (with the reason for a bypass).
 
 ## 4. Guardrails
 
-- Production is read-only by default: no writes to production databases, servers, or live sites without explicit instruction for that specific action.
+- Production is read-only by default: no manual or unapproved write to a production database, server, live site or an external system's production environment. A data correction ships as a reviewed migration or as a command through the application's normal write path, never as manual SQL. You may trigger Jenkins jobs when the owner asks; never deploy outside Jenkins, push images or artifacts, or change CI credentials.
 - Every write to Freelo, GitHub issues, or other shared systems needs an approved preview first. Exception: the task lifecycle writes above (assignee, worker, state moves, finishing) for the task this session works on are mechanical status updates and need no preview; report them in the final summary. Content writes (title, description, estimate, new tasks, comments with substance) still need approval.
 - Destructive commands (reset, drop, force-push, bulk delete, search-replace on a database) need a backup or a dry run and explicit confirmation.
 - Prefer the repository's own scripts (Makefile, composer/npm scripts, `scripts/`) over ad-hoc commands.
-- Project data (client files, dumps, media, backups) goes to tracked `assets/` via Git LFS, never to `storage/` or other ignored folders: `esoul-project-data`.
+- Project source material without personal data and anonymised dumps go to tracked `assets/` via Git LFS, never to `storage/` or other ignored folders; non-anonymised exports, backups with personal data and generated PDFs are never committed, not even to LFS: `esoul-project-data`.
 - On a data task (label `data-migration`, imports, data fixes, reports), never change application code or the data model beyond what the issue specifies; propose the change as new work instead: `esoul-data-task-guard`.
 
 ## 5. Definition of done

@@ -8,7 +8,7 @@ When `AGENTS.md` defines a commit convention:
 - move a commit-convention section found only in the `GLOSSARY.md` fallback into `CONTEXT.md` instead of duplicating it;
 - replace a conflicting commit-convention section while preserving all unrelated context;
 - make the edit idempotent;
-- commit this context synchronization separately using the effective `AGENTS.md` convention;
+- commit this context synchronization on its own, using the effective `AGENTS.md` convention, and mention it in the pull request description (recording a missing convention is allowed in any pull request as its own commit);
 - follow that convention, not Gitmoji, if it differs from this skill.
 
 When only `CONTEXT.md` or its `GLOSSARY.md` fallback defines a different convention, respect it and do not overwrite it.
@@ -21,16 +21,16 @@ When none of these files defines a convention, create or update the root `CONTEX
 Use the `gitmoji-commit` skill for normal agent-authored commits.
 
 ```text
-:emoji: [optional-context] imperative message
+:sparkles: [checkout] Add delivery selection
 
 optional explanatory details
 ```
 
-Use one Gitmoji shortcode per commit and split commits by intention. Context is optional. Keep the complete subject line at 72 characters or fewer when practical.
+Use one Gitmoji shortcode per commit and split commits by intention. Context is optional. The message is imperative and starts with an uppercase letter. Keep the complete subject line at 72 characters or fewer when practical.
 ````
 
-Commit that policy separately before the task commits:
+Commit that policy on its own before the task commits, and mention it in the pull request description:
 
 ```text
-:memo: [git] define gitmoji commit convention
+:memo: [git] Define gitmoji commit convention
 ```

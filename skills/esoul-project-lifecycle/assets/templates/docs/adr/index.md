@@ -26,9 +26,10 @@ or both).
 
 ## When to write an ADR
 
-Write one only when genuine alternatives have meaningful consequences. Ask: "Will someone want
-to know a year from now why this was not done differently?" Tool choices such as a formatter, a
-linter or a test runner are project guidelines in
+Write one when a decision could reasonably have gone the other way and has meaningful
+consequences that someone may later question. Ask: "Will someone want to know a year from now why this was not done
+differently?" Tool choices such as a formatter, a linter or a test runner are project guidelines
+in
 [docs/project_guidelines/](../project_guidelines/index.md), not ADRs. A restatement of the
 client's assignment is not an ADR either; the assignment is summarised in
 [docs/podklady/](../podklady/README.md).
@@ -42,7 +43,7 @@ client's assignment is not an ADR either; the assignment is summarised in
 - Name new files `NNNN-english-slug.md` and write them in English, with the terms from
   [GLOSSARY.md](../../GLOSSARY.md). The title is a statement of the decision, not a topic.
   Start from [0000-template.md](0000-template.md) and keep the sections Context / Decision /
-  Consequences / Alternatives considered (at least two rejected) / Implementation status.
+  Consequences / Alternatives considered (at least one, when there is one) / Implementation status.
 - **Changing a record:** a record that was never accepted is amended in place with a dated
   revision note under its title; an accepted record gets a dated `> Note of YYYY-MM-DD` that
   fills in, confirms or narrows a point; when the substance of an accepted decision flips, a

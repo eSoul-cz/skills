@@ -14,7 +14,7 @@ build, not the test run before it.
 |---|---|---|---|
 | **L0 edit** | while changing code | the formatter on changed files (`pint --dirty`, `eslint --fix <file>`); the one test file or `--filter` of the behaviour being changed | the author (implementer), directly |
 | **L1 slice** | a slice is done, before its commit | the test directories of the touched area (`tests/Feature/<Area>`, `tests/Unit/<Area>`, the `resources/js/<area>` Vitest files); static analysis of the project (cached, so cheap) | the author, or `test-runner` |
-| **L2 revision** | once per tree that will be pushed | the whole suite, static analysis, lint, typecheck, build; mutation testing on the changed lines | the orchestrator through `esoul-skills:test-runner`, with receipts |
+| **L2 revision** | once per tree that will be pushed | the whole suite, static analysis, lint, typecheck, build | the orchestrator through `esoul-skills:test-runner`, with receipts |
 | **L3 CI** | every push | the same read-only commands as L2, nothing new | Jenkins |
 | **L4 scheduled** | nightly or weekly job, or before a release | the `db-engine` group on the production database engine, the `sandbox` and `quarantine` groups, E2E and UAT sweeps; mutation testing stays local | Jenkins schedule or a dedicated session |
 
@@ -26,12 +26,24 @@ runs on every push.
 | Change touches only | Run |
 |---|---|
 | Markdown, ADRs, `docs/` outside generated documentation | nothing; documentation checks if the project has them |
-| Tests | those tests (L1), then L2 without mutation of `app/`; mutation with `--filter` on the files the tests exercise |
+| Tests | those tests (L1), then L2 |
 | Frontend (`resources/js`, styles) | the frontend checks and Vitest; PHP tests only when a page prop, route or request changed |
 | Backend PHP | PHP checks; frontend checks only when Wayfinder routes, page props or shared types changed |
 | `composer.lock`, `package.json`, `Dockerfile`, CI | everything, including the build |
 
 When in doubt, run it: an unnecessary local run costs a minute, a red build costs a rebuild.
+
+## The project's testing rules
+
+What a test contains and how many a change gets is the project's `docs/project_guidelines/testing.md`; the points that decide this file's runs:
+
+- **Unit first, fold instead of add.** Branches, boundaries and calculations are unit tests. A feature test is for what only the real framework or database shows, and extends the scenario that already builds the same set-up. `How much to test` sizes the rest by tier: tier 1 flows get full scenarios, every other surface one success contract test, its authorization tests and one validation-keys test.
+- **More tests are not more safety.** A review finding or an escaped mutant is a reason to look at the behaviour, not by itself to add a test; a change that makes a test redundant deletes it.
+- **Temporary tests are deleted before the PR is opened and before the final run or any measuring**, so the checks judge what will be merged.
+- **Suite budget.** The CI test stage has 10 minutes; a PR that adds more than 30 s of summed test time says why in its description; a feature test over 1 s in a full run is called out. JUnit with per-test times shows where the time goes.
+- **Mutation testing** is an optional local diagnostic where the stack provides it, for changed logic with boundaries or branching (not glue code). It is never a gate, has no threshold and leaves nothing in the PR. Delete temporary tests first. Where a project's older `testing.md` still calls it a soft gate or asks for escaped mutants in the PR, this rule applies until that file is regenerated.
+
+Order of the final run, before the PR is opened and before a slice is reported finished: write or adjust the behavioural tests; delete temporary tests and whatever does not belong in the suite; run the whole suite and static analysis once on the tree that will be pushed (formatters ran before each commit); optionally mutation testing; list the checks and their results in the PR, or the `No test:` line.
 
 ## Run each check once
 
@@ -51,10 +63,10 @@ When in doubt, run it: an unnecessary local run costs a minute, a red build cost
 
 ## Every behaviour change carries a test
 
-A pull request that changes behaviour contains a test that fails without it, or one line in its
-description: `Bez testu: <reason>` (markup or copy only, configuration, a data task verified by
-its own checks, behaviour no seam can reach). Reviewers report a behaviour change with neither.
-Documentation-only and dependency-only pull requests need no line.
+A pull request that changes behaviour MUST contain a test that fails without the change, or one
+line in its description: `No test: <reason>` (markup or copy only, configuration, a data task
+verified by its own checks, behaviour no seam can reach). A reviewer reports a behaviour change
+with neither. Documentation-only and dependency-only pull requests need no line.
 
 ## Tests that depend on the database engine
 
@@ -83,8 +95,8 @@ Copy into implementer briefs:
 ```text
 Tests: write the behavioural test first where the brief names a seam. While working run only
 <test file or --filter> (L0) and before reporting <area test directories> (L1). Do not run the
-full suite or mutation testing; the orchestrator runs them once. If the change has no test,
-give the reason as one line "Bez testu: …" in Open points.
+full suite; the orchestrator runs it once. If the change has no test, give the reason as one
+line "No test: …" in Open points.
 ```
 
 Into `test-runner` briefs, name the level and ask for receipts:
