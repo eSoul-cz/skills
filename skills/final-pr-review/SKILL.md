@@ -106,7 +106,7 @@ Immediately before completion, re-fetch each in-scope PR (through `ops`, as a co
 1. Intended commits are published, with the intended base and stack order.
 2. Required and expected CI succeeded for this revision (N/A only with evidence).
 3. CodeRabbit's current-head check completed and its latest non-dismissed decision is `APPROVED` with nothing superseding it; or, under substitution, the `pre-pr-review` review of the current head, which stands in for CodeRabbit's once its findings are resolved and does not replace the human review (point 5).
-4. Every valid finding is fixed and verified (or, when non-blocking after the final batch, accepted with a reason), every other one has an evidence-backed reply, none is untriaged.
+4. Every valid finding is fixed and verified (or, when non-blocking after the final batch, accepted with a reason or `Deferred` with a linked follow-up), every other one has an evidence-backed reply, none is untriaged.
 5. Repository-required approvals (human, CODEOWNER) are satisfied; a CodeRabbit approval does not bypass them.
 6. No protection or mergeability issue remains except a documented stack dependency. Do not merge to clear it.
 
