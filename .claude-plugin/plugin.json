@@ -1,6 +1,6 @@
 {
   "name": "esoul-skills",
-  "version": "0.24.0",
+  "version": "0.25.0",
   "description": "eSoul's own agent skills: esoul-workflow (entry point), esoul-project-lifecycle, esoul-project-update, esoul-model-routing, gitmoji-commit, esoul-review, freelo, esoul-freelo-task-authoring, esoul-tasking, esoul-maintain-application-documentation, esoul-mockup-authoring, esoul-uat, esoul-data-task-guard, esoul-project-data, esoul-office-documents, esoul-offer-authoring, test-queue. Plus worker agents with pinned models: scout, test-runner, implementer, reviewer, critical-reviewer, uat-runner, ops. Session hooks inject the usage rules and guard subagent models; Codex agent equivalents in codex/.",
   "author": { "name": "eSoul", "email": "info@esoul.cz", "url": "https://esoul.cz" },
   "homepage": "https://github.com/eSoul-cz/skills",

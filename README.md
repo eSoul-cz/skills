@@ -2,7 +2,7 @@
 
 Reusable agent skills and companion tools for eSoul projects.
 
-**Version.** The agent plugin (`esoul-skills`) is at **0.24.0**; each release is tagged `plugin-<version>` (the bare `0.6.x` tags belong to the documentation tool). Maintainers are listed in [`CONTEXT.md`](CONTEXT.md).
+**Version.** The agent plugin (`esoul-skills`) is at **0.25.0**; each release is tagged `plugin-<version>` (the bare `0.6.x` tags belong to the documentation tool). 0.25.0 removed the lifecycle skill's own `project_guidelines` bundle, so a retrofit of an older project reads it from `plugin-0.24.0`. Maintainers are listed in [`CONTEXT.md`](CONTEXT.md).
 
 **Distribution.** `npx skills add eSoul-cz/skills` ([Install](#install)) is the canonical route, and the way a project pins the skills it needs. The Claude Code plugin below is a convenience for colleagues on Claude Code or Codex setups; it carries the same skills and the worker agents.
 
