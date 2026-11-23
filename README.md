@@ -413,6 +413,24 @@ node "$SKILL_DIR/scripts/conformance.mjs" /path/to/project --github eSoul-cz/exa
 
 Replace `/path/to/project` and `eSoul-cz/example-repo` with the project checkout and its repository.
 
+### `esoul-project-update`
+
+Updates a project that was created from an eSoul template (`eSoul-cz/template-<variant>`) to the latest template. It reads the `commit` recorded in `.esoul/template.json`, takes the entries of the `app-templates` `CHANGELOG.md` added since then that affect the project's variant or layers, applies each as one commit (`:arrow_up: [template] <entry title>`) with a 3-way merge of that entry's template delta and its migration notes (project customisations win every conflict and are reported), and opens one PR `chore/update-template-<variant>` that lists applied, skipped and conflicting entries, the checks run and a Deploy notes line. The recorded commit advances only over fully applied entries, so skipped ones are offered again by the next run. A project without `.esoul/template.json` is adopted first (a retrofit action of `esoul-project-lifecycle`, done here only so the update can run). Template state is read at run time with `gh` and `git`; nothing is vendored. Requires `esoul-workflow`, `gitmoji-commit` and `esoul-review`; the agent never merges.
+
+Usage:
+
+```text
+$esoul-project-update update this project to the latest template
+$esoul-project-update adopt this project as laravel-inertia, then update it
+```
+
+The pure helpers (parse the changelog, select entries by variant and layers, compute the commit to record) run with Node 22 and have tests:
+
+```bash
+node "$SKILL_DIR/scripts/changelog.mjs" select --head CHANGELOG.md --base old-CHANGELOG.md --variant laravel-inertia --variant-file variants/laravel-inertia.json
+node --test "$SKILL_DIR/scripts/changelog.test.mjs"
+```
+
 ### `esoul-data-task-guard`
 
 On data tasks (label `data-migration`, legacy imports, data fixes, reports, analyses) the agent does not change application code or the data model beyond what the issue specifies. It finishes the independent data work, writes the needed change down as a proposal (finding, cause, fix as an example diff or SQL, impact on existing data) and creates a new issue/task pair through `esoul-tasking`. An explicit instruction from the user overrides it.
