@@ -129,3 +129,22 @@ test('upstream-picks lists only the reviewed picks and none of the dropped ones'
 function layerSkillsOf(layer, group) {
     return layer.groups[group].sources?.flatMap((source) => source.skills) ?? [];
 }
+
+// The one place that knows the retired skill names: `esoul-skills status` and `retired`, and the "update a project's
+// eSoul setup" procedure of esoul-project-update read it. A name is added when a skill is renamed or removed.
+test('layers.json carries the retired-name map, and no retired name is a skill on disk', () => {
+    const replacements = Object.fromEntries(Object.entries(manifest.retired).map(([name, entry]) => [name, entry.use.join(',') + (entry.source ? `@${entry.source}` : '')]));
+    assert.deepEqual(replacements, {
+        'final-pr-review': 'esoul-review',
+        'pre-pr-review': 'esoul-review',
+        'esoul-tasking': 'esoul-task-create,esoul-task-work',
+        'esoul-freelo-task-authoring': 'esoul-task-create',
+        'esoul-maintain-application-documentation': 'esoul-docs',
+        'esoul-project-data': 'esoul-data',
+        'esoul-data-task-guard': 'esoul-data',
+        'test-queue': 'test-queue@eSoul-cz/test-queue',
+        freelo: 'freelo@freeloio/freelo-cli',
+    });
+    const onDisk = new Set(Object.values(skillsOnDisk()).flat());
+    assert.deepEqual(Object.keys(manifest.retired).filter((name) => onDisk.has(name)), []);
+});

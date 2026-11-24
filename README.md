@@ -100,13 +100,16 @@ npx @esoul-cz/skills install dev --skill esoul-review,esoul-testing   # chosen s
 npx @esoul-cz/skills install                                   # interactive: pick layers, then skills
 
 npx @esoul-cz/skills layers      # what the layers contain
-npx @esoul-cz/skills status      # which layers and skills are installed, project and user
+npx @esoul-cz/skills status      # which layers and skills are installed, project and user; flags retired names and stale lock entries
+npx @esoul-cz/skills retired     # the retired skill names, what replaced them, and the git grep that finds them in project files
 npx @esoul-cz/skills agents claude|codex   # optional worker agents and hooks
 ```
 
-Useful options: `--dry-run` prints the `npx skills add` commands, `--yes` adds required layers without asking, `--agent <name>` and `--copy` go to `npx skills`, `--global` / `--project` override the scope of every layer. The helper refuses to install a layer whose required layers are missing and offers to add them.
+Useful options: `--dry-run` prints the `npx skills add` commands, `--yes` adds required layers without asking, `--agent <name>` and `--copy` go to `npx skills`, `--global` / `--project` override the scope of every layer. The helper refuses to install a layer whose required layers are missing and offers to add them. `--help` (or `-h`) of any command prints the usage and installs nothing.
 
 A new developer in a project restores the committed set with `npx skills experimental_install` and adds their own layers with `install`. Update with `npx skills update -p` (project) and `npx skills update -g` (user).
+
+**Updating a project from before 0.26.0.** Its `skills-lock.json` lists skills that were renamed, moved or removed, and its files may still name them. `status` lists them and prints the `npx skills remove` commands; `project init` then installs the current set and rewrites the lock. The retired names and what replaced them are the `retired` map of [`layers.json`](layers.json) (the one place; `retired` prints it). The whole procedure with the guidelines version and the names in project files is the setup update of `esoul-project-update` ([`references/setup.md`](skills/project/esoul-project-update/references/setup.md)).
 
 Without the helper, the raw `npx skills` commands work too:
 

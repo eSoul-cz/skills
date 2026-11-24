@@ -1,20 +1,25 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { agents, parseArgs, projectInit, stackGroupArgs } from '../../lib/cli.mjs';
+import { fileURLToPath } from 'node:url';
+import { agents, listRetired, parseArgs, projectInit, stackGroupArgs } from '../../lib/cli.mjs';
 import { boostChecks, boostSkills, detectGuidelineLayers, projectGuidelineLayers } from '../../lib/stack.mjs';
 import {
     PROJECT_INIT_LAYERS,
     expandLayerArgs,
+    findStaleSetup,
     groupsForGuidelineLayers,
     layerSkills,
     managedGroups,
     parseLayerArg,
     planInstall,
+    renamedSkills,
     resolveSelection,
     satisfiedLayers,
+    staleFix,
     validateManifest,
     withSkillRequires,
 } from '../../lib/layers.mjs';
@@ -305,4 +310,161 @@ test('agents command rejects an unknown target', () => {
     } finally {
         console.log = originalLog;
     }
+});
+
+const retiredManifest = {
+    ...manifest,
+    retired: {
+        old: { use: ['a', 'b'] },
+        merged: { use: ['d'] },
+        q: { use: ['q'], source: 'org/queue' },
+    },
+};
+
+test('the retired map is validated against the own skills and the listed sources', () => {
+    assert.deepEqual(validateManifest(retiredManifest), []);
+    const clone = () => JSON.parse(JSON.stringify(retiredManifest));
+    let broken = clone();
+    broken.retired.a = { use: ['b'] };
+    assert.match(validateManifest(broken).join('\n'), /retired: a is a current skill of org\/skills/);
+    broken = clone();
+    broken.retired.old.use = ['ghost'];
+    assert.match(validateManifest(broken).join('\n'), /retired: old points at ghost, which is not an own skill/);
+    broken = clone();
+    broken.retired.q.use = ['nope'];
+    assert.match(validateManifest(broken).join('\n'), /retired: q points at nope, which org\/queue does not list/);
+    broken = clone();
+    broken.retired.old = { use: [] };
+    assert.match(validateManifest(broken).join('\n'), /retired: old needs "use"/);
+});
+
+test('renamed skills leave out a name that only changed its source', () => {
+    assert.deepEqual(renamedSkills(retiredManifest).map((entry) => entry.name), ['old', 'merged']);
+});
+
+test('stale setup: retired installs, removed and moved lock entries; third-party entries are not judged', () => {
+    const stale = findStaleSetup(retiredManifest, {
+        installed: [
+            { name: 'a', scope: 'project', source: 'org/skills' },
+            { name: 'old', scope: 'project', source: null },
+            { name: 'q', scope: 'user', source: 'org/skills' },
+            { name: 'q', scope: 'project', source: 'org/queue' },
+            { name: 'x', scope: 'project', source: 'm/skills' },
+        ],
+        lock: {
+            skills: {
+                a: { source: 'org/skills', skillPath: 'skills/core/a/SKILL.md' },
+                b: { source: 'org/skills', skillPath: 'skills/b/SKILL.md' },
+                merged: { source: 'org/skills', skillPath: 'skills/merged/SKILL.md' },
+                x: { source: 'm/skills', skillPath: 'skills/gone/SKILL.md' },
+                c: { source: 'org/skills' },
+            },
+        },
+    });
+    assert.deepEqual(stale.map(({ kind, scope, name, reason }) => `${kind}:${scope}:${name}:${reason}`), [
+        'installed:project:old:removed',
+        'installed:user:q:removed',
+        'lock:project:b:moved',
+        'lock:project:merged:removed',
+    ]);
+    assert.deepEqual(stale.find((entry) => entry.name === 'merged').use, ['d']);
+    assert.deepEqual(stale.find((entry) => entry.name === 'q').source, 'org/queue');
+    assert.deepEqual(findStaleSetup(retiredManifest, { installed: [{ name: 'a', scope: 'project', source: 'org/skills' }], lock: null }), []);
+});
+
+test('stale fix removes per scope, then runs project init and the user install of the replacements', () => {
+    const stale = findStaleSetup(retiredManifest, {
+        installed: [
+            { name: 'old', scope: 'project' },
+            { name: 'q', scope: 'user', source: 'org/skills' },
+        ],
+        lock: { skills: { merged: { source: 'org/skills' }, b: { source: 'org/skills', skillPath: 'skills/b/SKILL.md' } } },
+    });
+    assert.deepEqual(staleFix(retiredManifest, stale), {
+        remove: [
+            { scope: 'project', names: ['old', 'merged'] },
+            { scope: 'user', names: ['q'] },
+        ],
+        then: ['esoul-skills project init', 'esoul-skills install extra --optional'],
+    });
+    assert.deepEqual(staleFix(retiredManifest, []), { remove: [], then: [] });
+});
+
+const binary = fileURLToPath(new URL('../../bin/esoul-skills.mjs', import.meta.url));
+
+/** A project directory and an `npx` stand-in that logs every call and answers `ls --json` from the given lists. */
+function fakeNpx(projectSkills, userSkills, files = {}) {
+    const root = project(files);
+    const log = join(root, 'npx.log');
+    const script = join(root, 'npx');
+    writeFileSync(
+        script,
+        `#!/bin/sh\necho "$@" >> "${log}"\ncase "$*" in\n  *"ls --json -g"*) echo '${JSON.stringify(userSkills)}';;\n  *"ls --json"*) echo '${JSON.stringify(projectSkills)}';;\n  *) echo '[]';;\nesac\n`,
+    );
+    chmodSync(script, 0o755);
+    const run = (...args) => spawnSync(process.execPath, [binary, ...args], { cwd: root, encoding: 'utf8', env: { ...process.env, ESOUL_SKILLS_NPX: script } });
+    return { root, log, run };
+}
+
+test('--help and -h of every command print the usage and run nothing', () => {
+    const { log, run } = fakeNpx([], []);
+    for (const args of [['install'], ['project'], ['project', 'init'], ['status'], ['layers'], ['retired'], ['agents'], ['agents', 'claude'], ['agents', 'codex']]) {
+        for (const flag of ['--help', '-h']) {
+            const result = run(...args, flag);
+            assert.equal(result.status, 0, `${args.join(' ')} ${flag}: ${result.stderr}`);
+            assert.match(result.stdout, /Usage:\n {2}esoul-skills install/, `${args.join(' ')} ${flag} prints the usage`);
+        }
+    }
+    assert.equal(existsSync(log), false, 'help never calls npx skills');
+    assert.match(run('project', 'init', '--help').stdout, /project init {2}Install core, dev, upstream-core/);
+});
+
+test('status flags retired installs and stale lock entries and prints the fix', () => {
+    const lock = {
+        version: 1,
+        skills: {
+            'esoul-freelo-task-authoring': { source: 'eSoul-cz/skills', sourceType: 'github', skillPath: 'skills/esoul-freelo-task-authoring/SKILL.md' },
+            'gitmoji-commit': { source: 'eSoul-cz/skills', sourceType: 'github', skillPath: 'skills/gitmoji-commit/SKILL.md' },
+            'esoul-review': { source: 'eSoul-cz/skills', sourceType: 'github', skillPath: 'skills/dev/esoul-review/SKILL.md' },
+            'code-review': { source: 'mattpocock/skills', sourceType: 'github', skillPath: 'skills/engineering/code-review/SKILL.md' },
+        },
+    };
+    const { run } = fakeNpx(
+        [{ name: 'esoul-review', source: 'eSoul-cz/skills' }, { name: 'final-pr-review', source: 'eSoul-cz/skills' }],
+        [{ name: 'test-queue', source: 'eSoul-cz/skills' }, { name: 'freelo', source: 'freeloio/freelo-cli' }],
+        { 'skills-lock.json': lock },
+    );
+    const result = run('status');
+    assert.equal(result.status, 0, result.stderr);
+    const text = result.stdout;
+    assert.match(text, /project\s+final-pr-review {2}\(installed: retired skill; use esoul-review\)/);
+    assert.match(text, /project\s+esoul-freelo-task-authoring {2}\(skills-lock.json: skill is no longer in eSoul-cz\/skills; use esoul-task-create\)/);
+    assert.match(text, /project\s+gitmoji-commit {2}\(skills-lock.json: path skills\/gitmoji-commit\/SKILL.md moved; rewrite the lock\)/);
+    assert.match(text, /user\s+test-queue {2}\(installed: retired skill; use test-queue from eSoul-cz\/test-queue\)/);
+    assert.doesNotMatch(text, /freelo {2}\(installed/, 'the official freelo skill is not retired');
+    assert.doesNotMatch(text, /esoul-review {2}\(/);
+    assert.match(text, /npx -y skills remove final-pr-review esoul-freelo-task-authoring -y/);
+    assert.match(text, /npx -y skills remove -g test-queue -y/);
+    assert.match(text, /\n {2}esoul-skills project init\n {2}esoul-skills install helpers --optional\n/);
+    const clean = fakeNpx([{ name: 'esoul-review', source: 'eSoul-cz/skills' }], []);
+    assert.match(clean.run('status').stdout, /No retired skill names or stale lock entries/);
+});
+
+test('retired lists every retired name and a git grep over the renamed ones', () => {
+    const lines = [];
+    const originalLog = console.log;
+    console.log = (line) => lines.push(String(line));
+    try {
+        assert.equal(listRetired(), 0);
+    } finally {
+        console.log = originalLog;
+    }
+    const text = lines.join('\n');
+    for (const name of ['final-pr-review', 'pre-pr-review', 'esoul-tasking', 'esoul-freelo-task-authoring', 'esoul-maintain-application-documentation', 'esoul-project-data', 'esoul-data-task-guard', 'test-queue', 'freelo']) {
+        assert.match(text, new RegExp(`^  ${name} `, 'm'));
+    }
+    assert.match(text, /esoul-tasking {2}.*use esoul-task-create, esoul-task-work/);
+    assert.match(text, /^ {2}test-queue .*same name, now from eSoul-cz\/test-queue/m);
+    assert.match(text, /git grep -nwE 'final-pr-review\|pre-pr-review\|esoul-tasking\|[^']*' -- \./);
+    assert.doesNotMatch(text, /git grep[^\n]*\|freelo\|/);
 });

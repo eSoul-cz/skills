@@ -1,6 +1,17 @@
 {
   "version": 1,
   "repo": "eSoul-cz/skills",
+  "retired": {
+    "final-pr-review": { "use": ["esoul-review"] },
+    "pre-pr-review": { "use": ["esoul-review"] },
+    "esoul-tasking": { "use": ["esoul-task-create", "esoul-task-work"] },
+    "esoul-freelo-task-authoring": { "use": ["esoul-task-create"] },
+    "esoul-maintain-application-documentation": { "use": ["esoul-docs"] },
+    "esoul-project-data": { "use": ["esoul-data"] },
+    "esoul-data-task-guard": { "use": ["esoul-data"] },
+    "test-queue": { "use": ["test-queue"], "source": "eSoul-cz/test-queue" },
+    "freelo": { "use": ["freelo"], "source": "freeloio/freelo-cli" }
+  },
   "layers": {
     "core": {
       "title": "General workflow and rules",
