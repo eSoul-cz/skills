@@ -535,3 +535,16 @@ test('stacks: laravel, astro, lsr, lunar and other:<name> are known; any other n
     assert.equal(stackWarning('django').length, 1);
     assert.match(stackWarning('django')[0].message, /laravel, astro, lsr, lunar or other:<name>/);
 });
+
+test('profile and tasking convention kept only in GLOSSARY.md are read, with a warning to move them', () => {
+    const ctx = context('light', 'astro', 'freelo-only').replace('`—`', '`A-static`');
+    const section = (heading) => ctx.match(new RegExp(`## ${heading}\\n[\\s\\S]*?(?=\\n## |$)`))[0];
+    const moved = `${section('Project profile')}\n${section('Tasking convention')}`;
+    const stripped = ctx.replace(section('Project profile'), '').replace(section('Tasking convention'), '');
+    const result = runConformance(project(lightFiles({ 'CONTEXT.md': stripped, 'GLOSSARY.md': `# Glossary\n\n${moved}\n` })));
+    assert.equal(result.profile.tier, 'light');
+    assert.equal(result.profile.stack, 'astro');
+    assert.ok(!codes(result, 'warning').includes('profile-missing'));
+    assert.deepEqual(find(result, 'convention-in-glossary').map((f) => f.file), ['GLOSSARY.md', 'GLOSSARY.md']);
+    assert.ok(find(result, 'context-section').some((f) => /Tasking convention/.test(f.message)), 'CONTEXT.md still lacks the section');
+});

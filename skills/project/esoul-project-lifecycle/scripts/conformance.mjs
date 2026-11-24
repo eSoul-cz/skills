@@ -255,10 +255,22 @@ export function readProfile(root, findings, tierFlag) {
 
     if (context !== null) {
         sectionMap = sections(context);
-        profileLines = findSection(sectionMap, 'Project profile');
-        const tasking = findSection(sectionMap, 'Tasking convention');
-        if (tasking) profile.taskingMode = parseKeyValues(tasking).mode ?? null;
     }
+    // A project that kept its conventions in GLOSSARY.md (esoul-workflow reads both) is still read, with a warning to move them.
+    const glossary = readText(root, 'GLOSSARY.md');
+    const glossarySections = glossary === null ? new Map() : sections(glossary);
+    const conventionSection = (name) => {
+        const own = findSection(sectionMap, name);
+        if (own) return own;
+        const fallback = findSection(glossarySections, name);
+        if (fallback) {
+            findings.warn('convention-in-glossary', `\`## ${name}\` is only in GLOSSARY.md; move the convention sections into CONTEXT.md and leave the vocabulary in GLOSSARY.md (guidelines documentation.md, Where a piece of knowledge belongs).`, 'GLOSSARY.md');
+        }
+        return fallback;
+    };
+    profileLines = conventionSection('Project profile');
+    const tasking = conventionSection('Tasking convention');
+    if (tasking) profile.taskingMode = parseKeyValues(tasking).mode ?? null;
 
     if (profileLines) {
         const values = parseKeyValues(profileLines);
