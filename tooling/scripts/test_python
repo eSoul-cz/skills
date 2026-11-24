@@ -1,7 +1,8 @@
 #!/bin/sh
 # Runs the Python tests of the skills (skills/**/*_test.py and skills/**/test_*.py) with unittest discovery, one run per
 # folder that holds such files. Uses the local python3, otherwise a python:3 container that gets the working tree
-# streamed in. A test whose optional library (for example python-docx or openpyxl) is not installed must skip itself
+# streamed in (the Jenkinsfile runs it in the python:3 image through runCommandInTest, where python3 is local).
+# A test whose optional library (for example python-docx or openpyxl) is not installed must skip itself
 # (`unittest.skipUnless`): the plain python:3 image has none of them.
 # Usage: tooling/scripts/test_python
 set -eu

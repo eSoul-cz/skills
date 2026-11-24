@@ -34,7 +34,7 @@ test('every skill folder with Node tests has a stage that runs when the folder c
     );
     assert.ok(folders.size > 0);
     for (const folder of folders) {
-        const stage = stages.find((entry) => entry.body.includes(`sh 'tooling/scripts/test_skills ${folder}'`));
+        const stage = stages.find((entry) => entry.body.includes(`command: 'tooling/scripts/test_skills ${folder}'`));
         assert.ok(stage, `${folder} has Node tests but no stage runs them (add one to the Jenkinsfile)`);
         assert.ok(stage.body.includes(`changeset '${folder}/**'`), `the stage of ${folder} must run when ${folder}/** changes`);
     }
@@ -51,21 +51,30 @@ test('every test stage also runs on a tag, on the scheduled build and after a bu
 });
 
 test('the Python tests and the contract group have stages; the mockup preview test stays out of CI', () => {
-    assert.ok(jenkinsfile.includes("sh 'tooling/scripts/test_python'"));
-    assert.ok(jenkinsfile.includes("sh 'tooling/scripts/test_skills contract'"));
-    assert.ok(!/sh '[^']*test_mockup_preview/.test(jenkinsfile));
+    assert.ok(jenkinsfile.includes("runCommandInTest(image: env.PYTHON_TEST_IMAGE, command: 'tooling/scripts/test_python')"));
+    assert.ok(jenkinsfile.includes("runCommandInTest(image: env.NODE_TEST_IMAGE, command: 'tooling/scripts/test_skills contract')"));
+    assert.ok(!/test_mockup_preview/.test(jenkinsfile.replace(/\/\/.*$/gm, '')));
+});
+
+test('the Node and Python test stages run in the test images through runCommandInTest, not on the agent', () => {
+    assert.match(jenkinsfile, /NODE_TEST_IMAGE = 'node:\d+'/);
+    assert.match(jenkinsfile, /PYTHON_TEST_IMAGE = 'python:3'/);
+    assert.ok(!/sh\s*\(?\s*(script:\s*)?['"][^'"]*(node_run|test_skills|test_python)/.test(jenkinsfile), 'run the tests with runCommandInTest, not sh');
+    const calls = [...jenkinsfile.matchAll(/runCommandInTest\(\s*image: env\.(NODE|PYTHON)_TEST_IMAGE,/g)];
+    assert.equal(calls.length, jenkinsfile.split('runCommandInTest(').length - 1, 'every runCommandInTest call names a test image');
+    assert.ok(calls.length >= 12);
 });
 
 test('the scheduled build checks upstream releases and the tag build reads the changelog', () => {
     assert.match(jenkinsfile, /cron\(env\.BRANCH_NAME == 'master'/);
-    assert.match(jenkinsfile, /node_run tooling\/scripts\/check_upstream\.mjs/);
-    assert.match(jenkinsfile, /node_run tooling\/scripts\/release_notes\.mjs/);
+    assert.match(jenkinsfile, /node tooling\/scripts\/check_upstream\.mjs/);
+    assert.match(jenkinsfile, /node tooling\/scripts\/release_notes\.mjs/);
     assert.match(jenkinsfile, /UPGRADE_NOTES: env\.UPGRADE_NOTES/);
     assert.ok(!/UPGRADE_NOTES: '/.test(jenkinsfile), 'the release notes are not a string in the Jenkinsfile');
 });
 
 test('the scripts the Jenkinsfile runs exist and are executable', () => {
-    for (const [, script] of jenkinsfile.matchAll(/(?:sh '|node_run )tooling\/scripts\/([\w.]+)/g)) {
+    for (const [, script] of jenkinsfile.matchAll(/(?:sh '|command: '|node )tooling\/scripts\/([\w.]+)/g)) {
         const path = join(root, 'tooling/scripts', script);
         assert.ok(existsSync(path), `tooling/scripts/${script} does not exist`);
         assert.ok(statSync(path).mode & 0o111, `tooling/scripts/${script} is not executable`);

@@ -41,6 +41,10 @@ pipeline {
 		SCALEWAY_REGISTRY_CREDENTIALS_ID = 'scaleway_secret_key'
 		COSIGN_PRIVATE_KEY_CREDENTIALS_ID = 'cosign-documentation-skill-private-key'
 		COSIGN_KEY_PASSWORD_CREDENTIALS_ID = 'cosign-documentation-skill-key-password'
+		// The images the Node and Python test stages run in (runCommandInTest). The full Debian images, not alpine or slim:
+		// `skills add --list` clones with git, which the small images lack.
+		NODE_TEST_IMAGE = 'node:22'
+		PYTHON_TEST_IMAGE = 'python:3'
 	}
 
 	stages {
@@ -80,10 +84,12 @@ pipeline {
 			}
 			steps {
 				script {
-					env.UPGRADE_NOTES = sh(
-						script: "tooling/scripts/node_run tooling/scripts/release_notes.mjs '${env.DOCUMENTATION_TOOLS_VERSION}'",
-						returnStdout: true
-					).trim()
+					// runCommandInTest does not return the output of the command: the notes go to a file in the workspace.
+					runCommandInTest(
+						image: env.NODE_TEST_IMAGE,
+						command: "mkdir -p build && node tooling/scripts/release_notes.mjs '${env.DOCUMENTATION_TOOLS_VERSION}' > build/release-notes.txt".toString()
+					)
+					env.UPGRADE_NOTES = readFile(file: 'build/release-notes.txt').trim()
 					echo "Release notes: ${env.UPGRADE_NOTES}"
 				}
 			}
@@ -113,7 +119,7 @@ pipeline {
 				}
 			}
 			steps {
-				sh 'tooling/scripts/test_skills contract'
+				runCommandInTest(image: env.NODE_TEST_IMAGE, command: 'tooling/scripts/test_skills contract')
 			}
 		}
 
@@ -129,7 +135,7 @@ pipeline {
 				}
 			}
 			steps {
-				sh 'tooling/scripts/test_skills review'
+				runCommandInTest(image: env.NODE_TEST_IMAGE, command: 'tooling/scripts/test_skills review')
 			}
 		}
 
@@ -145,7 +151,7 @@ pipeline {
 				}
 			}
 			steps {
-				sh 'tooling/scripts/test_skills skills/core/esoul-task-work'
+				runCommandInTest(image: env.NODE_TEST_IMAGE, command: 'tooling/scripts/test_skills skills/core/esoul-task-work')
 			}
 		}
 
@@ -160,7 +166,7 @@ pipeline {
 				}
 			}
 			steps {
-				sh 'tooling/scripts/test_skills skills/project/esoul-project-lifecycle'
+				runCommandInTest(image: env.NODE_TEST_IMAGE, command: 'tooling/scripts/test_skills skills/project/esoul-project-lifecycle')
 			}
 		}
 
@@ -175,7 +181,7 @@ pipeline {
 				}
 			}
 			steps {
-				sh 'tooling/scripts/test_skills skills/project/esoul-project-update'
+				runCommandInTest(image: env.NODE_TEST_IMAGE, command: 'tooling/scripts/test_skills skills/project/esoul-project-update')
 			}
 		}
 
@@ -190,7 +196,7 @@ pipeline {
 				}
 			}
 			steps {
-				sh 'tooling/scripts/test_skills skills/project/esoul-quality-gates'
+				runCommandInTest(image: env.NODE_TEST_IMAGE, command: 'tooling/scripts/test_skills skills/project/esoul-quality-gates')
 			}
 		}
 
@@ -205,7 +211,7 @@ pipeline {
 				}
 			}
 			steps {
-				sh 'tooling/scripts/test_skills skills/project/esoul-uat'
+				runCommandInTest(image: env.NODE_TEST_IMAGE, command: 'tooling/scripts/test_skills skills/project/esoul-uat')
 			}
 		}
 
@@ -220,7 +226,7 @@ pipeline {
 				}
 			}
 			steps {
-				sh 'tooling/scripts/test_skills skills/project/esoul-website-launch'
+				runCommandInTest(image: env.NODE_TEST_IMAGE, command: 'tooling/scripts/test_skills skills/project/esoul-website-launch')
 			}
 		}
 
@@ -235,11 +241,11 @@ pipeline {
 				}
 			}
 			steps {
-				sh 'tooling/scripts/test_skills skills/project/esoul-mockup-authoring'
+				runCommandInTest(image: env.NODE_TEST_IMAGE, command: 'tooling/scripts/test_skills skills/project/esoul-mockup-authoring')
 			}
 		}
 
-		// The Python tests of the skills (stdlib unittest, in a python:3 container when the node has no python3). The mockup
+		// The Python tests of the skills (stdlib unittest, in the python:3 image). The mockup
 		// preview test (tooling/scripts/test_mockup_preview.mjs) needs an application checkout and Chrome and stays manual.
 		stage('Verify Python scripts') {
 			when {
@@ -253,7 +259,7 @@ pipeline {
 				}
 			}
 			steps {
-				sh 'tooling/scripts/test_python'
+				runCommandInTest(image: env.PYTHON_TEST_IMAGE, command: 'tooling/scripts/test_python')
 			}
 		}
 
@@ -323,7 +329,15 @@ pipeline {
 			}
 			steps {
 				script {
-					def status = sh(script: 'tooling/scripts/node_run tooling/scripts/check_upstream.mjs', returnStatus: true)
+					// runCommandInTest fails the step on any non-zero exit and returns nothing: the command records the exit
+					// status of the check (1: newer release, anything else: could not run) in a file and itself ends with 0.
+					// The backslash keeps the outer shell from expanding the dollar sign: runCommandInTest wraps the command in
+					// double quotes.
+					runCommandInTest(
+						image: env.NODE_TEST_IMAGE,
+						command: 'mkdir -p build && { node tooling/scripts/check_upstream.mjs; echo \\$? > build/upstream-status; }'
+					)
+					def status = readFile(file: 'build/upstream-status').trim().toInteger()
 					if (status == 1) {
 						unstable('A pinned upstream source has a newer release; see the report above.')
 					} else if (status != 0) {

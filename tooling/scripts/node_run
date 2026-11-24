@@ -1,7 +1,8 @@
 #!/bin/sh
 # Runs `node <arguments>` from the repository root: with the local Node.js when the machine has Node.js and git,
 # otherwise inside a node:22 container that gets the working tree streamed in (the check also works when the Docker
-# daemon runs on another host than this workspace). Used by test_skills and by the Jenkinsfile.
+# daemon runs on another host than this workspace). The local entry point of test_skills. The Jenkinsfile does not use
+# the container branch: it runs the scripts in the node:22 image through runCommandInTest, where node and git are local.
 # Usage: tooling/scripts/node_run tooling/scripts/check_upstream.mjs
 set -eu
 
