@@ -1,7 +1,7 @@
 # Nasazení — {{PROJECT_NAME}}
 
 Jak web běží, jak se nasazuje, co potřebuje za konfiguraci a co musí platit, než se spustí.
-Rozhodnutí o hostingu a preview je [D-06](rozhodnuti.md#d-06-hosting-preview-a-noindex).
+Rozhodnutí o hostingu a preview je [D-06](rozhodnuti.md#d-06-hosting-preview-and-noindex).
 
 ## Prostředí
 
@@ -24,10 +24,9 @@ push do TBD
         └─ Deploy   → TBD
 ```
 
-<!-- optional: Astro. Stage Checks je povinná: astro check + tsc, lint a format, build,
-     Playwright smoke všech rout v 1440 a 390 s pádem na chybu v konzoli a SEO spec
-     (title, description, canonical, OG, sitemap, robots). Lighthouse rozpočty a axe jsou
-     doporučené v CI a povinné před spuštěním. -->
+<!-- optional: Astro. Stage Checks je povinná a její kroky jsou v guidelinu `framework/astro`
+     `tools.md`. Lighthouse rozpočty a axe jsou doporučené v CI a povinné před spuštěním
+     (skill `esoul-quality-gates`). -->
 
 ## Konfigurace a proměnné prostředí
 
@@ -56,34 +55,40 @@ hodnoty, které statický build zapéká, jsou build argumenty.
 ## Basic auth a noindex na preview
 
 Dokud web neběží naostro, je zaheslovaný a neindexovaný třemi zámky zároveň: basic auth, hlavička
-nebo meta `noindex` a `robots.txt` s `Disallow: /`. `robots.txt` je z basic auth vyjmutý.
-Postup vypnutí je poslední oddíl spouštěcího checklistu.
+nebo meta `noindex` a `robots.txt` s `Disallow: /`. `robots.txt` je z basic auth vyjmutý. Pořadí
+vypnutí určuje guideline [public-website.md](project_guidelines/public-website.md) (oddíl Preview
+gate); oddíl Přepnutí níže ho kopíruje.
 
 ## Spouštěcí checklist
 
-Web se spouští, až jsou odškrtnuté všechny body. Výsledky měření se zapíší pod checklist s
-datem. Body, které nejdou splnit, schvaluje vedoucí projektu a zapíše výjimku s důvodem.
+Web se spouští, až jsou odškrtnuté všechny body; každý bod má důkaz (výstup příkazu, report,
+snímek nebo odkaz). Postup spuštění je ve skillu `esoul-website-launch`, kontroly kvality ve skillu
+`esoul-quality-gates`. Výsledky měření se zapíší pod checklist s datem. Bod, který nejde splnit,
+schvaluje vedoucí projektu a zapíše výjimku s důvodem.
 
 ### Obsah a akceptace
 
-- [ ] Klient akceptoval web na preview ([design-log.md](design-log.md)).
+- [ ] Klient akceptoval web na preview ([design-log.md](design-log.md)), s datem.
 - [ ] Žádný text neobsahuje zástupnou značku, TBD ani smyšlený údaj z návrhu.
 - [ ] Kontaktní a fakturační údaje jsou ověřené a shodné s Google Business Profile a Firmy.cz.
 - [ ] Zásady ochrany osobních údajů odpovídají tomu, co web skutečně sbírá.
+- [ ] Stránky se vykreslí i bez JavaScriptu; formulář s reCAPTCHA potřebuje JavaScript k odeslání,
+  proto je vedle něj kontaktní alternativa (e-mail nebo telefon).
 
 ### SEO a GEO
 
 - [ ] Každá indexovaná stránka má unikátní title (do 60 znaků), description (110–155 znaků),
   jedno H1 a canonical ([sitemap-a-meta.md](sitemap-a-meta.md#meta-title-a-description)).
-- [ ] OG obrázky a Twitter card na každé indexované stránce.
+- [ ] Tvar URL s lomítkem na konci nebo bez něj je jeden a shoduje se v canonical, `og:url`,
+  sitemapě, odkazech a cílech přesměrování.
+- [ ] OG obrázky 1200 × 630 a Twitter card na každé indexované stránce.
 - [ ] JSON-LD prošel validátorem Schema.org a Rich Results Test bez chyb.
 - [ ] **Brána AI readiness (blokuje spuštění):** `ai-readiness.mjs` na stagingu s `--staging`
   před přepnutím a na produkci hned po něm; každá kontrola `must` prochází, nebo má výjimku
-  potvrzenou vedoucím projektu v [ai-readiness.md](ai-readiness.md#výjimky). Reporty v
-  `assets/ai-readiness/<datum>/`, výsledek v záznamu spuštění (robots, sitemap, `llms.txt`,
-  Markdown, JSON-LD a feedy pokrývá skript).
+  potvrzenou vedoucím projektu v [ai-readiness.md](ai-readiness.md#exceptions). Reporty v
+  `assets/ai-readiness/<datum>/`, výsledek v záznamu spuštění.
 - [ ] Všechna 301 z [plánu přesměrování](sitemap-a-meta.md#301-přesměrování-ze-starého-webu)
-  vyzkoušená proti produkci; žádný řetěz ani smyčka přesměrování.
+  vyzkoušená proti produkci, žádný řetěz ani smyčka; odstraněná média vracejí 410.
 
 ### Přístupnost
 
@@ -92,6 +97,8 @@ datem. Body, které nejdou splnit, schvaluje vedoucí projektu a zapíše výjim
 - [ ] Obrázky mají smysluplný `alt`, formuláře popisky a chybové hlášky.
 
 ### Výkon (Lighthouse, mobil, každá routa)
+
+`lighthouse-gate.mjs` (skill `esoul-quality-gates`), reporty v `assets/lighthouse/<datum>/`.
 
 - [ ] Performance ≥ 90.
 - [ ] Accessibility, SEO a Best Practices 100 (SEO se měří až po vypnutí `noindex`).
@@ -102,11 +109,11 @@ datem. Body, které nejdou splnit, schvaluje vedoucí projektu a zapíše výjim
 
 ### Bezpečnost
 
-- [ ] HTTPS s platným certifikátem a přesměrováním z HTTP; HSTS.
-- [ ] Hlavičky `Content-Security-Policy`, `X-Content-Type-Options: nosniff`,
-  `Referrer-Policy`, `Permissions-Policy` a `frame-ancestors` (nebo `X-Frame-Options`), i v
-  blocích serveru s vlastními hlavičkami.
-- [ ] Formulář má antispam podle [D-03](rozhodnuti.md#d-03-formuláře-a-antispam), produkční
+- [ ] HTTPS s platným certifikátem a přesměrováním z HTTP.
+- [ ] Bezpečnostní hlavičky podle deployment guidelinu stacku (CSP, HSTS, `nosniff`,
+  `Referrer-Policy`, `frame-ancestors` nebo `X-Frame-Options`) na stránce, na statickém souboru
+  i na chybové stránce, také v blocích serveru s vlastními hlavičkami; `Permissions-Policy`.
+- [ ] Formulář má antispam podle [D-03](rozhodnuti.md#d-03-forms-and-anti-spam), produkční
   klíče CAPTCHA a doručení vyzkoušené testovací poptávkou.
 - [ ] Žádné tajemství v repozitáři ani ve veřejném buildu; výchozí hesla změněná.
 
@@ -114,16 +121,30 @@ datem. Body, které nejdou splnit, schvaluje vedoucí projektu a zapíše výjim
 
 - [ ] Měření a cookie lišta jen v produkci, měřicí skripty až po souhlasu.
 
+### Provoz
+
+- [ ] Zálohy nastavené a jedna obnova vyzkoušená (tabulka Zálohy výše).
+- [ ] Monitoring chyb a dostupnosti nastavený.
+
 ### Přepnutí
 
+Pořadí podle guidelinu `public-website.md`; v témže nasazení se nemění nic jiného.
+
+- [ ] Snímek původního webu „před“ existuje v `assets/case-study/pred/` (poslední možnost před
+  přepnutím); soubor URL se použije znovu pro „po“. Bez původního webu bod škrtni.
+- [ ] DNS a TLS připravené, rollback popsaný a vyzkoušený.
 - [ ] Vypnutý basic auth.
-- [ ] Vypnutý `noindex` (hlavička, meta i build proměnná).
-- [ ] `robots.txt` s `Allow: /` a odkazem na sitemap.
+- [ ] Vypnutý přepínač preview (`noindex` v hlavičce, meta i build proměnná; `robots.txt` s
+  `Allow: /` a odkazem na sitemap).
+- [ ] Nasazeno; po nasazení ověřené hlavičky odpovědí, `robots.txt`, sitemap a indexovatelnost.
 - [ ] DNS přepnuté na produkci, TLS ověřené na všech variantách domény (s `www` i bez).
-- [ ] Rollback popsaný a vyzkoušený.
 
 ### Po spuštění
 
+- [ ] Brány kvality na produkci hned po přepnutí: `ai-readiness.mjs` bez `--staging` a
+  `lighthouse-gate.mjs` včetně SEO prošly, výsledky jsou níže.
+- [ ] Snímek „po“ s týmž souborem URL a zařízeními, včetně Lighthouse
+  (`esoul-website-launch`, `references/case-study.md`).
 - [ ] Google Search Console: ověřená doména, odeslaná sitemap.
 - [ ] Bing Webmaster Tools: přidaný web a sitemap.
 - [ ] Google Business Profile: web, služby, fotky, oblast působnosti.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "eSoul Website Launch"
+  short_description: "Take an eSoul public website live with one checklist, gate runs and before/after snapshots"
+  default_prompt: "Use $esoul-website-launch to prepare and verify the go-live of this website with docs/nasazeni.md, run the gates on staging and production, and capture the case-study snapshots."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "eSoul Quality Gates"
+  short_description: "Run Lighthouse, axe, prefetch, security-header and AI-readiness gates on an eSoul website"
+  default_prompt: "Use $esoul-quality-gates to run the quality gates that apply to this website on the preview or production, record the results and report what fails."

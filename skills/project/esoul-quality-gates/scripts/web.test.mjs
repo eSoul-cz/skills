@@ -1,16 +1,10 @@
-// Self-test of snapshot.mjs (no network, no browser): node --test scripts/snapshot.test.mjs
+// Self-test of web.mjs and lighthouse-gate.mjs (no network, no browser): node --test scripts/web.test.mjs
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { after, test } from 'node:test';
+import { test } from 'node:test';
 
+import { BUDGETS, evaluate, formatReport, withBudgets } from './lighthouse-gate.mjs';
 import {
-    TOOL_NAME,
-    buildManifest,
-    dirSize,
     extractLinks,
-    formatSummary,
     groupByPattern,
     isAssetUrl,
     isJunkUrl,
@@ -21,13 +15,7 @@ import {
     patternOf,
     slugFromUrl,
     slugify,
-    summarize,
-    waybackUrl,
-    writeJsonAtomic,
-} from './snapshot.mjs';
-
-const temp = mkdtempSync(path.join(tmpdir(), 'esoul-snapshot-'));
-after(() => rmSync(temp, { recursive: true, force: true }));
+} from './web.mjs';
 
 const BASE = 'https://stary.example.cz';
 
@@ -48,11 +36,11 @@ test('slugFromUrl uses home for the root and the path otherwise', () => {
 
 test('parseUrlsFile handles comments, slug overrides, relative paths and duplicates', () => {
     const text = [
-        '# domovská stránka',
+        '# home page',
         '/',
         '',
         'kontakt | Kontaktní formulář',
-        `${BASE}/blog/clanek-1 # inline komentář`,
+        `${BASE}/blog/clanek-1 # inline comment`,
         '/kontakt',
         '/produkt/a',
         '/produkt/a#recenze',
@@ -74,7 +62,7 @@ test('parseUrlsFile handles comments, slug overrides, relative paths and duplica
 });
 
 test('parseUrlsFile rejects a relative path without a base', () => {
-    assert.throws(() => parseUrlsFile('/kontakt', undefined), /Řádek 1/);
+    assert.throws(() => parseUrlsFile('/kontakt', undefined), /Line 1/);
     assert.equal(parseUrlsFile('https://a.cz/x', undefined)[0].url, 'https://a.cz/x');
 });
 
@@ -147,32 +135,52 @@ test('patternOf and groupByPattern guess templates', () => {
     assert.deepEqual(groups[1].examples, ['/o-nas', '/kontakt']);
 });
 
-test('waybackUrl uses the if_ mode', () => {
-    assert.equal(waybackUrl('20200115', 'https://example.com/'), 'https://web.archive.org/web/20200115if_/https://example.com/');
+const good = { categories: { performance: 92, accessibility: 100, bestPractices: 100, seo: 100 }, metrics: { lcp: 2100, cls: 0.01 } };
+const status = (checks) => Object.fromEntries(checks.map((c) => [c.metric, c.status]));
+
+test('Lighthouse budgets: the eSoul defaults', () => {
+    assert.deepEqual(BUDGETS, {
+        performance: { min: 90 },
+        accessibility: { min: 100 },
+        bestPractices: { min: 100 },
+        seo: { min: 100 },
+        lcp: { max: 2500, unit: 'ms' },
+        cls: { max: 0.05 },
+    });
 });
 
-test('buildManifest has the documented shape; waybackTimestamp only for wayback', () => {
-    const pages = [
-        { n: 1, slug: 'home', url: `${BASE}/`, finalUrl: `${BASE}/`, status: 200, title: 'Úvod', shots: { desktop: { full: 'desktop/01-home.png', fold: 'desktop/01-home-fold.png' } } },
-        { n: 2, slug: 'x', url: `${BASE}/x`, finalUrl: null, status: null, title: '', shots: {}, error: 'HTTP 404' },
-    ];
-    const live = buildManifest({ label: 'pred', date: '2026-11-12', base: BASE, devices: { desktop: { width: 1440 } }, pages, capturedAt: '2026-11-12T10:00:00.000Z' });
-    assert.deepEqual(Object.keys(live), ['label', 'date', 'base', 'source', 'capturedAt', 'tool', 'toolVersion', 'devices', 'pages', 'lighthouse', 'notes']);
-    assert.equal(live.source, 'live');
-    assert.equal(live.tool, TOOL_NAME);
-    assert.equal(live.lighthouse, null);
-    const old = buildManifest({ label: 'pred', date: '2026-11-12', base: BASE, source: 'wayback', waybackTimestamp: '20200115', devices: {}, pages: [] });
-    assert.equal(old.waybackTimestamp, '20200115');
-    assert.deepEqual(summarize(live), { ok: 1, failed: 1, shots: 2, lighthouse: 0 });
-    assert.match(formatSummary(live, 3 * 1048576, '/out'), /1 stránek ok, 1 selhalo, 2 snímků, 3\.0 MB/);
+test('evaluate passes values on the budget and fails the ones beside it', () => {
+    assert.ok(evaluate(good).every((c) => c.status === 'pass'));
+    const edge = evaluate({ categories: { ...good.categories, performance: 90 }, metrics: { lcp: 2499, cls: 0.05 } });
+    assert.deepEqual(status(edge), { performance: 'pass', accessibility: 'pass', bestPractices: 'pass', seo: 'pass', lcp: 'pass', cls: 'fail' });
+    const bad = evaluate({ categories: { performance: 89, accessibility: 99, bestPractices: 100, seo: 100 }, metrics: { lcp: 2500, cls: 0.04 } });
+    assert.deepEqual(status(bad), { performance: 'fail', accessibility: 'fail', bestPractices: 'pass', seo: 'pass', lcp: 'fail', cls: 'pass' });
 });
 
-test('writeJsonAtomic leaves only the final file; dirSize sums nested files', () => {
-    const dir = path.join(temp, 'out');
-    mkdirSync(path.join(dir, 'desktop'), { recursive: true });
-    writeFileSync(path.join(dir, 'desktop', 'a.png'), Buffer.alloc(1000));
-    writeJsonAtomic(path.join(dir, 'manifest.json'), { a: 1 });
-    assert.deepEqual(readdirSync(dir).sort(), ['desktop', 'manifest.json']);
-    assert.deepEqual(JSON.parse(readFileSync(path.join(dir, 'manifest.json'), 'utf8')), { a: 1 });
-    assert.ok(dirSize(dir) > 1000);
+test('evaluate skips SEO on staging and fails a missing value', () => {
+    const staging = evaluate({ ...good, categories: { ...good.categories, seo: 66 } }, { staging: true });
+    assert.equal(status(staging).seo, 'skipped');
+    assert.equal(status(evaluate({ categories: {}, metrics: {} })).performance, 'fail');
+});
+
+test('withBudgets replaces numbers of the project and rejects unknown metrics or values', () => {
+    const custom = withBudgets(['performance=80', 'lcp=3000', 'cls=0.1']);
+    assert.deepEqual([custom.performance.min, custom.lcp.max, custom.cls.max], [80, 3000, 0.1]);
+    assert.equal(BUDGETS.performance.min, 90, 'the defaults stay untouched');
+    assert.equal(status(evaluate({ ...good, metrics: { lcp: 2800, cls: 0.08 } }, { budgets: custom })).lcp, 'pass');
+    assert.throws(() => withBudgets(['speed=1']), /Invalid --budget/);
+    assert.throws(() => withBudgets(['performance=high']), /Invalid --budget/);
+    assert.throws(() => withBudgets(['performance']), /Invalid --budget/);
+});
+
+test('formatReport lists failures and the summary line', () => {
+    const text = formatReport([
+        { url: 'https://a.cz/', checks: evaluate(good) },
+        { url: 'https://a.cz/x', checks: evaluate({ ...good, metrics: { lcp: 4000, cls: 0.01 } }) },
+        { url: 'https://a.cz/y', error: 'timeout' },
+    ]);
+    assert.match(text, /OK {3}https:\/\/a\.cz\/\n/);
+    assert.match(text, /FAIL https:\/\/a\.cz\/x/);
+    assert.match(text, /FAIL https:\/\/a\.cz\/y: timeout/);
+    assert.match(text, /1\/3 pages within budget\./);
 });
