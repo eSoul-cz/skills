@@ -40,8 +40,8 @@ Pick one mode, say which in one line, and read only the references it names.
 
 | Mode | When | References |
 |---|---|---|
-| `bootstrap` | New project, empty or skeleton repository | [bootstrap](references/bootstrap.md), [root-files](references/root-files.md), [labels](references/labels.md), skill `esoul-guidelines`, stack profile; [tiers](references/tiers.md) only when the profile is missing |
-| `retrofit` | Existing project brought to the standard | [retrofit](references/retrofit.md), [root-files](references/root-files.md), [audit](references/audit.md), skill `esoul-guidelines` |
+| `bootstrap` | New project, empty or skeleton repository. Strict: follows the guidelines closely; the checklist for repository, Freelo, manifest, Jenkins job and secrets is in `bootstrap` › New project infrastructure | [bootstrap](references/bootstrap.md), [root-files](references/root-files.md), [labels](references/labels.md), skill `esoul-guidelines`, stack profile; [tiers](references/tiers.md) only when the profile is missing |
+| `retrofit` | Existing project brought to the standard. Lenient: a fixed technical order (skills, guidelines, pipeline, optional template adoption, optional test cleanup); conflicts with the guidelines are asked, kept ones recorded as exceptions | [retrofit](references/retrofit.md), [root-files](references/root-files.md), [audit](references/audit.md), skill `esoul-guidelines` |
 | `intake` | New client files, exports, legacy dumps | [podklady-and-legacy](references/podklady-and-legacy.md), [questions-and-client](references/questions-and-client.md) |
 | `client-update` | After a meeting, written answers, design feedback | [questions-and-client](references/questions-and-client.md), then whatever it touches |
 | `glossary` | New or disputed domain term | [glossary](references/glossary.md) (with the installed `domain-modeling` skill) |
