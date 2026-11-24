@@ -14,7 +14,7 @@ run is the slowest part of authoring. Resolve them once, write them here, and re
 - URL: https://app.freelo.io/project/<numeric id>
 - Tasklisty: Backlog `<id>` · To Do `<id>` · In progress `<id>` · Code review `<id>` · Testing `<id>` · Done `<id>` · LTT `<id>`
 
-Task labels (verified YYYY-MM-DD; add by UUID, never create new ones):
+Task labels (verified YYYY-MM-DD; add by UUID):
 
 | Label | UUID |
 | --- | --- |

@@ -2,21 +2,15 @@
 
 ### Title
 
-Use a concise, actionable result. When context materially aids scanning, prefer the specific application module, or otherwise a useful one-word context, and use exactly:
-
-```text
-<Context>: <Actionable result>
-```
-
-Use a colon, not a dash. Omit the prefix when no useful context is clear. Represent work categories such as frontend, backend, or data with existing task labels, never with prefixes such as `[FE]`, and never put a slice or phase identifier in the title (guidelines `general/workflow.md` › Tasking).
+The shape of the title, the category labels instead of prefixes and the ban on slice or phase identifiers are `docs/project_guidelines/workflow.md` › Tasking. What this skill adds is the choice of context: prefer the specific application module when it aids scanning, otherwise a useful one-word context, and omit the context when none is clear.
 
 Language of the title (descriptions and Freelo text stay Czech):
 
-- **New project:** English imperative (`Checkout: Add delivery selection`) on the issue and the Freelo task; the pull request title is the same result and action wording in the commit standard the project or developer uses.
-- **Existing Czech project:** the issue and the Freelo task keep Czech titles (infinitive, `Objednávka: Přidat výběr dopravy`). The pull request title is an English, descriptive title of the same result linked to them with `Closes #<issue>` (in the recommended Gitmoji format `:sparkles: [checkout] Add delivery selection`).
+- **New project:** English imperative on the issue and the Freelo task (`Checkout: Add delivery selection`).
+- **Existing Czech project:** Czech titles on the issue and the Freelo task (infinitive, `Objednávka: Přidat výběr dopravy`).
 - **Which one:** `Title language` in `CONTEXT.md` › `## Tasking convention`; without it, the language of the project's existing issue and task titles. When that does not decide, ask once and record the answer there ([convention.md](convention.md)).
 
-The pull request title and the commit standard are `docs/project_guidelines/workflow.md` › Pull requests and › Commits; the recommended Gitmoji format is written by `gitmoji-commit` when it is installed and no other standard is recorded. In `freelo-only` mode the pull request links the Freelo task URL instead of an issue.
+The pull request title is derived from the task title when the PR is opened (`esoul-task-work` › Open the PR). In `freelo-only` mode the PR links the Freelo task URL instead of an issue.
 
 ### Description
 
@@ -45,4 +39,4 @@ Create a separate top-level task when a part can be delivered independently, nee
 
 Prefer one assignee for a task. When multiple people are genuinely required, assign independently owned smart subtasks or split top-level tasks. Keep one accountable parent owner when appropriate.
 
-Estimate human time as `esoul-task-work` › `references/freelo.md` (States and estimates) defines it. Agent time is not estimated; actual human time is logged as Freelo work reports. State estimate confidence in the preview. When a task exceeds 4 hours of human time, actively propose a split; allow an approved exception when cohesion warrants it. Keep estimates on the parent by default. Estimate a subtask only when it is unusually substantial. A repository convention in `CONTEXT.md` may define a different estimate unit; follow it and show it in the preview.
+Estimate as `esoul-task-work` › `references/freelo.md` (States and estimates) defines it: the person's time on the task in 15-minute steps; agent time is not estimated, and a work report later records the same measure (the person's active time). State estimate confidence in the preview. When a task exceeds 4 hours, actively propose a split; allow an approved exception when cohesion warrants it. Keep estimates on the parent by default. Estimate a subtask only when it is unusually substantial. A repository convention in `CONTEXT.md` may define a different estimate unit; follow it and show it in the preview.

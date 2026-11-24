@@ -1,6 +1,6 @@
 ---
 name: esoul-task-work
-description: Work an eSoul tracked task from pick-up to close. Use when starting work on a GitHub issue or Freelo task (assignee, assigned-task check, In progress), when opening its PR (Code review move, work report), when closing it after merge (Testing, Done, finish), or for the start-of-session sweep of merged-but-unmoved tasks. Creating tasks is esoul-task-create.
+description: Use when starting work on a GitHub issue or Freelo task (picking one up, assignee, In progress), when opening its PR (Code review move, work report), when closing it after merge (Testing, Done), or for the start-of-session sweep of merged-but-unmoved tasks. Keeps the task's state, assignee and work report in step with the work. Creating or revising tasks is esoul-task-create.
 ---
 
 # eSoul task work
@@ -19,7 +19,8 @@ description, estimate, new tasks, substantive comments) need an approved preview
 2. Tools: the Freelo MCP tools when mounted, otherwise the `freelo` CLI with `--agent`; GitHub
    through `gh`. For command syntax use the official `freelo` skill (layer `upstream-core`;
    when it is not installed, ask the user to run `npx @esoul-cz/skills install upstream-core`,
-   or read `freelo <group> --help`). eSoul rules on top of it: [references/freelo.md](references/freelo.md).
+   or read `freelo <group> --help`). eSoul rules on top of it, with the CLI and MCP name of each
+   operation used here: [references/freelo.md](references/freelo.md).
 3. Delegation: send tracker writes to a cheap subagent with the exact command when the harness
    offers one, asking for compact fields back (IDs, titles, states, URLs); otherwise run them
    yourself.
@@ -31,15 +32,19 @@ Done when you know the mode, the Freelo project and tasklist IDs and the assigne
 
 ## 1. Pick up the task
 
-1. Find the issue or task. When none exists, the change first needs one
+1. Find the issue or task. When the user names none, list the `To Do` tasks of the project that
+   have no worker or already have the assignee as worker and let the user choose; an unassigned
+   `To Do` task is ready for anyone. When no task exists, the change first needs one
    (`docs/project_guidelines/workflow.md` › Tasking): create it through `esoul-task-create`; for
    small administrative work the user decides whether it goes without one, and you ask.
-2. The task has acceptance criteria and no open blocker; otherwise it is not ready, so tell
-   the user.
+2. The task is ready: acceptance criteria, an estimate (Freelo), no open blocker, where an open
+   `question` issue counts as a blocker ([references/freelo.md](references/freelo.md) › States
+   and estimates). Otherwise tell the user.
 3. **Assigned-task guard.** When the Freelo worker or the GitHub assignee is someone other than
-   the assignee from step 0, stop, tell the user and leave the assignment alone.
+   the assignee from step 0, stop, tell the user and leave the assignment alone. A task with no
+   worker or assignee is not a conflict: step 4 assigns it.
 4. Create the branch as `docs/project_guidelines/workflow.md` › Branches says, then write the
-   start moves of the table below.
+   start moves of the table below (assignee first, then the move).
 
 Done when the assignee is set on both sides and the task is in `In progress`.
 
@@ -47,7 +52,7 @@ Done when the assignee is set on both sides and the task is in `In progress`.
 
 | When | GitHub issue (`github-freelo`) | Freelo task |
 |---|---|---|
-| Work starts | `gh issue edit N --add-assignee <login>` | set the worker to the Freelo user id; move to the `In progress` tasklist |
+| Work starts | `gh issue edit N --add-assignee <login>` | set the worker to the Freelo user id (an unassigned task gets the assignee of step 0); move to the `In progress` tasklist |
 | PR opened | - | move to `Code review`; add the work report |
 | Review finds defects | - | move back to `In progress` |
 | After merge | the issue closes with the PR | move to `Testing`; where the project has no testing step, move to `Done` and finish the task |
@@ -62,8 +67,15 @@ Done when the assignee is set on both sides and the task is in `In progress`.
 
 Open it as `docs/project_guidelines/workflow.md` › Pull requests say (title, template, issue
 link). `github-freelo`: `Closes #N` in the body; `freelo-only`: the Freelo task URL in the
-body. When `gitmoji-commit` is installed it writes the commits and the commit-format title;
-otherwise follow `docs/project_guidelines/workflow.md` › Commits.
+body.
+
+**Title.** Derive it from the task title as `docs/project_guidelines/workflow.md` › Tasking and
+› Pull requests say, and write it in the commit standard of the developer you work for.
+Mapping into the recommended Gitmoji format: the context becomes the lowercase kebab-case
+`[context]`, the result stays the message, `Order history: Add filter` →
+`:sparkles: [order-history] Add filter`.
+`gitmoji-commit` writes the commits and this title when it is installed; a developer's or
+repository's own standard is applied the same way (`workflow.md` › Commits).
 
 Then move the task to `Code review` and add the work report with the PR link in its note
 ([references/freelo.md](references/freelo.md) › Work reports). A review that sends the task

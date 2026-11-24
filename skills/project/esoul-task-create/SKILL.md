@@ -1,6 +1,6 @@
 ---
 name: esoul-task-create
-description: Create or revise eSoul work as a Freelo task or as a linked GitHub issue + Freelo task pair, per the repository's tasking convention (`freelo-only` or `github-freelo`). Use when asked to add, specify, split, revise or pair an issue or task, or to turn a request, feature, bug, spike or data change into tracked work. Covers evidence, interview, task shape, labels, estimate, duplicates, preview; needs approval before every write.
+description: Use when asked to add, specify, split, revise or pair an issue or Freelo task, or to turn a request, feature, bug, spike, data change or open question into tracked work, in the mode the repository's tasking convention names (`freelo-only` or `github-freelo`). Covers evidence, interview, task shape, labels, estimate, duplicate search and an approved preview before every write; S work has a minimal path. Builds on the official `freelo` skill; moving and closing tasks is esoul-task-work.
 ---
 
 # eSoul task creation
@@ -12,22 +12,36 @@ Author work in one of two modes, the repository's `## Tasking convention` decide
   management summary per result, with reciprocal links.
 
 Every change has an issue and/or task (`docs/project_guidelines/workflow.md` › Tasking), so
-this skill also serves S work: it gets a minimal issue or pair, and the small-administrative-work
+this skill also serves S work through the minimal path below. The small-administrative-work
 exception (dependency updates, `Jenkinsfile` changes and similar) is the user's decision, which
-you ask for and never assume. Under `profile/internal` a plan slice or the owner's request is
-enough (`docs/project_guidelines/workflow.md` › Tasking).
+you ask for and never assume.
 
 Work over exactly one confirmed Freelo project (and one GitHub repository) per run. Read a
 reference only when its step needs it.
 
+## Minimal path (S work)
+
+S work is one obvious change: a few files, no design choice, no new dependency. It needs only:
+
+1. The outcome as the title, one observable acceptance criterion and one existing category label.
+   No interview, no subtasks, no `## UAT` section: the criterion carries the verification.
+2. One duplicate search by the words of the title, once per system.
+3. One preview line to approve: `<tasklist> · <title> · <label> · <criterion> · duplicates: none|<link>`
+   (a `github-freelo` pair shows issue and task in that one line).
+4. The write and read-back of step 6.
+
+The tasklist is `Backlog` unless the user gives an approved estimate (then `To Do`). Anything
+that grows beyond this (a design choice, several results, a user-visible flow that needs
+scenarios) leaves the minimal path and takes the full flow below.
+
 ## 0. Tools and context
 
-- Freelo: the official `freelo` skill (layer `upstream-core`) for command syntax, the Freelo MCP
-  tools when mounted, otherwise the `freelo` CLI with `--agent`; eSoul's working rules (states,
-  estimate unit, label gotchas, delegation) are `esoul-task-work` › `references/freelo.md`. The
-  command sequence of the write step: [references/cli-recipe.md](references/cli-recipe.md). When
-  the official skill is missing, ask the user to run `npx @esoul-cz/skills install upstream-core`
-  or read `freelo <group> --help`.
+- Freelo: the official `freelo` skill (layer `upstream-core`) for command syntax; the Freelo MCP
+  tools when mounted, otherwise the `freelo` CLI with `--agent`. eSoul's working rules (states,
+  estimate unit, label gotchas) are `esoul-task-work` › `references/freelo.md`. The command
+  sequence of the write step, with the CLI and MCP name of each operation:
+  [references/cli-recipe.md](references/cli-recipe.md). When the official skill is missing, ask
+  the user to run `npx @esoul-cz/skills install upstream-core` or read `freelo <group> --help`.
 - `github-freelo`: authenticated GitHub access (`gh auth status`, `gh repo view <repository>`);
   look up flags with `gh <command> --help`. A missing capability stops the run before writes; it
   never switches the mode. Credentials are never asked for in chat.
@@ -49,7 +63,8 @@ reference only when its step needs it.
    and ask the user to confirm it; after an inferred confirmation record the mapping
    ([references/project-mapping.md](references/project-mapping.md)). The same section caches
    tasklist IDs and task-label UUIDs; load them from Freelo only when the cache is missing or a
-   cached value is rejected.
+   cached value is rejected. Projects, repositories, tasklists and labels are never created as a
+   setup shortcut; a missing one is raised with the user.
 3. `github-freelo`: one GitHub repository (explicit target, repository configuration, or an
    unambiguous remote), and each result classified as a new pair, an existing pair to refine or a
    missing counterpart: [references/github-freelo.md](references/github-freelo.md).
@@ -80,12 +95,10 @@ and estimate answered, or listed as an unverified assumption in the preview.
 
 ## 3. Shape the task
 
-- **Title:** `<Context>: <Actionable result>`, a colon, no category prefix and no slice ID; the
-  issue and the Freelo task carry the same title. Language, the PR title and the details:
-  [references/task-content.md](references/task-content.md) › Title. The PR title is that title in
-  the commit standard the project or developer uses (`docs/project_guidelines/workflow.md` ›
-  Pull requests and › Commits); when none is recorded it is the recommended Gitmoji format,
-  written by `gitmoji-commit` when installed.
+- **Title:** the shape and the rules (context, no category prefix, no slice ID, the same title on
+  issue and task) are `docs/project_guidelines/workflow.md` › Tasking. Choosing the context and
+  the title language: [references/task-content.md](references/task-content.md) › Title. The PR
+  title is derived from it when the PR is opened (`esoul-task-work`).
 - **Description:** the done state is clear and every task or issue has acceptance criteria (one
   observable line suffices for simple work). Short narrative for simple work, optional sections
   (`Cíl`, `Technický kontext`, `Rozsah`, `Mimo rozsah`, `Akceptační kritéria`, `Závislosti`,
@@ -95,9 +108,13 @@ and estimate answered, or listed as an unverified assumption in the preview.
   [references/task-content.md](references/task-content.md),
   [references/github-freelo.md](references/github-freelo.md).
 - **Verification:** the `## UAT` format of [references/uat.md](references/uat.md).
-- **Question:** a decision someone must make is an issue or task labelled `question`, titled as
-  the decision asked, never a file; its answer is recorded as an ADR, a glossary entry or a
-  guideline. Work that depends on it gets `blocked_by` and is not ready to start.
+- **Question:** a decision someone must make is not a task. It is an issue labelled `question`
+  (`freelo-only`: a task with that label), titled as the decision asked, never a file. It has
+  no category label, no `## UAT` and no estimate; its body follows the repository's `question`
+  issue form (`.github/ISSUE_TEMPLATE/question.yml`), and in `github-freelo` it has no Freelo
+  counterpart. Its answer is recorded as an ADR, a glossary entry or a guideline, and the
+  question is closed with a link to that place. Work that depends on it gets `blocked_by` and is
+  not ready to start.
 - **Subtasks** are real implementation steps of one result, never lifecycle steps; independently
   deliverable parts are separate tasks.
 - **Estimate:** the unit and the split rule are `esoul-task-work` › `references/freelo.md`
@@ -106,12 +123,13 @@ and estimate answered, or listed as an unverified assumption in the preview.
 ## 4. Metadata
 
 Resolve the tasklist by name from the cache. `To Do` only with a complete description, an
-assignee, an approved estimate and no blockers; otherwise `Backlog`; `LTT` (or `Project
-Management`) only after the user confirms recurring work. New work starts in those lists. The
-assignee, estimate and due date come from the user. Each task and each issue gets at least one
-label that already exists, by UUID in Freelo and by exact name on GitHub; a missing label is
-raised with the user. A `github-freelo` repository also sets the issue's milestone as its
-`## Tasking convention` says. Relations, and refining existing tasks by state:
+approved estimate and no blockers (no assignee needed: an unassigned `To Do` task is ready for
+anyone); otherwise `Backlog`; `LTT` (or `Project Management`) only after the user confirms
+recurring work. New work starts in those lists. The estimate, due date and an assignee, if one
+is wanted, come from the user. Each task and each issue gets at least one label that already
+exists, by UUID in Freelo and by exact name on GitHub (a question needs none). A
+`github-freelo` repository also sets the issue's milestone as its `## Tasking convention`
+says. Relations, and refining existing tasks by state:
 [references/duplicates.md](references/duplicates.md).
 
 ## 5. Preview and approve
@@ -124,7 +142,7 @@ labels, milestone and assignee, the Freelo summary and metadata, and every remot
 (reciprocal links, `blocked_by`, Freelo relations, edits to existing entities). The user may
 approve all or selected results. Approval covers the exact preview and the mechanical link
 substitutions only; a material change needs a new preview, and silence or approval of an earlier
-draft is not approval.
+draft is not approval. The minimal path previews in one line.
 
 Done when the user has approved the exact preview.
 

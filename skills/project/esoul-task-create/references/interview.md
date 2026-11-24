@@ -19,9 +19,9 @@ Infer an internal task archetype and tailor the questions:
 - **Technical improvement/refactoring:** capture the concrete problem, intended quality outcome, compatibility constraints, and proof that behavior remains correct.
 - **Testing:** name the behavior and scenarios being proven rather than merely saying "add tests".
 - **Data/import:** capture source, expected shape, transformations, validation, failure handling, repeatability, and safe verification. Label it `data-migration`. A code or data-model change that the data work needs is a separate issue, created with the `esoul-data` skill's proposal when that skill is installed.
-- **Question:** capture the decision being asked, who answers it, and what is blocked by it. Label `question`; the answer is recorded in an ADR, the glossary or a guideline, not in the task.
+- **Question:** capture the decision being asked, who answers it, the options with a recommendation, and what is blocked by it. It is not a task (`SKILL.md` › Shape the task › Question): label `question`, no category label, no UAT, no estimate.
 - **Spike:** define the question, boundaries, timebox, and output: findings, compared options, recommendation, and risks. Production implementation is out of scope unless explicitly requested.
 - **Documentation:** define audience, scope, source of truth, and required verification.
-- **LTT / Project Management:** recognize recurring or continuous work that lacks a one-sprint result; classify it as LTT only after explicit user confirmation.
+- **LTT / Project Management:** recognize recurring or continuous work that has no single deliverable result; classify it as LTT only after explicit user confirmation.
 
 Ask about an optional module when code or existing tasks suggest one but the user did not identify it.

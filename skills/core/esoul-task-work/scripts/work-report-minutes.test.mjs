@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { compute } from './work-report-minutes.mjs';
+import { compute, toolEvents } from './work-report-minutes.mjs';
 
 const script = fileURLToPath(new URL('./work-report-minutes.mjs', import.meta.url));
 
@@ -99,4 +99,50 @@ test('the command line: --help exits 0, a missing file argument exits 1, --json 
         reportMinutes: 5,
         waitingMinutes: 0,
     });
+});
+
+const fixture = (name) =>
+    readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8')
+        .split('\n')
+        .filter(Boolean)
+        .map((line) => JSON.parse(line));
+
+test('an omp transcript: tool names are seen, a test wait counts 0, a [task] wait counts in full', () => {
+    // 1 + 1 (edit), 30 min `pnpm test` = 0, 1 + 1 + 20 (task, wait for the [task] job), 1 + 0 (wait for a [bash] job)
+    assert.deepEqual(compute(fixture('omp-session.jsonl')), {
+        records: 13,
+        elapsedMinutes: 75,
+        activeMinutes: 25,
+        reportMinutes: 25,
+        waitingMinutes: 50,
+    });
+});
+
+test('a Codex transcript: the exec_command text is judged, wait_agent counts in full', () => {
+    // 1 + 1 + 1 (read, patch, test call), 20 min `npm test` = 0, 1 + 1 + 20 (spawn, wait_agent), 1 + 5 (ls capped)
+    assert.deepEqual(compute(fixture('codex-session.jsonl')), {
+        records: 14,
+        elapsedMinutes: 76,
+        activeMinutes: 31,
+        reportMinutes: 30,
+        waitingMinutes: 45,
+    });
+});
+
+test('toolEvents reads the three layouts and ignores records without tool traffic', () => {
+    assert.deepEqual(toolEvents(use('a', 'Bash', 'ls')).uses, [{ id: 'a', name: 'Bash', command: 'ls' }]);
+    const omp = fixture('omp-session.jsonl');
+    assert.deepEqual(toolEvents(omp[3]).uses, [{ id: 'c1', name: 'edit', command: '' }]);
+    assert.deepEqual(toolEvents(omp[4]).results, [{ id: 'c1', text: 'ok', name: 'edit' }]);
+    const codex = fixture('codex-session.jsonl');
+    assert.deepEqual(toolEvents(codex[2]).uses, [{ id: 'k1', name: 'exec_command', command: 'rg --files' }]);
+    assert.equal(toolEvents(codex[0]).uses.length + toolEvents(codex[1]).results.length, 0);
+});
+
+test('the command line reads an omp transcript the same way as compute', () => {
+    const run = spawnSync('node', [script, fileURLToPath(new URL('./fixtures/omp-session.jsonl', import.meta.url)), '--json'], {
+        encoding: 'utf8',
+    });
+    assert.equal(run.status, 0);
+    assert.equal(JSON.parse(run.stdout).activeMinutes, 25);
 });

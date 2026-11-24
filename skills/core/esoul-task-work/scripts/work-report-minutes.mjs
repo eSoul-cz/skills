@@ -1,42 +1,98 @@
 #!/usr/bin/env node
-// Compute the active minutes of a Claude Code session transcript for a Freelo work report,
-// excluding waiting. Method: references/freelo.md, "Work reports".
+// Compute the active minutes of a Claude Code, omp or Codex session transcript for a Freelo
+// work report, excluding waiting. Method: references/freelo.md, "Work reports".
 //
 // Usage: node work-report-minutes.mjs <transcript.jsonl> [--from <ISO time>] [--to <ISO time>] [--json]
+//
+// The format is recognised per record, so no flag is needed:
+//   - Claude Code (~/.claude/projects/<project>/<session>.jsonl): `message.content[]` blocks
+//     `tool_use` / `tool_result`;
+//   - omp (~/.omp/agent/sessions/<project>/<session>.jsonl): assistant `toolCall` blocks and
+//     separate `toolResult` messages;
+//   - Codex (~/.codex/sessions/<y>/<m>/<d>/rollout-*.jsonl): `response_item` records with
+//     `function_call` / `custom_tool_call` and their `*_output`.
 //
 // Gaps between consecutive records are summed from --from (default: first record) to --to
 // (default: last record); a gap crossing either bound is clipped to it and classified by its
 // closing record, and a wait is judged on the unclipped gap:
 //   - a gap that ends in the result of a test, build, mutation, install or waiting-loop command
-//     (`until`, `sleep`, `Monitor`, `[testq] waiting`) longer than one minute does not count;
-//   - a gap that ends in the result of subagent work (Agent, Task, Skill, Workflow) counts in full;
+//     (`until`, `sleep`, `Monitor`, omp/Codex `wait`, `[testq] waiting`) longer than one minute
+//     does not count;
+//   - a gap that ends in the result of subagent work (Agent, Task, Skill, Workflow, Codex
+//     `wait_agent`, an omp `wait` that returns `[task]` jobs) counts in full;
 //   - any other gap counts for at most 5 minutes, a longer pause is waiting.
 // The active total is rounded to 5 minutes. Without a transcript, build the timeline by hand
 // as the reference describes.
 
 import { readFileSync } from 'node:fs';
 
-const WAIT_TOOLS = new Set(['Monitor']);
-const FULL_TOOLS = new Set(['Agent', 'Task', 'Skill', 'Workflow']);
+const WAIT_TOOLS = new Set(['monitor', 'wait']);
+const FULL_TOOLS = new Set(['agent', 'task', 'skill', 'workflow', 'wait_agent']);
 const WAIT_COMMAND =
     /\b(test|tests|pest|phpunit|vitest|jest|playwright|cypress|e2e|mutation|infection|stryker|build|lint|phpstan|install|testq|until|sleep)\b/i;
 const WAIT_RESULT = /\[testq\] waiting/i;
+const SUBAGENT_JOB = /\[task\]/;
 const MINUTE = 60 * 1000;
 const OTHER_CAP = 5 * MINUTE;
 
-export function classify(record, toolUses) {
-    const content = Array.isArray(record?.message?.content) ? record.message.content : [];
-    let kind = 'other';
+const asObject = (value) => {
+    if (typeof value !== 'string') {
+        return value ?? {};
+    }
+    try {
+        return JSON.parse(value) ?? {};
+    } catch {
+        return {};
+    }
+};
+
+const textOf = (value) => (typeof value === 'string' ? value : JSON.stringify(value ?? ''));
+
+// The tool calls and tool results of one record, whatever the agent that wrote it.
+export function toolEvents(record) {
+    const uses = [];
+    const results = [];
+
+    // Claude Code and omp: message.content[]
+    const message = record?.message;
+    const content = Array.isArray(message?.content) ? message.content : [];
     for (const part of content) {
-        if (part?.type !== 'tool_result') {
-            continue;
+        if (part?.type === 'tool_use') {
+            uses.push({ id: part.id, name: part.name, command: String(part.input?.command ?? '') });
+        } else if (part?.type === 'toolCall') {
+            uses.push({ id: part.id, name: part.name, command: String(asObject(part.arguments).command ?? '') });
+        } else if (part?.type === 'tool_result') {
+            results.push({ id: part.tool_use_id, text: textOf(part.content) });
         }
-        const use = toolUses.get(part.tool_use_id);
-        const text = typeof part.content === 'string' ? part.content : JSON.stringify(part.content ?? '');
-        if (use && FULL_TOOLS.has(use.name)) {
+    }
+    if (message?.role === 'toolResult') {
+        // omp: one record per result; the text blocks are its output.
+        const text = content.map((part) => part?.text ?? '').join('\n');
+        results.push({ id: message.toolCallId, text, name: message.toolName });
+    }
+
+    // Codex: response_item payloads
+    const payload = record?.type === 'response_item' ? record.payload : null;
+    if (payload?.type === 'function_call') {
+        uses.push({ id: payload.call_id, name: payload.name, command: String(asObject(payload.arguments).cmd ?? '') });
+    } else if (payload?.type === 'custom_tool_call') {
+        uses.push({ id: payload.call_id, name: payload.name, command: String(payload.input ?? '') });
+    } else if (payload?.type === 'function_call_output' || payload?.type === 'custom_tool_call_output') {
+        results.push({ id: payload.call_id, text: textOf(payload.output) });
+    }
+
+    return { uses, results };
+}
+
+export function classify(record, toolUses) {
+    let kind = 'other';
+    for (const result of toolEvents(record).results) {
+        const use = toolUses.get(result.id);
+        const name = String(use?.name ?? result.name ?? '').toLowerCase();
+        if (FULL_TOOLS.has(name) || (name === 'wait' && SUBAGENT_JOB.test(result.text))) {
             return 'full';
         }
-        if (WAIT_RESULT.test(text) || (use && (WAIT_TOOLS.has(use.name) || WAIT_COMMAND.test(use.command)))) {
+        if (WAIT_RESULT.test(result.text) || WAIT_TOOLS.has(name) || (use && WAIT_COMMAND.test(use.command))) {
             kind = 'wait';
         }
     }
@@ -46,11 +102,8 @@ export function classify(record, toolUses) {
 export function compute(records, from = null, to = null) {
     const toolUses = new Map();
     for (const record of records) {
-        const content = Array.isArray(record?.message?.content) ? record.message.content : [];
-        for (const part of content) {
-            if (part?.type === 'tool_use') {
-                toolUses.set(part.id, { name: part.name, command: String(part.input?.command ?? '') });
-            }
+        for (const use of toolEvents(record).uses) {
+            toolUses.set(use.id, use);
         }
     }
 

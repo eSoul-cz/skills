@@ -13,7 +13,7 @@ Preview every relation before writing it.
 Never create a complete duplicate. Show the existing task and propose a safe refinement when appropriate:
 
 - `Backlog`: propose merging or expanding its description, subtasks, labels, and estimate.
-- `To Do`: allow a proposed refinement, then re-check readiness, estimate, assignee, due date, and blockers.
+- `To Do`: allow a proposed refinement, then re-check readiness (complete, estimated, no blockers) and the due date.
 - `In progress`: do not expand scope without explicit approval; keep a small clarification there or create separately linked substantial work.
 - `Code review` or `Testing`: keep only corrections required by the approved scope; create newly discovered scope as a separate related task.
 - `Done`: do not reopen or rewrite automatically; create a separate related change.
