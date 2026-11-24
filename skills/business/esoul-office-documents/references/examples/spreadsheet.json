@@ -1,14 +1,14 @@
 {
- "zhotovitel": {"firma":"eSoul","ic":"17582571","dic":"CZ17582571","osoba":"Jan Novák","email":"info@esoul.cz","datum":"19. 11. 2026"},
- "objednavatel": {"firma":"Ukázkový klient s.r.o.","ic":"12345678","dic":"CZ12345678","osoba":"Petra Svobodová","email":"petra@example.com"},
+ "zhotovitel": {"firma":"Ukázkový dodavatel s.r.o.","ic":"00000000","dic":"CZ00000000","osoba":"Jan Vzorový","email":"dodavatel@example.com","datum":"1. 1. 2000"},
+ "objednavatel": {"firma":"Ukázkový klient s.r.o.","ic":"12345678","dic":"CZ12345678","osoba":"Petra Vzorová","email":"klient@example.com"},
  "title": "Kalkulace ceny vývoje",
  "subtitle": "Verze 1.0 | ceny bez DPH",
  "tables": [{
    "caption": "Cenová kalkulace",
    "columns": [{"name":"Položka"},{"name":"Hodiny","type":"number"},{"name":"Sazba","type":"money"},{"name":"Cena","type":"money"}],
-   "rows": [["Analýza a návrh řešení",16,1500,"=B{r}*C{r}"],["Implementace administrace s rolemi a oprávněními uživatelů",40,1500,"=B{r}*C{r}"],["Import dat ze stávajícího systému",12,1500,"=B{r}*C{r}"],["Testování a oprava chyb",14,1500,"=B{r}*C{r}"],["Nasazení a předání",6,1500,"=B{r}*C{r}"],["Projektové řízení",10,1800,"=B{r}*C{r}"]],
+   "rows": [["Analýza a návrh řešení",16,1000,"=B{r}*C{r}"],["Implementace administrace s rolemi a oprávněními uživatelů",40,1000,"=B{r}*C{r}"],["Import dat ze stávajícího systému",12,1000,"=B{r}*C{r}"],["Testování a oprava chyb",14,1000,"=B{r}*C{r}"],["Nasazení a předání",6,1000,"=B{r}*C{r}"],["Projektové řízení",10,1200,"=B{r}*C{r}"]],
    "total_label":"Celkem",
    "totals":{"Hodiny":"sum","Cena":"sum"},
-   "note":"Ceny jsou uvedeny bez DPH. Odhad je platný 30 dní."
+   "note":"Ceny jsou uvedeny bez DPH. Ukázkové hodnoty, nejde o nabídku."
  }]
 }

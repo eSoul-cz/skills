@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 """Build an eSoul PowerPoint deck from a JSON outline.
 
-Usage: python3 build_pptx.py OUTLINE.json OUTPUT.pptx [--template TEMPLATE.pptx]
+Usage: python3 build_pptx.py OUTLINE.json OUTPUT.pptx [--template TEMPLATE.pptx] [--lang cs|en]
 
-Needs python-pptx. One-time setup (no uv or pipx needed):
-  python3 -m venv ~/.cache/esoul-office-documents
-  ~/.cache/esoul-office-documents/bin/pip install python-pptx
-Then run the script with ~/.cache/esoul-office-documents/bin/python.
+Needs python-pptx in a virtual environment (setup: SKILL.md, versions: requirements.txt).
 
 The template (default ../assets/templates/esoul-presentation.pptx) supplies master,
-fonts, logo and footer. Its 11 sample slides are removed; slides are created from
+fonts, logo and footer. Its sample slides are removed; slides are created from
 the template layouts. Outline:
 
   {"slides": [
@@ -23,6 +20,8 @@ the template layouts. Outline:
 
 Layouts: see references/presentation-layouts.md. Bullet lines indented by two
 spaces per level become sub-bullets. "notes" (optional, any slide) sets speaker notes.
+--lang (default cs) or the outline key "lang" sets the proofing language of all text; the
+template has no language-dependent text, and amounts or currencies are written in the text.
 """
 from __future__ import annotations
 
@@ -34,16 +33,18 @@ from pathlib import Path
 
 try:
     from pptx import Presentation
+    from pptx.enum.lang import MSO_LANGUAGE_ID
     from pptx.oxml.ns import qn
 except ImportError:
     sys.exit(
-        "python-pptx is missing. Setup:\n"
+        "python-pptx is missing. Install it into a virtual environment:\n"
         "  python3 -m venv ~/.cache/esoul-office-documents\n"
-        "  ~/.cache/esoul-office-documents/bin/pip install python-pptx\n"
+        f"  ~/.cache/esoul-office-documents/bin/pip install -r {Path(__file__).with_name('requirements.txt')}\n"
         "and run this script with ~/.cache/esoul-office-documents/bin/python"
     )
 
 DEFAULT_TEMPLATE = Path(__file__).resolve().parent.parent / "assets" / "templates" / "esoul-presentation.pptx"
+LANGUAGES = {"cs": None, "en": MSO_LANGUAGE_ID.ENGLISH_UK}  # cs is the template's language: nothing to set
 
 # name -> (layout name, {outline key: placeholder idx})
 LAYOUTS = {
@@ -62,7 +63,14 @@ LAYOUTS = {
 }
 
 
-def fill(placeholder, value, plain: bool = False) -> None:
+def set_language(frame, language_id) -> None:
+    if language_id is not None:
+        for paragraph in frame.paragraphs:
+            for run in paragraph.runs:
+                run.font.language_id = language_id
+
+
+def fill(placeholder, value, plain: bool = False, language_id=None) -> None:
     """Write a string or a list of lines (two leading spaces = one level deeper)."""
     lines = value if isinstance(value, list) else str(value).split("\n")
     frame = placeholder.text_frame
@@ -75,6 +83,7 @@ def fill(placeholder, value, plain: bool = False) -> None:
             paragraph._p.get_or_add_pPr().set("marL", "0")
             paragraph._p.get_or_add_pPr().set("indent", "0")
             paragraph._p.get_or_add_pPr().append(paragraph._p.makeelement(qn("a:buNone"), {}))
+    set_language(frame, language_id)
 
 
 def add_slide_number(slide) -> None:
@@ -84,7 +93,8 @@ def add_slide_number(slide) -> None:
             slide.shapes._spTree.append(copy.deepcopy(shape._element))
 
 
-def build(outline: dict, template: str, target: str) -> None:
+def build(outline: dict, template: str, target: str, lang: str | None = None) -> None:
+    language_id = LANGUAGES[lang or outline.get("lang") or "cs"]
     prs = Presentation(template)
     by_name = {layout.name: layout for layout in prs.slide_layouts}
     sample_ids = list(prs.slides._sldIdLst)
@@ -100,7 +110,7 @@ def build(outline: dict, template: str, target: str) -> None:
         placeholders = {shape.placeholder_format.idx: shape for shape in slide.placeholders}
         for key, idx in keys.items():
             if key in spec and idx in placeholders:
-                fill(placeholders[idx], spec[key], plain=key == "text")
+                fill(placeholders[idx], spec[key], plain=key == "text", language_id=language_id)
         for idx, shape in placeholders.items():  # drop untouched placeholders so no prompt text shows
             if not shape.text_frame.text.strip():
                 shape._element.getparent().remove(shape._element)
@@ -108,6 +118,7 @@ def build(outline: dict, template: str, target: str) -> None:
             add_slide_number(slide)
         if spec.get("notes"):
             slide.notes_slide.notes_text_frame.text = spec["notes"]
+            set_language(slide.notes_slide.notes_text_frame, language_id)
     prs.save(target)
 
 
@@ -116,6 +127,7 @@ if __name__ == "__main__":
     parser.add_argument("outline", help="JSON outline")
     parser.add_argument("target", help="output PPTX")
     parser.add_argument("--template", default=str(DEFAULT_TEMPLATE))
+    parser.add_argument("--lang", choices=sorted(LANGUAGES), help="proofing language (default: the key lang or cs)")
     args = parser.parse_args()
     with open(args.outline, encoding="utf-8") as handle:
-        build(json.load(handle), args.template, args.target)
+        build(json.load(handle), args.template, args.target, args.lang)

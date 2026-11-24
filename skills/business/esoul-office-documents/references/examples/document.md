@@ -1,6 +1,6 @@
-# Nabídka vývoje aplikace
+# Ukázkový dokument
 
-Ukázkový klient s.r.o., verze 1.0, 19. 11. 2026.
+Ukázkový klient s.r.o., verze 1.0, datum: 1. 1. 2000. Rozložení bez skutečných údajů.
 
 <!-- pagebreak -->
 
@@ -14,9 +14,9 @@ Navrhujeme **portál pro správu objednávek** v rozsahu popsaném níže.
 
 | Etapa | Rozsah | Cena bez DPH |
 | --- | --- | --- |
-| 1. Analýza | 16 h | 24 000 Kč |
-| 2. Vývoj | 80 h | 120 000 Kč |
-| **Celkem** | **96 h** | **144 000 Kč** |
+| 1. Analýza | 16 h | 16 000 Kč |
+| 2. Vývoj | 80 h | 80 000 Kč |
+| **Celkem** | **96 h** | **96 000 Kč** |
 
 ## 3. Další postup
 

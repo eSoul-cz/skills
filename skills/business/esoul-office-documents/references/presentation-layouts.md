@@ -1,25 +1,24 @@
 # Presentation layouts
 
-The template `assets/templates/esoul-presentation.pptx` is a dark deck (background `#1B1B1D`,
-gold `#E1BB36` titles, Syne headings, Poppins body, eSoul logo, gold footer strip with
-`esoul.cz | info@esoul.cz` and the slide number). Size 10 x 5.625 in (16:9). Its 11 sample slides
-carry no text, only the layout; `scripts/build_pptx.py` deletes them and builds slides from the
-layouts below.
+Read when you write a PPTX outline. The template `assets/templates/esoul-presentation.pptx` is the
+source of truth for look and feel; `scripts/build_pptx.py` deletes its sample slides and builds
+slides from the layouts below (the `LAYOUTS` table in the script maps each outline `layout` to a
+template layout).
 
-| Outline `layout` | Template layout (index) | Placeholders (outline key) | Use for |
-| --- | --- | --- | --- |
-| `title` | TITLE (0) | title, subtitle | Opening slide; large logo on top, no footer |
-| `closing` | TITLE (0) | title, subtitle | Last slide, thanks and contact |
-| `section` | SECTION_HEADER (1) | title | Chapter divider, one short centred title |
-| `content` | TITLE_AND_BODY (2) | title, bullets | The default slide: title and up to about 6 bullets |
-| `two-column` | TITLE_AND_TWO_COLUMNS (3) | title, left, right | Comparison, before/after, options |
-| `title-only` | TITLE_ONLY (4) | title | Title with a free area (add a picture or table in PowerPoint) |
-| `text` | ONE_COLUMN_TEXT (5) | title, bullets | Longer text; title is narrower (7.5 in) |
-| `main-point` | MAIN_POINT (6) | title | One statement or key message |
-| `split` | SECTION_TITLE_AND_DESCRIPTION (7) | title, subtitle, bullets | Dark left half with title, gold right half with description |
-| `caption` | CAPTION_ONLY (8) | text | A single caption line |
-| `big-number` | BIG_NUMBER (9) | title (the number), text | One figure, such as a price or effort, with a label |
-| `blank` | BLANK (10) | none | Free canvas with logo and footer |
+| Outline `layout` | Placeholders (outline key) | Use for |
+| --- | --- | --- |
+| `title` | title, subtitle | Opening slide; large logo on top, no footer |
+| `closing` | title, subtitle | Last slide, thanks and contact |
+| `section` | title | Chapter divider, one short centred title |
+| `content` | title, bullets | The default slide: title and up to about 6 short bullets |
+| `two-column` | title, left, right | Comparison, before/after, options |
+| `title-only` | title | Title with a free area (add a picture or table in PowerPoint) |
+| `text` | title, bullets | Longer text; the title is narrower |
+| `main-point` | title | One statement or key message |
+| `split` | title, subtitle, bullets | Two halves: title on one, description on the other |
+| `caption` | text | A single caption line |
+| `big-number` | title (the number), text | One figure, such as a price or effort, with a label |
+| `blank` | none | Free canvas with logo and footer |
 
 Notes:
 

@@ -6,4 +6,4 @@ The bundled Workshop Notes example is an independently authored fictional worksh
 
 It covers a 1440px desktop, a 390px mobile view, directly addressable navigation states, and an image-only schedule frame. Session names and times are illustrative, not a real event or service. System fonts and a local SVG keep the bundle self-contained.
 
-When adapting a real client design, obtain permission for its destination and audience. Keep private inputs outside the published bundle and never assume that this example's license covers third-party designs or assets.
+When adapting a real client design, obtain permission for its destination and audience. Keep private inputs outside the published bundle and never assume that this example's license covers third-party designs or assets. Content in a bundle is invented or public data; personal data and non-public client figures appear only under a recorded exception, and screenshots are redacted (`docs/project_guidelines/security-and-data.md` › Personal and client data). Replace the example's Workshop Notes copy before publishing.

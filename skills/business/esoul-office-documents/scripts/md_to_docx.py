@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Render a Markdown file into the eSoul Word template.
 
-Usage: python3 md_to_docx.py INPUT.md OUTPUT.docx [--template TEMPLATE.docx]
+Usage: python3 md_to_docx.py INPUT.md OUTPUT.docx [--template TEMPLATE.docx] [--lang cs|en]
 
-The template defaults to ../assets/templates/esoul-document.docx.
+The template defaults to ../assets/templates/esoul-document.docx. --lang (default cs) sets the
+callout labels and the proofing language of the text; the template itself is language-neutral
+apart from its footer (company name, IČ, DIČ).
 
 Standard library only. The template supplies fonts, styles, headers, footers
 and page setup; this script replaces the document body.
@@ -33,20 +35,24 @@ HEAD_FILL = "1b1b1d"
 BORDER = "bebebe"
 TABLE_FONT_SIZE = 20  # half-points
 HEADINGS = {1: "Title", 2: "Heading1", 3: "Heading2", 4: "Heading3"}
-CALLOUT_LABELS = {
-    "NOTE": "Poznámka",
-    "TIP": "Tip",
-    "IMPORTANT": "Důležité",
-    "WARNING": "Upozornění",
-    "CAUTION": "Pozor",
+LANGUAGES = {
+    "cs": {  # the template's own language: no run-level language override
+        "tag": None,
+        "callouts": {"NOTE": "Poznámka", "TIP": "Tip", "IMPORTANT": "Důležité", "WARNING": "Upozornění", "CAUTION": "Pozor"},
+    },
+    "en": {
+        "tag": "en-GB",
+        "callouts": {"NOTE": "Note", "TIP": "Tip", "IMPORTANT": "Important", "WARNING": "Warning", "CAUTION": "Caution"},
+    },
 }
+language = LANGUAGES["cs"]  # replaced by main()
 NBSP = " "
 
 
 def typography(text: str) -> str:
     """Keep numbers and their units on one line."""
     text = re.sub(r"(?<=\d) (?=\d{3}\b)", NBSP, text)
-    text = re.sub(r"(?<=\d) (?=(Kč|h|%|EUR)\b)", NBSP, text)
+    text = re.sub(r"(?<=\d) (?=(Kč|CZK|EUR|USD|GBP|h|%)\b)", NBSP, text)
     return text
 
 
@@ -77,6 +83,8 @@ def runs(text: str, size: int | None = None, color: str | None = None, bold: boo
             props.append(f'<w:color w:val="{color}"/>')
         if size:
             props.append(f'<w:sz w:val="{size}"/><w:szCs w:val="{size}"/>')
+        if language["tag"]:
+            props.append(f'<w:lang w:val="{language["tag"]}"/>')
         rpr = f"<w:rPr>{''.join(props)}</w:rPr>" if props else ""
         out.append(f'<w:r>{rpr}<w:t xml:space="preserve">{escape(part)}</w:t></w:r>')
     return "".join(out)
@@ -148,7 +156,7 @@ def table(rows: list[list[str]], keyvalue: bool) -> str:
 
 
 def callout(kind: str, text: str) -> str:
-    label = CALLOUT_LABELS.get(kind.upper(), kind.capitalize())
+    label = language["callouts"].get(kind.upper(), kind.capitalize())
     nil = "".join(f'<w:{s} w:val="nil"/>' for s in ("top", "bottom", "right"))
     borders = f'<w:tcBorders>{nil}<w:left w:val="single" w:sz="24" w:space="0" w:color="{HEAD_FILL}"/></w:tcBorders>'
     return (f'<w:tbl><w:tblPr><w:tblStyle w:val="Table1"/><w:tblW w:w="{TEXT_WIDTH}" w:type="dxa"/>'
@@ -270,7 +278,9 @@ def convert(markdown: str, numbering: Numbering) -> str:
     return "".join(out)
 
 
-def main(template: str, source: str, target: str) -> None:
+def main(template: str, source: str, target: str, lang: str = "cs") -> None:
+    global language
+    language = LANGUAGES[lang]
     numbering = Numbering()
     with open(source, encoding="utf-8") as handle:
         body = convert(handle.read(), numbering)
@@ -294,5 +304,6 @@ if __name__ == "__main__":
     parser.add_argument("source", help="input Markdown file")
     parser.add_argument("target", help="output DOCX file")
     parser.add_argument("--template", default=str(DEFAULT_TEMPLATE), help="DOCX template (default: bundled eSoul template)")
+    parser.add_argument("--lang", choices=sorted(LANGUAGES), default="cs", help="language of the text (default: cs)")
     args = parser.parse_args()
-    main(args.template, args.source, args.target)
+    main(args.template, args.source, args.target, args.lang)

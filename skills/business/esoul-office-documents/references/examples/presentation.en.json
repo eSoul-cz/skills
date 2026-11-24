@@ -1,0 +1,6 @@
+{"lang":"en","slides":[
+{"layout":"title","title":"Sample presentation","subtitle":"Sample Client Ltd. | January 2000"},
+{"layout":"content","title":"What we deliver","bullets":["Analysis and design","Portal implementation","  Sign-up and login","  Order management","Deployment and documentation handover"]},
+{"layout":"big-number","title":"120 h","text":"sample effort of the first stage"},
+{"layout":"closing","title":"Thank you","subtitle":"name@example.com"}
+]}

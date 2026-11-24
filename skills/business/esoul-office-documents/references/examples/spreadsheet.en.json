@@ -1,0 +1,16 @@
+{
+ "lang": "en",
+ "currency": "EUR",
+ "supplier": {"firma":"Sample Supplier Ltd.","ic":"00000000","dic":"CZ00000000","osoba":"John Sample","email":"supplier@example.com","datum":"1 January 2000"},
+ "client": {"firma":"Sample Client Ltd.","ic":"12345678","dic":"CZ12345678","osoba":"Jane Sample","email":"client@example.com"},
+ "title": "Development price calculation",
+ "subtitle": "Version 1.0 | prices exclusive of VAT",
+ "tables": [{
+   "caption": "Price calculation",
+   "columns": [{"name":"Item"},{"name":"Hours","type":"number"},{"name":"Rate","type":"money"},{"name":"Price","type":"money"}],
+   "rows": [["Analysis and design",16,40,"=B{r}*C{r}"],["Implementation",40,40,"=B{r}*C{r}"],["Project management",10,48,"=B{r}*C{r}"]],
+   "total_label":"Total",
+   "totals":{"Hours":"sum","Price":"sum"},
+   "note":"Prices are exclusive of VAT. Sample values, not an offer."
+ }]
+}

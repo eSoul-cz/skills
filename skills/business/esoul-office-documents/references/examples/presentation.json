@@ -1,8 +1,8 @@
 {"slides":[
-{"layout":"title","title":"Nabídka vývoje aplikace","subtitle":"Ukázkový klient s.r.o. | listopad 2026"},
+{"layout":"title","title":"Ukázková prezentace","subtitle":"Ukázkový klient s.r.o. | leden 2000"},
 {"layout":"section","title":"Rozsah projektu"},
 {"layout":"content","title":"Co dodáme","bullets":["Analýza a návrh řešení","Implementace portálu","  Registrace a přihlášení","  Správa objednávek","Nasazení a předání dokumentace"]},
 {"layout":"two-column","title":"Varianty řešení","left":["Varianta A","Rychlejší start","Nižší cena"],"right":["Varianta B","Širší funkce","Delší realizace"]},
-{"layout":"big-number","title":"120 h","text":"odhadovaná pracnost první etapy"},
-{"layout":"closing","title":"Děkujeme","subtitle":"info@esoul.cz | esoul.cz"}
+{"layout":"big-number","title":"120 h","text":"ukázková pracnost první etapy"},
+{"layout":"closing","title":"Děkujeme","subtitle":"jmeno@example.com"}
 ]}
