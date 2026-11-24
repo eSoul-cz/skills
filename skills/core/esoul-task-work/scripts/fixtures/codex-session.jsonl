@@ -1,0 +1,14 @@
+{"timestamp": "2026-01-01T09:00:00.000Z", "type": "session_meta", "payload": {"id": "fixture-codex", "cwd": "/home/dev/example-app", "originator": "codex_cli"}}
+{"timestamp": "2026-01-01T09:00:00.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T09:01:00.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "exec_command", "arguments": "{\"cmd\": \"rg --files\", \"workdir\": \"/home/dev/example-app\"}", "call_id": "k1"}}
+{"timestamp": "2026-01-01T09:01:00.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "k1", "output": "Wall time: 0.0 seconds\nOutput:\nsrc/filter.ts"}}
+{"timestamp": "2026-01-01T09:02:00.000Z", "type": "response_item", "payload": {"type": "custom_tool_call", "name": "apply_patch", "input": "*** Begin Patch\n*** End Patch", "call_id": "k2"}}
+{"timestamp": "2026-01-01T09:02:00.000Z", "type": "response_item", "payload": {"type": "custom_tool_call_output", "call_id": "k2", "output": "Success."}}
+{"timestamp": "2026-01-01T09:03:00.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "exec_command", "arguments": "{\"cmd\": \"npm test\"}", "call_id": "k3"}}
+{"timestamp": "2026-01-01T09:23:00.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "k3", "output": "Wall time: 1200 seconds\nOutput:\n30 passed"}}
+{"timestamp": "2026-01-01T09:24:00.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "spawn_agent", "arguments": "{\"task_name\": \"review\", \"message\": \"Review the filter\"}", "call_id": "k4"}}
+{"timestamp": "2026-01-01T09:24:00.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "k4", "output": "{\"agent_id\":\"agent-1\"}"}}
+{"timestamp": "2026-01-01T09:25:00.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "wait_agent", "arguments": "{\"timeout_ms\": 600000}", "call_id": "k5"}}
+{"timestamp": "2026-01-01T09:45:00.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "k5", "output": "{\"status\":{\"agent-1\":{\"completed\":\"No findings.\"}}}"}}
+{"timestamp": "2026-01-01T09:46:00.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "exec_command", "arguments": "{\"cmd\": \"ls\"}", "call_id": "k6"}}
+{"timestamp": "2026-01-01T10:16:00.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "k6", "output": "Wall time: 0.0 seconds\nOutput:\nsrc"}}
