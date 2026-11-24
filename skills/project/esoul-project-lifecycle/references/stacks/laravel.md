@@ -22,8 +22,10 @@ handover and the pitfalls add. Shops built on Lunar use [lunar.md](lunar.md).
 On top of the root files and the docs tree ([bootstrap.md](../bootstrap.md)):
 
 1. Start from the published template variant closest to the project (`laravel-inertia`,
-   `laravel-inertia-filament`, `laravel-filament`, `laravel-cms`; see
-   [root-files.md](../root-files.md) for reading a `template-<variant>` repository). It carries
+   `laravel-inertia-filament`, `laravel-filament`, `laravel-cms`) with `composer create-project
+   esoul-cz/template-<variant>:dev-main <dir>` ([bootstrap.md](../bootstrap.md) step 2 and the
+   adoption checklist; [root-files.md](../root-files.md) for reading a `template-<variant>`
+   repository). It carries
    the skeleton, the composer and pnpm scripts, Docker, the `Jenkinsfile` on the shared libraries
    and the schema identifier test; do not rebuild them by hand. Versions are the `Versions` table
    of `tools.md`, the one place to change them.
@@ -44,10 +46,14 @@ On top of the root files and the docs tree ([bootstrap.md](../bootstrap.md)):
      `npx @esoul-cz/skills install helpers`.
    - MCP: Laravel Boost, Pencil (`.pen` design only through MCP), `codegraph` when the repository
      is indexed.
-4. `Jenkinsfile` from the shared libraries with `GIT_LFS_SKIP_SMUDGE = '1'` and
-   `SKIP_DEPLOY = 'true'` until a Komodo stack exists. On an empty scaffold, guard PHPStan
-   (`if find app -name '*.php' | grep -q .; then ...; fi`) and start the database stage only once
-   `database/migrations/*.php` exists.
+4. The `Jenkinsfile` is already one call of `laravelPipeline` (skill `esoul-jenkins-libraries`):
+   set `image` ([bootstrap.md](../bootstrap.md#adopt-the-template)) and add `stack: '<komodo
+   stack>'` only once the manifest exists; without `stack` nothing is deployed, and the pipeline
+   sets the LFS checkout variable itself. PHPStan on an empty `app/` is in `tools.md` › Known
+   pitfalls.
+5. Lock files: the template ships none. Run `composer install` and `pnpm install` once and
+   commit `composer.lock` and `pnpm-lock.yaml` before the first Docker build, which fails without
+   them (the same step as in [lsr.md](lsr.md)).
 
 ## Development handover checklist
 

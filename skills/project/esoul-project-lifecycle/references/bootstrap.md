@@ -12,13 +12,24 @@ documents.
    production URLs (or `TBD`), original site URL (or `—`), the template variant closest to the
    stack ([root-files.md](root-files.md)). Resolve the Freelo project through
    `esoul-task-create` so its `## Freelo` block is written in its standard form.
-2. **Skeleton.** Create the framework skeleton per the stack profile (`references/stacks/`; the
-   published `template-<variant>` repositories are the skeletons for the covered stacks).
-   Commit it alone, in the project's commit format (for example `:tada: [infra] Scaffold the
-   project` in the recommended Gitmoji format). `README.md` covers operations only
-   (requirements, setup, commands, troubleshooting).
-3. **Root files.** Follow [root-files.md](root-files.md): the template's common files (only the
-   missing ones), the issue forms from `assets/templates/root/.github/ISSUE_TEMPLATE/`
+2. **Skeleton.** For a covered stack, create the project from the published template variant
+   closest to the stack: `composer create-project esoul-cz/template-<variant>:dev-main <dir>`
+   (the variants are published as `dev-main` only, so Composer needs the version; Laravel
+   variants also: `laravel new <dir> --using=esoul-cz/template-<variant>`), then `git init`.
+   Adopt the template ([checklist below](#adopt-the-template)), then commit it alone, in the
+   project's commit format (for example `:tada: [infra] Scaffold the project` in the
+   recommended Gitmoji format). Other stacks: the skeleton per the stack profile
+   (`references/stacks/`). A site with a CMS (`astro-cms`) is three repositories, each created
+   from its own template (`template-laravel-cms`, `template-astro-cms-frontend`, and the thin
+   root `template-astro-cms`); the root's `bin/add-submodules` then adds the other two as
+   submodules ([stacks/astro.md](stacks/astro.md)). Each repository goes through the steps of
+   this list; the platform items of the infrastructure checklist (Jenkins job, manifest,
+   secrets) are needed once for the backend and once for the frontend, as the root builds and
+   deploys nothing. `README.md` covers operations only (requirements, setup, commands,
+   troubleshooting).
+3. **Root files.** Follow [root-files.md](root-files.md): the template's common files (a
+   template-born project has them already: verify, do not copy; otherwise only the missing
+   ones), the issue forms from `assets/templates/root/.github/ISSUE_TEMPLATE/`
    (`task`, `bug`, `question`), then fill `CONTEXT.md` from
    `assets/templates/root/CONTEXT-sections.md`.
 4. **Lifecycle docs.** Copy only the lifecycle documents, into missing files only.
@@ -27,10 +38,13 @@ documents.
    `docs/nasazeni.md` from the skill `esoul-website-launch`. In the light tier drop the UAT field
    from the issue forms (acceptance is on the preview) and point the issue form's slice header at
    `docs/plan.md`.
-5. **Guidelines.** Run the skill `esoul-guidelines`: install the command, `init`, review the
-   layers, `sync`. Light projects take the same layers as full ones, with no rewriting of links
-   in the rendered files. Then append the project part (`assets/templates/root/AGENTS.md`)
-   **below** the managed block of `AGENTS.md`.
+5. **Guidelines.** Every template variant ships `esoul-guidelines.json`, `esoul-guidelines.lock`,
+   `docs/project_guidelines/` and the managed block of `AGENTS.md`, rendered at build time: verify
+   them with the skill `esoul-guidelines` (`esoul-guidelines check`, review the layers, `sync
+   --dry-run`) and run `init` only for a project that lacks them (then: install the command,
+   `init`, review the layers, `sync`). Light projects take the same layers as full ones, with no
+   rewriting of links in the rendered files. Then append the project part
+   (`assets/templates/root/AGENTS.md`) **below** the managed block of `AGENTS.md`.
 6. **Fill placeholders.** Replace every `{{…}}` of the copied assets. Unknown values become
    `TBD` plus a `question` issue, never a guess. Remove optional blocks that do not apply. Skip
    files that do not apply instead of leaving them half-filled: `docs/legacy/` without a
@@ -82,6 +96,30 @@ and the B0 gate approver.
 
 A new project follows the guidelines closely: a deviation is a recorded exception with the owner's
 approval and an ADR, never a silent local rule (skill `esoul-guidelines` › Project exceptions).
+
+## Adopt the template
+
+A project created from a template still carries the template's placeholders and names. Before the
+scaffold commit (step 2) go through the list; `conformance.mjs` reports every `replace-with-`
+leftover as `template-leftover`.
+
+1. **`Jenkinsfile`:** replace every `replace-with-…` value: `image` (the release image name,
+   lowercase letters, digits, `_`, `.`, `-`) and, in `astro-ssr`, `stack`, `SITE_URL` and
+   `buildArgs`; in `astro-cms-frontend` the `example-project-*` names, URLs and credential ids.
+   Add `stack: '<komodo stack>'` only after the manifest exists (infrastructure items 4 and 5
+   below); without it nothing is deployed.
+2. **Names:** `OTEL_SERVICE_NAME=replace-with-app-name` in `.env.example` (Laravel variants),
+   `APP_NAME`, the README title and its first sentence, and the `composer.json` `name` and
+   `description` (the template's `esoul-cz/template-<variant>`; `license` is already
+   `proprietary`).
+3. **Locks:** the template ships no lock files. Run `pnpm install` and, in a PHP variant,
+   `composer install` once and commit `composer.lock` and `pnpm-lock.yaml`; the Docker image
+   build fails without them.
+4. **Stays as it is:** `.esoul/template.json` (the update flow of `esoul-project-update` reads
+   it), `.esoul/template-LICENSE`, the rendered `docs/project_guidelines/` and
+   `esoul-guidelines.lock`, and the `## Getting started` section of `CONTEXT.md` and the README.
+5. **Check:** `grep -rn 'replace-with-' --exclude-dir=vendor --exclude-dir=node_modules .`
+   finds nothing, then `conformance.mjs` (step 14).
 
 ## New project infrastructure
 

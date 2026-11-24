@@ -4,7 +4,7 @@
 // Usage: node scripts/conformance.mjs <project-root> [--tier full|light] [--github owner/repo] [--json]
 //
 // Checks required files (including the guideline config, lock and index), CONTEXT.md sections, leftover
-// {{PLACEHOLDERS}}, broken relative links, ADR index consistency, slice IDs, AI-readiness inputs and,
+// {{PLACEHOLDERS}} and `replace-with-…` template values, broken relative links, ADR index consistency, slice IDs, AI-readiness inputs and,
 // with --github, issues (work items need a category label, UAT and Freelo link; `question` issues
 // are register entries that need the sections of question.yml) and repository merge settings.
 //
@@ -461,6 +461,29 @@ export function checkPlaceholders(root, files, findings) {
     }
 }
 
+// Values a template ships to be replaced when a project adopts it, e.g. `image: 'replace-with-app-name'`
+// (references/bootstrap.md › Adopt the template). Only the files that carry them are read.
+const TEMPLATE_LEFTOVER = /replace-with-[\w.-]+/g;
+const TEMPLATE_LEFTOVER_FILES = /(^|\/)(Jenkinsfile|\.env\.example|composer\.json|package\.json)$/;
+
+export function checkTemplateLeftovers(root, files, findings) {
+    for (const rel of files) {
+        if (!TEMPLATE_LEFTOVER_FILES.test(rel) || isSkipped(rel)) continue;
+        const text = readText(root, rel);
+        if (text === null || !text.includes('replace-with-')) continue;
+        const found = new Map();
+        text.split(/\r?\n/).forEach((line, index) => {
+            for (const match of line.matchAll(TEMPLATE_LEFTOVER)) {
+                if (!found.has(match[0])) found.set(match[0], index + 1);
+            }
+        });
+        if (found.size > 0) {
+            const detail = [...found].map(([value, line]) => `${value} (line ${line})`);
+            findings.error('template-leftover', `Template values not replaced yet (adopt the template, references/bootstrap.md): ${listSome(detail, 8)}.`, rel);
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 // Relative links
 
@@ -839,6 +862,7 @@ export function runConformance(root, { tier: tierFlag = null, github = null, gh 
     checkContext(context, sectionMap, tier, findings);
     const files = trackedFiles(absolute, findings);
     checkPlaceholders(absolute, files, findings);
+    checkTemplateLeftovers(absolute, files, findings);
     checkLinks(absolute, files, findings);
     checkAdrs(absolute, findings);
     const { rel: sliceFile, slices } = tier === 'full' ? checkSlices(absolute, findings) : { rel: null, slices: [] };

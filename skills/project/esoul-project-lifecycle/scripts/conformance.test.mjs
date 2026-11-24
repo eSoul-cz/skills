@@ -415,6 +415,23 @@ test('Jenkinsfile placeholders are errors and HTML comments are not link-checked
     assert.equal(find(result, 'broken-link').length, 0);
 });
 
+test('`replace-with-` values of an unadopted template are errors; vendored files and other files are skipped', () => {
+    const root = project(fullFiles({
+        Jenkinsfile: "laravelPipeline(\n    image: 'replace-with-app-name',\n    stack: 'replace-with-komodo-stack',\n)\n",
+        '.env.example': 'APP_NAME=Demo\nOTEL_SERVICE_NAME=replace-with-app-name\n',
+        'vendor/pkg/composer.json': '{"name": "replace-with-vendor"}\n',
+        'docs/plan/README.md': '# Plán\n\nThe template ships `replace-with-app-name`; this text may name it.\n',
+    }));
+    const found = find(runConformance(root), 'template-leftover');
+    assert.deepEqual(found.map((f) => f.file).sort(), ['.env.example', 'Jenkinsfile']);
+    assert.equal(found.every((f) => f.severity === 'error'), true);
+    assert.match(found.find((f) => f.file === 'Jenkinsfile').message, /replace-with-app-name \(line 2\), replace-with-komodo-stack \(line 3\)/);
+    assert.match(found.find((f) => f.file === '.env.example').message, /replace-with-app-name \(line 2\)/);
+
+    const adopted = project(fullFiles({ Jenkinsfile: "laravelPipeline(\n    image: 'demo-app',\n)\n" }));
+    assert.equal(find(runConformance(adopted), 'template-leftover').length, 0);
+});
+
 test('code fences follow CommonMark: same character, at least the opener length, nothing after', () => {
     const doc = ['## A', '````md', '```bash', '## Not a section', '```', '````', '## B', '~~~', '[x](gone.md)', '~~~', 'end'];
     assert.deepEqual([...sections(doc.join('\n')).keys()], ['A', 'B']);

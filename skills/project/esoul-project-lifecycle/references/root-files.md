@@ -20,9 +20,12 @@ The `common` layer is identical in every variant, so any variant yields the same
 | `LICENSE` | Only where the project is open source or internal and public; a client project is proprietary, so leave it out |
 | `renovate.json5` | Renovate replaces Dependabot |
 
-Not copied: `esoul-guidelines.json` and its lock (created by `esoul-guidelines init`, see
-skill `esoul-guidelines`), `.esoul/template.json` (belongs to the template update flow of the
-skill `esoul-project-update`) and any skeleton code.
+Not copied by the loop below: `esoul-guidelines.json` and its lock. Every template variant ships
+both, rendered at build time with the variant's layers, so a project created from a template
+keeps them and only verifies (`esoul-guidelines check`, skill `esoul-guidelines`);
+`esoul-guidelines init` creates them only for a project that has none (a retrofit), because the
+layers must match that project's stack. Also not copied: `.esoul/template.json` (belongs to the
+template update flow of the skill `esoul-project-update`) and any skeleton code.
 
 ## 2. Fetch and copy
 
@@ -49,6 +52,9 @@ Rules:
 - **Never overwrite an existing file.** A retrofit gets only the missing files. For an existing
   file that differs from the template, show the user the diff and propose the change in the
   retrofit PR ([retrofit.md](retrofit.md)); apply it only when approved.
+- A file the project git-ignores (typically `CLAUDE.md`) is not "existing" in the sense above: the
+  loop would keep a local copy that never reaches the repository. Remove the ignore line and
+  commit the file ([retrofit.md](retrofit.md) § 5).
 - An existing `.github/dependabot.yml` is replaced by `renovate.json5` in the same PR. Confirm with
   the user that Renovate runs for the repository before removing the Dependabot file.
 - Existing Czech issue and PR templates are replaced by the English ones (the PR template from
