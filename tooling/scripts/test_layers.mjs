@@ -16,6 +16,7 @@ import {
     resolveSelection,
     satisfiedLayers,
     validateManifest,
+    withSkillRequires,
 } from '../../lib/layers.mjs';
 
 const manifest = {
@@ -121,6 +122,17 @@ test('plan: --skill filters and rejects skills outside the selection', () => {
     const resolved = resolveSelection(manifest, ['core']);
     assert.deepEqual(planInstall(manifest, resolved, { skillFilter: ['b'] }).map((p) => p.skills), [['b']]);
     assert.throws(() => planInstall(manifest, resolved, { skillFilter: ['zzz'] }), /zzz is not in the selected layers/);
+});
+
+test('plan: --skill also installs the skills it requires (skillRequires), and the manifest check rejects a bad entry', () => {
+    const requiring = structuredClone(manifest);
+    requiring.layers.core.skillRequires = { b: ['a'] };
+    const resolved = resolveSelection(requiring, ['core']);
+    assert.deepEqual(planInstall(requiring, resolved, { skillFilter: ['b'] }).map((p) => p.skills), [['a', 'b']]);
+    assert.deepEqual(withSkillRequires(requiring, ['b']).sort(), ['a', 'b']);
+    assert.deepEqual(validateManifest(requiring), []);
+    requiring.layers.core.skillRequires = { zzz: ['a'], a: ['a'] };
+    assert.equal(validateManifest(requiring).length, 2);
 });
 
 test('plan: scope override, --yes and passthrough flags', () => {

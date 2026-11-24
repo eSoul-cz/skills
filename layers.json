@@ -43,7 +43,12 @@
         "esoul-mockup-authoring",
         "esoul-quality-gates",
         "esoul-website-launch"
-      ]
+      ],
+      "skillRequires": {
+        "esoul-website-launch": [
+          "esoul-quality-gates"
+        ]
+      }
     },
     "helpers": {
       "title": "Optional helpers and tools",

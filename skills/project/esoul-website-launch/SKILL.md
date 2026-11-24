@@ -1,6 +1,6 @@
 ---
 name: esoul-website-launch
-description: Use when an eSoul public website, or an application with public pages, is about to go live, or when capturing the original-site and launched-site case-study snapshots (před and po). Gives the go-live order of the public-website guideline, the one launch checklist docs/nasazeni.md, the evidence rule and the snapshot script; it runs the gates of esoul-quality-gates and does not own them.
+description: Use when an eSoul public website, or an application with public pages, is about to go live, or when capturing the original-site and launched-site case-study snapshots (před and po). Gives the go-live order of the public-website guideline, the one launch checklist docs/nasazeni.md, the evidence rule and the snapshot script. Requires the esoul-quality-gates skill (layers.json skillRequires, installed with it) and runs its gates without owning them.
 compatibility: Node.js 22+; Playwright, Lighthouse and Google Chrome from ~/.cache/esoul-uat for the snapshot script. Needs the esoul-quality-gates skill.
 ---
 
