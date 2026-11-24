@@ -14,7 +14,7 @@ Projects created before the record existed (before 2026-11-18 in the template ch
 
 There is no base state and no entry list to select. The update becomes a comparison with the latest template:
 
-1. In the variant clone `$TV`, for each file of `main` (`git ls-tree -r --name-only main`) compare it with the project file; skip generated files (see `apply.md`).
+1. In the variant clone `$TV`, for each file of `main` (`git ls-tree -r --name-only main`) compare it with the project file; skip generated files (see `apply.md`) and the files of a group already in `declined` (below).
 2. Group differences by changelog entry where possible (the newest entries of `$AT/CHANGELOG.md` that name the variant explain most of them) and show the user the groups; every file the user wants to take is applied by hand or with `git merge-file` using the project file as "ours" and an empty base, project side kept on conflicts.
-3. One commit `:arrow_up: [template] Align <area> with template-<variant>` per group the user accepts; groups the user declines are listed in the PR as skipped.
+3. One commit `:arrow_up: [template] Align <area> with template-<variant>` per group the user accepts; groups the user declines are listed in the PR as skipped. A group the project will never take (a short reason is enough, a link to the decision when there is one) MAY be recorded in `declined` of `.esoul/template.json` as `{"title": "<group name>", "reason": "<why>", "files": ["<path>", "<folder>/"]}`: the next comparison then skips those files, and the record can keep or advance `commit`. Without such a record the group is offered again.
 4. Record `main`'s HEAD (`git -C "$AT" rev-parse origin/HEAD`) only when every group was applied or declined on purpose; otherwise keep `null`, so the next run repeats the comparison for what is left.

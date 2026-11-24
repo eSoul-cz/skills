@@ -165,7 +165,9 @@ export function variantLayers(variantJson) {
 
 /**
  * The `declined` list of a parsed .esoul/template.json: `[{title, reason}]`, empty when the key is
- * absent. A malformed list throws, so a hand edit that would silently re-offer entries is caught.
+ * absent. An item MAY carry `files` (paths or folders with a trailing `/`): a group of files an
+ * adoption without a recorded commit declined; such an item matches no changelog title. A malformed
+ * list throws, so a hand edit that would silently re-offer entries is caught.
  */
 export function parseDeclined(record) {
     const list = record?.declined ?? [];
@@ -178,8 +180,11 @@ export function parseDeclined(record) {
                 throw new Error(`.esoul/template.json: every "declined" item needs a non-empty "${key}": ${JSON.stringify(item)}`);
             }
         }
+        if (item.files !== undefined && !(Array.isArray(item.files) && item.files.length > 0 && item.files.every((file) => typeof file === 'string' && file.trim() !== ''))) {
+            throw new Error(`.esoul/template.json: "files" of a "declined" item must be a non-empty list of paths: ${JSON.stringify(item)}`);
+        }
     }
-    return list.map(({ title, reason }) => ({ title, reason }));
+    return list.map(({ title, reason, files }) => (files === undefined ? { title, reason } : { title, reason, files }));
 }
 
 /**

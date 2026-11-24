@@ -299,6 +299,16 @@ test('parseDeclined accepts a missing key and rejects a malformed list', () => {
     assert.throws(() => parseDeclined({ declined: ['A'] }), /"title"/);
 });
 
+test('a declined group of files keeps its files through a rewrite and matches no changelog entry', () => {
+    const group = { title: 'Renovate configuration', reason: 'The project keeps its own Renovate setup (ADR 0004).', files: ['renovate.json5', '.github/'] };
+    assert.deepEqual(parseDeclined({ declined: [group] }), [group]);
+    assert.throws(() => parseDeclined({ declined: [{ ...group, files: [] }] }), /"files"/);
+    assert.throws(() => parseDeclined({ declined: [{ ...group, files: ['ok', ' '] }] }), /"files"/);
+    const updated = updatedRecord({ variant: 'v', commit: null, declined: [group] }, { commit: null, declined: [{ title: 'B', reason: 'b' }] });
+    assert.deepEqual(updated.declined, [group, { title: 'B', reason: 'b' }]);
+    assert.deepEqual(selectEntries([], { variant: 'lsr-inertia', layers: [] }, [group]).declined, []);
+});
+
 test('updatedRecord moves the commit, adds new declines once and keeps the other keys', () => {
     const record = { variant: 'lsr-inertia', commit: 'c0', declined: [{ title: 'A', reason: 'a' }] };
     const updated = updatedRecord(record, { commit: 'c5', declined: [{ title: 'A', reason: 'again' }, { title: 'B', reason: 'b' }] });
