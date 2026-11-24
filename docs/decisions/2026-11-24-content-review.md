@@ -1,0 +1,7 @@
+
+The review ran as parallel slices, one per group of skills. Where a line says another "worker", "slice" or "contract" it means the part of this document that owns the named skill. Items a part handed over to the integration step ("Needs integrator") are resolved in Part 9 or are listed as owner decisions; they are not repeated.
+
+- `tooling/MAINTAINERS.md`: documents `tooling/scripts/release_notes.mjs` (the release notes of a tooling tag come from the `## <version>` section of `tooling/CHANGELOG.md`, one printable-ASCII line of at most 1024 characters) — [DT-D3]. When the tool is released, rename `## Unreleased` in that file and check it with the script: the unreleased section has about 1,300 characters today, so it needs a shorter release summary.
+- README skill list: generated from `layers.json` and the SKILL.md descriptions (`tooling/scripts/build_readme_skills.mjs --check` is part of the contract tests) — [RP-D1]
+- Tests wiring: Python tests, the moved script tests of `esoul-quality-gates` and `esoul-website-launch` and the new `esoul-uat` tests run in Jenkins through conditional stages (`test_jenkinsfile.mjs` checks that every skill folder with Node tests has a stage) — [TL-D1, TL conditional stages, LC-M17]
+- Not changed in this round, by the owner's decision: no tag, npm publish, plugin release (version stays 0.26.0 and the "0.26.0 is a breaking change" README paragraph describes the restructure for the final release), guidelines release or tooling release (DT-D4).
