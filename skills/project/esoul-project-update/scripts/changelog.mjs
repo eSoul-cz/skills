@@ -2,7 +2,7 @@
 // Pure helpers for the project update skill: parse the app-templates CHANGELOG.md, pick the
 // entries that concern one project, and compute the `commit` to record in .esoul/template.json.
 // No network, no git: the agent feeds it file contents. Node 22, no dependencies.
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
@@ -109,17 +109,27 @@ export function affectsProject(entry, { variant, layers }) {
 }
 
 /**
- * Split entries into the ones that concern the project and the ones that do not, each of the
- * latter with the reason to show the user, so nothing is dropped silently.
+ * Split entries into the ones the project declined (its `declined` list in .esoul/template.json),
+ * the ones that concern it and the ones that do not, each of the latter with the reason to show
+ * the user, so nothing is dropped silently. `order` lists every entry, oldest first, with its
+ * kind: the agent needs the commit of each one to compute the deltas.
  *
- * @returns {{selected: object[], notApplicable: {title: string, reason: string}[]}}
+ * @param {{title: string, reason: string}[]} declined
+ * @returns {{selected: object[], notApplicable: {title: string, reason: string}[], declined: {title: string, reason: string}[], order: {title: string, kind: string}[]}}
  */
-export function selectEntries(entries, project) {
+export function selectEntries(entries, project, declined = []) {
+    const declinedReasons = new Map(declined.map((item) => [item.title, item.reason]));
     const selected = [];
     const notApplicable = [];
+    const skippedOnPurpose = [];
+    const order = [];
     for (const entry of entries) {
-        if (affectsProject(entry, project)) {
+        if (declinedReasons.has(entry.title)) {
+            skippedOnPurpose.push({ title: entry.title, reason: declinedReasons.get(entry.title) });
+            order.push({ title: entry.title, kind: 'declined' });
+        } else if (affectsProject(entry, project)) {
             selected.push(entry);
+            order.push({ title: entry.title, kind: 'selected' });
         } else {
             notApplicable.push({
                 title: entry.title,
@@ -127,9 +137,10 @@ export function selectEntries(entries, project) {
                     ? 'no Affects line'
                     : `Affects names neither ${project.variant} nor its layers: ${entry.affects.raw}`,
             });
+            order.push({ title: entry.title, kind: 'not-applicable' });
         }
     }
-    return { selected, notApplicable };
+    return { selected, notApplicable, declined: skippedOnPurpose, order };
 }
 
 /**
@@ -153,13 +164,68 @@ export function variantLayers(variantJson) {
 }
 
 /**
+ * The `declined` list of a parsed .esoul/template.json: `[{title, reason}]`, empty when the key is
+ * absent. A malformed list throws, so a hand edit that would silently re-offer entries is caught.
+ */
+export function parseDeclined(record) {
+    const list = record?.declined ?? [];
+    if (!Array.isArray(list)) {
+        throw new Error('.esoul/template.json: "declined" must be a list of {"title", "reason"}.');
+    }
+    for (const item of list) {
+        for (const key of ['title', 'reason']) {
+            if (typeof item?.[key] !== 'string' || item[key].trim() === '') {
+                throw new Error(`.esoul/template.json: every "declined" item needs a non-empty "${key}": ${JSON.stringify(item)}`);
+            }
+        }
+    }
+    return list.map(({ title, reason }) => ({ title, reason }));
+}
+
+/**
+ * The "unlisted changes" entry: changes to the variant after the newest changelog entry. `delta`
+ * is the output of `git diff --name-status -M <state of that entry> <state of head>` in the
+ * template clone; empty means nothing is unlisted and the result is null.
+ *
+ * @returns {{title: string, commit: string, files: {status: string, path: string, from?: string}[]} | null}
+ */
+export function unlistedChanges({ head, delta }) {
+    const files = delta
+        .split(/\r?\n/)
+        .filter((line) => line.trim() !== '')
+        .map((line) => {
+            const [status, first, second] = line.split('\t');
+            return second === undefined ? { status, path: first } : { status, from: first, path: second };
+        });
+    if (files.length === 0) {
+        return null;
+    }
+    return { title: `Unlisted changes up to ${head.slice(0, 7)}`, commit: head, files };
+}
+
+/**
+ * The new content of .esoul/template.json: the recorded `commit` replaced (kept when the run
+ * recorded none) and the titles declined in this run added to `declined`. Other keys stay.
+ */
+export function updatedRecord(record, { commit, declined = [] }) {
+    const known = parseDeclined(record);
+    const added = declined.filter((item) => !known.some((existing) => existing.title === item.title));
+    return {
+        ...record,
+        ...(commit === null || commit === undefined ? {} : { commit }),
+        declined: [...known, ...parseDeclined({ declined: added })],
+    };
+}
+
+/**
  * The `commit` to write into .esoul/template.json after a run.
  *
  * `entries` are in apply order (oldest first), each {title, commit, status}: `commit` is the
  * app-templates commit that added the entry, `status` one of applied, not-applicable, skipped,
  * conflict. The record advances over the leading run of entries that are done (applied or not
  * applicable) and stops at the first skipped or conflicting one, so the next run re-offers it and
- * everything after it. All done: `head`. Nothing done: `base` (unchanged, possibly null).
+ * everything after it. Declined entries and entries that do not concern the project are not part
+ * of `entries`. All done: `head`. Nothing done: `base` (unchanged, possibly null).
  *
  * @returns {{commit: string | null, reason: string, reoffered: string[]}}
  */
@@ -193,13 +259,19 @@ export function recordedCommit({ base = null, head, entries }) {
 
 const usage = `Usage:
   node changelog.mjs select --head CHANGELOG.md [--base OLD_CHANGELOG.md]
-        --variant NAME (--layers a,b,c | --variant-file variants/NAME.json)
-      Entries added after --base (all when omitted) that concern the project, oldest first,
-      plus the not applicable ones with their reason. JSON on stdout.
-  node changelog.mjs record PLAN.json
-      PLAN.json: {"base": sha|null, "head": sha, "entries": [{"title", "commit", "status"}]}
-      with entries oldest first and status applied | not-applicable | skipped | conflict.
-      Prints {"commit", "reason", "reoffered"}.
+        --variant NAME (--layers a,b,c | --variant-file variants/NAME.json) [--template .esoul/template.json]
+      Entries added after --base (all when omitted) that concern the project, oldest first, plus
+      the declined ones (the "declined" list of --template), the not applicable ones with their
+      reason, and "order": every added entry, oldest first, with its kind. JSON on stdout.
+  node changelog.mjs unlisted --commit SHA --delta NAME_STATUS.txt
+      NAME_STATUS.txt: git diff --name-status -M <state of the newest entry> <state of head> in the
+      template clone. Prints {"entry": null} or {"entry": {title, commit, files}}.
+  node changelog.mjs record PLAN.json [--template .esoul/template.json]
+      PLAN.json: {"base": sha|null, "head": sha, "entries": [{"title", "commit", "status"}],
+      "declined": [{"title", "reason"}]} with entries oldest first and status applied |
+      not-applicable | skipped | conflict; "declined" holds the titles declined in this run.
+      Prints {"commit", "reason", "reoffered"}; with --template the file is rewritten with the
+      new commit and the extended declined list.
 `;
 
 function main(argv) {
@@ -213,6 +285,9 @@ function main(argv) {
             variant: { type: 'string' },
             layers: { type: 'string' },
             'variant-file': { type: 'string' },
+            template: { type: 'string' },
+            delta: { type: 'string' },
+            commit: { type: 'string' },
         },
     });
 
@@ -223,11 +298,21 @@ function main(argv) {
         const head = readFileSync(values.head, 'utf8');
         const entries = values.base ? entriesAddedAfter(readFileSync(values.base, 'utf8'), head) : parseChangelog(head);
         const layers = values.layers ? values.layers.split(',').map((name) => name.trim()) : variantLayers(readFileSync(values['variant-file'], 'utf8'));
-        const { selected, notApplicable } = selectEntries(applyOrder(entries), { variant: values.variant, layers });
-        return { selected, notApplicable };
+        const declined = values.template ? parseDeclined(JSON.parse(readFileSync(values.template, 'utf8'))) : [];
+        return selectEntries(applyOrder(entries), { variant: values.variant, layers }, declined);
+    }
+    if (command === 'unlisted' && values.commit && values.delta) {
+        return { entry: unlistedChanges({ head: values.commit, delta: readFileSync(values.delta, 'utf8') }) };
     }
     if (command === 'record' && positionals.length === 1) {
-        return recordedCommit(JSON.parse(readFileSync(positionals[0], 'utf8')));
+        const plan = JSON.parse(readFileSync(positionals[0], 'utf8'));
+        const result = recordedCommit(plan);
+        if (values.template) {
+            const record = JSON.parse(readFileSync(values.template, 'utf8'));
+            const updated = updatedRecord(record, { commit: result.commit, declined: plan.declined ?? [] });
+            writeFileSync(values.template, `${JSON.stringify(updated, null, 4)}\n`);
+        }
+        return result;
     }
     throw new Error(usage);
 }

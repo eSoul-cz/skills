@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -11,8 +11,11 @@ import {
     applyOrder,
     entriesAddedAfter,
     parseChangelog,
+    parseDeclined,
     recordedCommit,
     selectEntries,
+    unlistedChanges,
+    updatedRecord,
     variantLayers,
 } from './changelog.mjs';
 
@@ -256,4 +259,109 @@ test('the CLI selects and records', () => {
     const bad = spawnSync(process.execPath, [script, 'select'], { encoding: 'utf8' });
     assert.equal(bad.status, 2);
     assert.match(bad.stderr, /Usage/);
+});
+
+const lsr = { variant: 'lsr-inertia', layers: ['common', 'lsr/base'] };
+
+test('declined entries are neither selected nor offered again, and the order lists every entry', () => {
+    const entries = applyOrder(entriesAddedAfter(OLD, CHANGELOG));
+    const declined = [{ title: 'Render guidelines 0.3.2', reason: 'The project stays on its own rendering.' }];
+
+    const result = selectEntries(entries, lsr, declined);
+
+    assert.deepEqual(result.selected, []);
+    assert.deepEqual(result.declined, declined);
+    assert.equal(result.notApplicable.length, 5);
+    assert.equal(result.order.length, 6);
+    assert.deepEqual(result.order.find((item) => item.title === 'Render guidelines 0.3.2'), { title: 'Render guidelines 0.3.2', kind: 'declined' });
+    assert.equal(result.order.filter((item) => item.kind === 'not-applicable').length, 5);
+
+    // A declined title that no longer exists in the changelog is harmless.
+    assert.equal(selectEntries(entries, lsr, [{ title: 'Gone', reason: 'x' }]).selected.length, 1);
+});
+
+test('a declined entry does not hold back the recorded commit', () => {
+    // entry 1 applied, entry 2 declined (omitted from the plan), entry 3 applied: all done, so HEAD.
+    const entries = [{ title: 'entry 1', commit: 'c1', status: 'applied' }, { title: 'entry 3', commit: 'c3', status: 'applied' }];
+    assert.equal(recordedCommit({ base: 'b0', head: 'h9', entries }).commit, 'h9');
+
+    // Declined between an applied and a skipped entry: the record stops at the last applied one before the skipped entry.
+    const stopped = [{ title: 'entry 1', commit: 'c1', status: 'applied' }, { title: 'entry 4', commit: 'c4', status: 'skipped' }];
+    assert.equal(recordedCommit({ base: 'b0', head: 'h9', entries: stopped }).commit, 'c1');
+});
+
+test('parseDeclined accepts a missing key and rejects a malformed list', () => {
+    assert.deepEqual(parseDeclined({ variant: 'v', commit: 'c' }), []);
+    assert.deepEqual(parseDeclined({ declined: [{ title: 'A', reason: 'B', extra: 1 }] }), [{ title: 'A', reason: 'B' }]);
+    assert.throws(() => parseDeclined({ declined: 'A' }), /list/);
+    assert.throws(() => parseDeclined({ declined: [{ title: 'A' }] }), /"reason"/);
+    assert.throws(() => parseDeclined({ declined: [{ title: ' ', reason: 'B' }] }), /"title"/);
+    assert.throws(() => parseDeclined({ declined: ['A'] }), /"title"/);
+});
+
+test('updatedRecord moves the commit, adds new declines once and keeps the other keys', () => {
+    const record = { variant: 'lsr-inertia', commit: 'c0', declined: [{ title: 'A', reason: 'a' }] };
+    const updated = updatedRecord(record, { commit: 'c5', declined: [{ title: 'A', reason: 'again' }, { title: 'B', reason: 'b' }] });
+    assert.deepEqual(updated, { variant: 'lsr-inertia', commit: 'c5', declined: [{ title: 'A', reason: 'a' }, { title: 'B', reason: 'b' }] });
+
+    // No commit recorded by the run: the old one stays; a record without the key gets one.
+    assert.deepEqual(updatedRecord({ variant: 'v', commit: 'c0' }, { commit: null }), { variant: 'v', commit: 'c0', declined: [] });
+    assert.throws(() => updatedRecord(record, { commit: 'c', declined: [{ title: 'C' }] }), /"reason"/);
+});
+
+test('the trailing difference after the newest entry becomes an "unlisted changes" entry', () => {
+    assert.equal(unlistedChanges({ head: 'abcdef0123456789', delta: '' }), null);
+    assert.equal(unlistedChanges({ head: 'abcdef0123456789', delta: '\n' }), null);
+
+    const entry = unlistedChanges({ head: 'abcdef0123456789', delta: 'M\tapp/Money.php\nA\tdocs/new.md\nR087\told/path.php\tnew/path.php\n' });
+    assert.equal(entry.title, 'Unlisted changes up to abcdef0');
+    assert.equal(entry.commit, 'abcdef0123456789');
+    assert.deepEqual(entry.files, [
+        { status: 'M', path: 'app/Money.php' },
+        { status: 'A', path: 'docs/new.md' },
+        { status: 'R087', from: 'old/path.php', path: 'new/path.php' },
+    ]);
+
+    // Applied, the entry's commit is the head; skipped, the record stays at the last applied entry.
+    const applied = [{ title: 'entry 1', commit: 'c1', status: 'applied' }, { title: entry.title, commit: entry.commit, status: 'applied' }];
+    assert.equal(recordedCommit({ base: 'b0', head: entry.commit, entries: applied }).commit, entry.commit);
+    const skipped = [{ title: 'entry 1', commit: 'c1', status: 'applied' }, { title: entry.title, commit: entry.commit, status: 'skipped' }];
+    assert.equal(recordedCommit({ base: 'b0', head: entry.commit, entries: skipped }).commit, 'c1');
+});
+
+test('the CLI honours the declined list, reports unlisted changes and rewrites the record', () => {
+    const script = fileURLToPath(new URL('./changelog.mjs', import.meta.url));
+    const dir = mkdtempSync(join(tmpdir(), 'changelog-'));
+    const run = (...args) => spawnSync(process.execPath, [script, ...args], { encoding: 'utf8' });
+    writeFileSync(join(dir, 'head.md'), CHANGELOG);
+    writeFileSync(join(dir, 'base.md'), OLD);
+    writeFileSync(join(dir, 'variant.json'), '{"name": "lsr-inertia", "layers": [{"layer": "common"}, {"layer": "lsr/base"}]}');
+    const template = join(dir, 'template.json');
+    writeFileSync(template, `${JSON.stringify({ variant: 'lsr-inertia', commit: 'c0', declined: [{ title: 'Render guidelines 0.3.2', reason: 'own rendering' }] }, null, 4)}\n`);
+
+    const selected = run('select', '--head', join(dir, 'head.md'), '--base', join(dir, 'base.md'), '--variant', 'lsr-inertia', '--variant-file', join(dir, 'variant.json'), '--template', template);
+    assert.equal(selected.status, 0, selected.stderr);
+    const output = JSON.parse(selected.stdout);
+    assert.deepEqual(output.selected, []);
+    assert.deepEqual(output.declined, [{ title: 'Render guidelines 0.3.2', reason: 'own rendering' }]);
+
+    writeFileSync(join(dir, 'delta.txt'), 'M\tapp/Money.php\n');
+    const unlisted = run('unlisted', '--commit', 'abcdef0123456789', '--delta', join(dir, 'delta.txt'));
+    assert.equal(unlisted.status, 0, unlisted.stderr);
+    assert.equal(JSON.parse(unlisted.stdout).entry.title, 'Unlisted changes up to abcdef0');
+    writeFileSync(join(dir, 'delta.txt'), '');
+    assert.equal(JSON.parse(run('unlisted', '--commit', 'abcdef0123456789', '--delta', join(dir, 'delta.txt')).stdout).entry, null);
+
+    writeFileSync(join(dir, 'plan.json'), JSON.stringify({ base: 'c0', head: 'h9', entries: plan(['applied']), declined: [{ title: 'Split of the CMS variants', reason: 'own layout' }] }));
+    const recorded = run('record', join(dir, 'plan.json'), '--template', template);
+    assert.equal(recorded.status, 0, recorded.stderr);
+    assert.equal(JSON.parse(recorded.stdout).commit, 'h9');
+    assert.equal(readFileSync(template, 'utf8'), `${JSON.stringify({
+        variant: 'lsr-inertia',
+        commit: 'h9',
+        declined: [{ title: 'Render guidelines 0.3.2', reason: 'own rendering' }, { title: 'Split of the CMS variants', reason: 'own layout' }],
+    }, null, 4)}\n`);
+
+    writeFileSync(template, '{"variant": "lsr-inertia", "commit": "c0", "declined": [{"title": "A"}]}');
+    assert.equal(run('select', '--head', join(dir, 'head.md'), '--variant', 'lsr-inertia', '--layers', 'common', '--template', template).status, 2);
 });

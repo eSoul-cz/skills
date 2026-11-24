@@ -1,6 +1,6 @@
 ---
 name: esoul-data
-description: Use when saving, backing up or preparing project data (client files, media, SQL dumps, import files, exports) and on data tasks (label `data-migration`, legacy imports, data fixes, reports, analyses). Keeps project data in tracked `assets/` (Git LFS) and guides in `docs/`, never in storage/, tmp/ or Downloads; when data work needs a change to application code, schema, seeders or factories, proposes it as a new issue/task pair instead of making it.
+description: Use when saving, backing up or preparing project data (client files, media, SQL dumps, import files, exports) and on data tasks (label `data-migration`, legacy imports, data fixes, reports, analyses) whose work needs a change to application code, schema, seeders or factories. Places project data in tracked `assets/` and guides in `docs/`; proposes such a change as a new issue/task pair instead of making it.
 ---
 
 # Project data and data tasks
@@ -16,7 +16,6 @@ Project data in `storage/`, `*.nosync` or another ad hoc gitignored folder exist
 | Client source files without personal data (XLSX, DOCX, PDF, original photos) | `assets/klient/<topic>/…`, Git LFS (the layout is owned by `esoul-project-lifecycle`, podklady-and-legacy reference; follow the project's own layout when it differs) |
 | Admin media without personal data; **anonymised** SQL dumps for transfer | `assets/…`, Git LFS |
 | Processed files for an import (resized photos, caches) | `assets/…`, Git LFS |
-| Case-study screenshots and Lighthouse reports | `assets/case-study/…`, owned by `esoul-project-lifecycle` |
 | Guides, runbooks, procedures for colleagues | `docs/…`, linked from the README |
 | Scripts and manifests (small text files) | next to the data or in `docs/` |
 
@@ -85,4 +84,4 @@ On top of what `esoul-task-create` requires:
 
 ### When the user says "just do it"
 
-An explicit instruction from the user to change application code or the data model overrides this guard (it does not replace the owner's approval to read production or sensitive data). Say in one sentence that it is a change to application code or the data model outside the normal cycle; if the user insists, make the change. Do not argue repeatedly. Still create the task so the change is traceable, unless the user says otherwise.
+The user's word is not enough to change application code or the data model from a data task. The owner's approval must be written in the data issue (its description or a comment) before you change code; ask where it is written, and when it is missing, ask the user to have the owner add it (offer a one-sentence wording) or file the proposal as usual. With the approval in the issue, say in one sentence that the change is outside the normal cycle and make it; do not argue repeatedly. The approval is the trace: link it in the PR. It does not replace the owner's approval to read production or sensitive data.

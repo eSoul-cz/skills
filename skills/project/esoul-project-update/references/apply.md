@@ -1,6 +1,6 @@
 # Apply one changelog entry
 
-Setup, from `SKILL.md`: `$AT` is the app-templates clone, `$TV` the `template-<variant>` clone, `$PROJECT` the project worktree. The entries are in apply order (oldest first), each with its commit `c_i`; `c_0` is the commit recorded in `.esoul/template.json`.
+Setup, from `SKILL.md` step 2: `$AT` is the app-templates clone, `$TV` the `template-<variant>` clone, `$PROJECT` the project worktree, `$COMMIT` the commit recorded in `.esoul/template.json`. The entries are the `order` of the selection (oldest first; selected, declined and not-applicable entries alike), each with its commit `c_i`; `c_0` is `$COMMIT`.
 
 ## The delta of an entry
 
@@ -15,9 +15,20 @@ state() { # <source sha> -> publish commit in $TV; empty when no earlier publish
 }
 ```
 
-The delta of entry `i` is `git -C "$TV" diff "$(state c_{i-1})" "$(state c_i)"`: the deltas of all entries add up to `base..main`, so no change reaches the project without an entry that names it. `state c_0` is the base tree. Both states equal: the entry changes no files (documentation or builder entry); only its `Migration:` applies. No publish commit at or before `c_0`: the project predates the published variant; use [adopt.md](adopt.md), "commit: null".
+The delta of entry `i` is `git -C "$TV" diff "$(state c_{i-1})" "$(state c_i)"`: the deltas of all entries, plus the unlisted changes below, add up to `base..main`, so no change reaches the project without an entry that names it. `state c_0` is the base tree. Both states equal: the entry changes no files (documentation or builder entry); only its `Migration:` applies. No publish commit at or before `c_0`: the project predates the published variant; use [adopt.md](adopt.md), "commit: null".
 
 A `notApplicable` entry with a non-empty delta is shown to the user and treated as applicable; its `Affects:` was incomplete.
+
+## Unlisted changes
+
+The changelog promises an entry for every change, so the last entry's state normally equals the head. The check proves it: `$NEWEST` is the commit of the last entry in `order` (`$COMMIT` when no entry was added), `$HEAD` is `git -C "$AT" rev-parse origin/HEAD`.
+
+```bash
+git -C "$TV" diff --name-status -M "$(state "$NEWEST")" "$(state "$HEAD")" > "$TMP/delta.txt"
+node "$SKILL_DIR/scripts/changelog.mjs" unlisted --commit "$HEAD" --delta "$TMP/delta.txt"
+```
+
+`{"entry": null}`: nothing is unlisted. Otherwise the entry (title `Unlisted changes up to <short sha>`, with the files it touches) is offered to the user and, when taken, applied like any entry with the delta `state NEWEST` to `state HEAD`; its commit in the plan is `$HEAD`. It has no `Migration:`: judge what the files need, and say in the PR that the template changed without a changelog entry so the app-templates maintainers can add one.
 
 ## Merge into the project
 
@@ -32,7 +43,7 @@ For every file in the delta (`git -C "$TV" diff --name-status -M <from> <to>`), 
 
 The variant root is the project root; a project that moved the file reports a conflict for it. Binary files and `.esoul/template.json` are not merged (`.esoul/template.json` is written in the record step). Skip generated files: `docs/project_guidelines/`, the guidelines block of `AGENTS.md`, `esoul-guidelines.lock` and lock files come from `esoul-guidelines sync` and the package manager after the manifest change.
 
-Conflicts: keep the project side (`git merge-file --ours`), do not leave markers. Record each as `<path>: <what the template changed, what the project kept>`; the entry's status is then `conflict`, its commit is still made, and a later run offers the entry again, merging cleanly whatever already landed. When keeping the project side would break the entry's intent (the migration note needs the template's version), stop that entry, tell the user, and set `skipped` with the reason.
+Conflicts: keep the project side (`git merge-file --ours`) and write the project side clean, without markers. Record each as `<path>: <what the template changed, what the project kept>`; the entry's status is then `conflict`, its commit is still made, and a later run offers the entry again, merging cleanly whatever already landed. When keeping the project side would break the entry's intent (the migration note needs the template's version), stop that entry, tell the user, and set `skipped` with the reason.
 
 ## Migration notes
 
@@ -42,7 +53,7 @@ Guidelines versions: an entry that renders a newer `esoul-cz/guidelines` (its ti
 
 ## Commit
 
-One commit per entry through `gitmoji-commit`: subject `:arrow_up: [template] <entry title>`, body one line per conflict or unfinished migration action. Stage only files this entry touched. An entry with nothing to change makes no commit.
+One commit per entry in the project's commit standard (the recommended Gitmoji format when the project has none; `gitmoji-commit` writes it when installed): subject `:arrow_up: [template] <entry title>`, body one line per conflict or unfinished migration action. Stage only files this entry touched. An entry with nothing to change makes no commit.
 
 ## Statuses for `record`
 
@@ -52,3 +63,5 @@ One commit per entry through `gitmoji-commit`: subject `:arrow_up: [template] <e
 | `conflict` | at least one file kept the project side |
 | `skipped` | the entry was not applied (decision, secret, tool, remote action, breaking project customisation); reason recorded |
 | `not-applicable` | the entry does not touch the project (from the `notApplicable` list, empty delta) |
+
+`plan.json` carries the entries to apply (selected and unlisted). Entries that do not concern the project and entries the project declined are left out of it; an entry declined in this run goes into the plan's `declined` list instead.
