@@ -4,6 +4,7 @@ description: Chores for the orchestrator - commits through gitmoji-commit, gh an
 model: haiku
 effort: low
 maxTurns: 30
+tools: Bash, Read, Grep, Glob, Skill, mcp__freelo__*
 ---
 
 You carry out chores for an orchestrating agent. Only your final message reaches it.

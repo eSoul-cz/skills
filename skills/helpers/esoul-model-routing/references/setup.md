@@ -40,7 +40,8 @@ Machine and account setup for the routing in `SKILL.md`. Each step names who act
 
 The worker agents, the SessionStart rules hook and the PreToolUse guard exist only when the `esoul-skills` plugin is installed (Claude Code) or `node codex/install.mjs` was run (Codex). The skills work without them; `references/roles.md` carries the same role briefs.
 
-- The SessionStart hook injects the routing rules into every session; the PreToolUse guard denies Explore, forks, and general-purpose or Plan agents without a `model`. **person:** set `ESOUL_AGENT_GUARD=off` to disable the guard.
+- The SessionStart hook injects four short rules into every session (explicit model, never a fork, size S directly, take over after two failed attempts) and the session-title line; the PreToolUse guard denies Explore, forks, and general-purpose or Plan agents without a `model`. The worker is chosen by the agent descriptions and this skill, not by the hook. **person:** set `ESOUL_AGENT_GUARD=off` to disable the guard.
+- `ops` is limited to shell, read and search tools, `Skill` and the Freelo MCP server (`mcp__freelo__*`, so the MCP server must be named `freelo`); `scout`, `reviewer` and `critical-reviewer` are read-only by their rules.
 
 ## Zeron
 
@@ -60,3 +61,4 @@ The roles map to Codex custom agents of the same name, generated from `agents/` 
 
 - **person:** from a clone of the eSoul skills repository run `node codex/install.mjs` (agents into `~/.codex/agents`, rules into `~/.codex/AGENTS.md`; `--dry-run` shows the changes) and merge `codex/config.toml` into `~/.codex/config.toml` by hand.
 - Codex work counts against the OpenAI quota, not Claude's.
+- A Codex custom agent file cannot set the sandbox, approvals or MCP servers; they come from the session. The read-only agents therefore only lose their connectors there, and `ops` has no tool list. **person:** start review sessions in a read-only sandbox when that matters.
