@@ -1,0 +1,7 @@
+interface:
+  display_name: "eSoul Task Work"
+  short_description: "Move an issue or Freelo task through development"
+  default_prompt: "Use $esoul-task-work to pick up this task, keep its assignee and state current, link the PR and close it after merge."
+
+policy:
+  allow_implicit_invocation: true

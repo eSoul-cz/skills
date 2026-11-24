@@ -1,0 +1,7 @@
+interface:
+  display_name: "eSoul Data"
+  short_description: "Keep project data in tracked assets/ and propose code or schema fixes found during data work"
+  default_prompt: "Use $esoul-data to store these project files in the repository or to work on this data task."
+
+policy:
+  allow_implicit_invocation: true

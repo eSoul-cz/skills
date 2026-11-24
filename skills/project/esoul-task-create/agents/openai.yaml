@@ -1,0 +1,7 @@
+interface:
+  display_name: "eSoul Task Creation"
+  short_description: "Create approved eSoul issues and Freelo tasks"
+  default_prompt: "Use $esoul-task-create to resolve this repository's tasking convention and prepare approved Freelo work, optionally paired with GitHub issues."
+
+policy:
+  allow_implicit_invocation: true

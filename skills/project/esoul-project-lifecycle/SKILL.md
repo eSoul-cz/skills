@@ -1,0 +1,156 @@
+---
+name: esoul-project-lifecycle
+description: Run an eSoul client project from first client materials to agent-ready work - bootstrap or retrofit the repository (root files from the app templates, rules from the esoul-guidelines installer), ingest podklady and legacy evidence, keep question issues, glossary, ADRs, a design brief and a sliced plan, batch slices into issue + Freelo pairs, and audit conformance. Use when starting or onboarding an eSoul project, after a client meeting or answers, when writing an ADR or a plan, or when checking a project's conformance. Does not implement features.
+---
+
+# eSoul project lifecycle
+
+eSoul keeps AI-built projects at high quality by deciding everything *before* an agent writes
+code: client evidence, vocabulary, decisions, design and a sliced plan live in the repository,
+and every work item is a prepared issue that points back to them. This skill owns that
+preparation and its upkeep. It ends when a slice exists as a ready issue with UAT; from there,
+`esoul-workflow` implements one issue at a time.
+
+## 1. Load context
+
+1. Use repository instructions already in context (`CLAUDE.md`, `AGENTS.md`, earlier reads);
+   do not read them again. Read the root `CONTEXT.md` conventions you need by section. Read
+   `docs/adr/index.md` only in `adr`, `guidelines`, `plan`, `tasking`, `audit` and `retrofit`
+   modes, and `docs/plan/README.md` (or `docs/plan.md`) only in `plan`, `tasking`, `audit`,
+   `retrofit` and `client-update` modes, when present. Read
+   `GLOSSARY.md` in full only in `glossary`, `audit` and `retrofit` modes; otherwise look up
+   terms on demand. Repository rules override this skill unless they contradict an approved
+   company rule in section 4; report such conflicts.
+2. Resolve the **project profile** from `CONTEXT.md › ## Project profile`: stack, archetype,
+   process tier (`full` or `light`), environments, UAT dimensions. When it is missing, propose
+   one (see [tiers.md](references/tiers.md)), get confirmation, and write it.
+3. Read the stack profile for the recorded stack only in the modes whose row below lists
+   "stack profile" (`bootstrap`, `guidelines`, `handover`): [laravel](references/stacks/laravel.md),
+   [lunar](references/stacks/lunar.md), [lsr](references/stacks/lsr.md),
+   [astro](references/stacks/astro.md). These are the common eSoul stacks, not a closed list.
+   For any other stack, follow [new-stack.md](references/stacks/new-stack.md). The scripts
+   (`scripts/*.mjs`) need Node 22 or newer.
+4. Find facts yourself (repository, `gh`, Freelo, podklady). Ask the user only for decisions.
+   When the harness offers subagents, bulk reading goes to a read-only explorer subagent and Freelo or `gh`
+   reads and approved writes to an ops subagent (briefs in `esoul-model-routing`, optional helpers layer;
+   without it, do these steps yourself), as each mode's reference says; the session
+   keeps decisions and previews.
+
+## 2. Pick the mode
+
+Pick one mode, say which in one line, and read only the references it names.
+
+| Mode | When | References |
+|---|---|---|
+| `bootstrap` | New project, empty or skeleton repository | [bootstrap](references/bootstrap.md), [root-files](references/root-files.md), skill `esoul-guidelines`, [tiers](references/tiers.md), [case-study](references/case-study.md), stack profile |
+| `retrofit` | Existing project brought to the standard | [retrofit](references/retrofit.md), [root-files](references/root-files.md), skill `esoul-guidelines`, [audit](references/audit.md), [case-study](references/case-study.md) |
+| `intake` | New client files, exports, legacy dumps | [podklady-and-legacy](references/podklady-and-legacy.md), [questions-and-client](references/questions-and-client.md) |
+| `client-update` | After a meeting, written answers, design feedback | [questions-and-client](references/questions-and-client.md), then whatever it touches |
+| `glossary` | New or disputed domain term | [glossary](references/glossary.md) (with the installed `domain-modeling` skill) |
+| `adr` | A decision with real alternatives | [adr](references/adr.md) (with the installed `domain-modeling` skill) |
+| `guidelines` | Run the guidelines installer for the project; project-specific rule files | skill `esoul-guidelines`, stack profile |
+| `design` | Design brief, Pencil, mockup review rounds | [design](references/design.md) |
+| `plan` | Phases, gates, scope, slices, risks (public websites keep the AI slices: [ai-readiness](references/ai-readiness.md)) | [plan-and-slices](references/plan-and-slices.md), [company-rules](references/company-rules.md) |
+| `handover` | Prepare the codebase so agents can start | [dev-handover](references/dev-handover.md), stack profile |
+| `tasking` | Turn ready slices into issue + Freelo pairs | [tasking-batch](references/tasking-batch.md), [company-rules](references/company-rules.md) |
+| `audit` | Read-only conformance and completeness check | [audit](references/audit.md), [company-rules](references/company-rules.md) |
+| `launch` | Light tier, or any public website, before go-live | [launch](references/launch.md), [ai-readiness](references/ai-readiness.md), [case-study](references/case-study.md) |
+
+## 3. Phases and gates
+
+The full tier runs these phases in order; the light tier runs the reduced set in
+[tiers.md](references/tiers.md). A gate is a human approval by the approver named in the table
+(the project lead or CTO when none is named), recorded in the PR that closes the phase. Do not start a later phase before its gate, except
+`client-update`, which may reopen any phase.
+
+| Phase | Output | Gate |
+|---|---|---|
+| P0 Bootstrap | Root files, guidelines installed and checked, templates, CONTEXT profile, CI green on the empty scaffold, case-study snapshot of the original site | B0 |
+| P1 Podklady and legacy | `docs/podklady/` notes, `docs/legacy/`, files in `assets/` via LFS | — |
+| P2 Questions and workshop | Open `question` issues, a questionnaire generated from them, dated answer transcripts | — |
+| P3 Glossary and ADRs | `GLOSSARY.md`, ADRs as `proposed` | — |
+| P4 Accepted decisions | ADRs `accepted`, project-specific guideline files, `docs/data-model.md` | B1 |
+| P5 Design | Brief, `.pen`, mockup bundle, client review rounds | B2 (client) |
+| P6 Plan | Phases, gates, scope, slice list, risks | B3 (client + CTO) |
+| P7 Development handover | Tooling, architecture or structure checks, parity fixtures, reference module, CI green | B4 |
+| P8 Tasking | Issue + Freelo pairs, milestones, `blocked_by` | — |
+| P9 Completeness audit | Plan ↔ issues ↔ Freelo ↔ podklady ↔ ADR report resolved | B5: issues become `ready-for-agent` |
+
+One exception is allowed: the project lead may approve tasking (P8) for a phase before B4, for
+example to make a retrofit visible as pairs. Record that approval in the PR that updates the
+slice table; the issues stay out of `ready-for-agent` until B5.
+
+Gates B0–B5 are eSoul's readiness gates. The plan's delivery gates `G0`, `G1`, … are the
+milestones agreed with the client; `G0` (ready for development) is reached at B5.
+
+## 4. Company rules this skill enforces
+
+Approved for every eSoul project; templates already follow them. Full wording in
+[company-rules.md](references/company-rules.md), which the `tasking`, `plan` and `audit`
+modes load. One line per rule and its owner:
+
+- Every change has an issue or tracker task; small admin work goes without one only as the user's conscious decision, which this skill asks for and never assumes: `esoul-task-create`.
+- Titles of issue and Freelo task are identical, no prefix, no slice ID; new projects English, existing Czech projects keep Czech tracker titles and use an English commit-style PR title: `esoul-task-create`.
+- Freelo estimates are human time; work reports count active work only: `esoul-task-create`, the official `freelo` skill.
+- CONTEXT.md holds conventions (`## Tracker` in prose, `## Freelo` as the machine-read cache); GLOSSARY.md holds domain language only.
+- ADRs are English, with Implementation status and gaps: [adr.md](references/adr.md).
+- UAT in the issue uses the `## UAT` format: `esoul-task-create`.
+- Dependencies: GitHub `blocked_by` is the source of truth, mirrored in Freelo: `esoul-task-create`.
+- Merging: squash, `Jenkins` check, one human approval, no bypass; agents do not merge, approve or bypass without the owner's explicit authorisation for that PR.
+- Freelo states: Backlog, To Do, In progress, Code review, Testing, Done; recurring work in `LTT`.
+- PR review and finishing: `esoul-review`.
+- Process tiers: `full` for applications, `light` for websites: [tiers.md](references/tiers.md).
+- **Case-study snapshots**: every project with a public website captures screenshots and mobile Lighthouse of the original site at bootstrap and of the launched site at go-live. Owner: this skill, [case-study](references/case-study.md).
+- **AI readiness**: every public website is AI-ready by default (slices AI-01…AI-06, `docs/ai-readiness.md`); launch is blocked by a failing `must` check without a lead-confirmed exception: [ai-readiness](references/ai-readiness.md).
+- Astro checks: mandatory Jenkins `Checks` stage (commands in the `framework/astro` guideline); Lighthouse and axe before launch: [astro](references/stacks/astro.md).
+- **Link prefetch**: every public website prefetches internal links on hover or touch with the stack's own mechanism; state-changing links, downloads and the admin are excluded: the project's `frontend.md`, checked in [launch](references/launch.md).
+
+## 5. Guardrails
+
+- Every documentation change goes through a PR. The rules in `docs/project_guidelines/` are
+  installed by `esoul-guidelines`; a change to a guideline rule is its own PR in
+  `esoul-cz/guidelines`, never an edit inside a managed block.
+- Every issue, Freelo task, issue dependency and update of an existing pair goes through
+  `esoul-task-create` with an approved preview and read-back. This skill writes remote state
+  directly only for: GitHub milestones and labels, repository merge settings and rulesets, and
+  closing issues the client cancelled as „not planned“ or answered (`question` issues) with a
+  comment citing the ADR or the place of the answer. Each such write needs a preview of the exact
+  `gh` calls and explicit approval, then a read-back.
+- A missing fact is written as `TBD` and becomes a `question` issue. Never invent
+  client answers, formulas, prices, legal or tax rules. Open client questions are not the
+  agent's to answer.
+- Never weaken an accepted ADR to match code. Change it by dated note or supersession.
+- Numbers and calculations come only from podklady. Where the client works in spreadsheets,
+  pin them with parity tests.
+- Source material without personal data lives in `assets/` (Git LFS) and `docs/podklady/`;
+  non-anonymised exports and personal data never reach the repository, code, tests, fixtures,
+  issues or PRs (guidelines `security-and-data.md`). Agents work with anonymized dumps by
+  default; a gitignored local folder (by convention `_reference/`) may hold non-anonymised legacy
+  evidence.
+- Identifiers (`ADR-NNNN`, slices such as `F1-17`, gates `G1`, risks `R-nn`,
+  client inputs `K-nn`, light-tier decisions `D-nn`, documentation decisions `DOC-NNNN`) are
+  never renumbered or reused. Questions are tracker issues and carry their issue number.
+- Template placeholders are `{{UPPER_SNAKE_CASE}}`. None may remain in a project; `audit` fails on
+  them.
+- Copy templates only into missing files. Never overwrite an existing project file; propose a
+  diff instead.
+
+## 6. Companion skills
+
+| Need | Skill |
+|---|---|
+| Issue and Freelo writes | `esoul-task-create` (project layer), with the official `freelo` skill (layer upstream-core) |
+| Implementation of one issue | `esoul-workflow` |
+| Commits | `gitmoji-commit` (helpers layer) |
+| PR review loop | `esoul-review` |
+| Mockup bundles and review | `esoul-mockup-authoring` |
+| Application guides | `esoul-docs` |
+| Decision interviews | the installed `domain-modeling` and `grilling` skills (layer upstream-core), plus the eSoul additions in [glossary.md](references/glossary.md) and [adr.md](references/adr.md) |
+
+If a required companion is missing, stop and name the layer that holds it: `esoul-task-create`, `esoul-mockup-authoring` and this skill are in `project`; `esoul-workflow` in `core`; `esoul-docs` and `esoul-review` in `dev`; `freelo`, `domain-modeling` and `grilling` in `upstream-core`. The user installs a layer with `npx @esoul-cz/skills install <layer>`; the installer does not resolve dependencies between layers.
+
+## 7. Finish every run
+
+Report in this order: mode and phase; files changed and the PR link; questions added or closed;
+ADRs added or changed with status; slices or issues affected; what is still blocked and by
+which question or gate; the next gate and who approves it.

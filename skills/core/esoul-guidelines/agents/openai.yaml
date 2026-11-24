@@ -1,0 +1,7 @@
+interface:
+  display_name: "eSoul Guidelines"
+  short_description: "Read, install, sync and check the eSoul guidelines"
+  default_prompt: "Use $esoul-guidelines to find the project guidelines for this change, or to install, sync and check them in this repository."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,4 @@
+interface:
+  display_name: "eSoul Application Documentation"
+  short_description: "Create, refresh and verify application guides in Markdown, with optional PDFs"
+  default_prompt: "Use $esoul-docs to create or maintain this application’s user and developer documentation."

@@ -1,0 +1,7 @@
+interface:
+  display_name: "eSoul Testing"
+  short_description: "Run and write tests: levels, receipts, regression tests"
+  default_prompt: "Use $esoul-testing to run or write the tests for this eSoul change."
+
+policy:
+  allow_implicit_invocation: true
