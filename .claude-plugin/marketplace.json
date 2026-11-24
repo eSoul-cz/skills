@@ -2,25 +2,19 @@
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "esoul",
   "owner": { "name": "eSoul", "email": "info@esoul.cz", "url": "https://esoul.cz" },
-  "description": "eSoul's Claude workspace: the eSoul skills, a curated community pick, and the third-party engineering and design plugins the eSoul workflow relies on.",
+  "description": "eSoul's Claude workspace: the eSoul skills with the optional worker agents and hooks, and the third-party plugins the eSoul workflow relies on. The rest of the third-party layers is installed with `npx @esoul-cz/skills install`.",
   "plugins": [
     {
       "name": "esoul-skills",
       "source": "./",
       "category": "workflow",
-      "description": "eSoul's own skills, including the esoul-workflow entry point that sizes a task and routes it to the right skill."
-    },
-    {
-      "name": "esoul-awesome-picks",
-      "source": "./plugins/esoul-awesome-picks",
-      "category": "engineering",
-      "description": "Curated WordPress, Laravel/PHP, performance, accessibility, E2E, SEO, Docker, Jenkins, MySQL, data and GDPR skills."
+      "description": "eSoul's own skills in layers (core, dev, project, helpers, business), including the esoul-workflow entry point, plus optional worker agents and hooks."
     },
     {
       "name": "mattpocock-skills",
       "source": { "source": "github", "repo": "mattpocock/skills" },
       "category": "engineering",
-      "description": "Optional: Matt Pocock's full skill set. The parts the eSoul workflow uses are already adapted into esoul-skills. Upstream, updates from the author."
+      "description": "Matt Pocock's skill set. The eSoul skills build on its code-review, tdd, diagnosing-bugs, grilling, handoff, prototype, codebase-design and domain-modeling skills. Upstream, updates from the author."
     },
     {
       "name": "frontend-design",
