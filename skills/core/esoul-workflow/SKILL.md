@@ -41,7 +41,7 @@ Pick the smallest size that fits and say which in one line. Escalate as soon as 
 
 **Task (every size).** Every change starts from an issue or task with an outcome and acceptance criteria (`docs/project_guidelines/workflow.md` › Tasking). None exists: create it with `esoul-task-create`; small admin work (dependency updates, `Jenkinsfile`) goes without one only when the user says so. Pick up the task, assignee, status moves and the branch (`workflow.md` › Branches) with `esoul-task-work`; never start work on a task assigned to someone else. Done when the task exists with acceptance criteria, you are its assignee and the branch is created.
 
-**Project-level work.** Starting or retrofitting a project, client materials, ADRs, phases and slices, conformance: `esoul-project-lifecycle`. Updating a template-born project: `esoul-project-update`. They own everything up to a prepared issue; implementation comes back here.
+**Project-level work.** Starting or retrofitting a project, client materials, ADRs, phases and slices, conformance: `esoul-project-lifecycle`. Updating an existing project (guidelines version, skills lock, retired skill names; or a template-born project to the latest template): `esoul-project-update`. They own everything up to a prepared issue; implementation comes back here.
 
 **Plan (L).** In projects with `docs/plan/` plan through `esoul-project-lifecycle`. Write vertical, independently shippable slices, one task per slice, then run each as M. Write a handoff (`handoff`) when work must continue in another session. Done when every slice has a task and an acceptance check.
 

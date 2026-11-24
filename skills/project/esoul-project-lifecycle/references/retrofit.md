@@ -46,8 +46,10 @@ Create the retrofit work as issue + Freelo pairs up front, via `esoul-task-creat
    warning header (moved under `docs/plan/` and marked as historical).
 10. Plan and slices derived from three sources only: ADR gaps, open issues, and newly proposed
     feature pairs. See [plan-and-slices.md](plan-and-slices.md).
-11. The project's skills (`npx @esoul-cz/skills project init`, `skills-lock.json`); mutation testing
-    where the project's guideline layers include `package/mutation-testing`.
+11. The project's skills (`npx @esoul-cz/skills project init`, `skills-lock.json`); a project that
+    already has a lock from before the 0.26.0 layout, retired skill names in its files or an older
+    guidelines minor takes the setup update first (`esoul-project-update` › `references/setup.md`);
+    mutation testing where the project's guideline layers include `package/mutation-testing`.
 
 ## 3. Migrate an existing `docs/project_guidelines/`
 

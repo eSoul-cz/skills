@@ -1,9 +1,11 @@
 ---
 name: esoul-project-update
-description: "Use to bring a template-born eSoul project up to the latest app-templates: applies the changelog entries added since the commit in `.esoul/template.json`, one commit each, in one PR; skips the entries the project declined; also adopts a project that has no `.esoul/template.json`. Not for new projects or retrofits (esoul-project-lifecycle)."
+description: "Use to update an existing eSoul project: its eSoul setup (guidelines version, `skills-lock.json`, retired skill names in its files; references/setup.md), or a template-born project to the latest app-templates (applies the changelog entries added since the commit in `.esoul/template.json`, one commit each, in one PR; skips declined entries; adopts a project without `.esoul/template.json`). Not for new projects or retrofits (esoul-project-lifecycle)."
 ---
 
 # eSoul project update
+
+Two procedures, one skill. **Setup update:** the project's guidelines version, `skills-lock.json` and the retired skill names in its files ([references/setup.md](references/setup.md)). **Template update:** the steps below. A project that lags both takes the setup update first.
 
 A project built from `eSoul-cz/app-templates` records `{variant, commit, declined}` in `.esoul/template.json`: the variant it follows, the last app-templates commit it has caught up with, and the changelog entries it deliberately never takes. The template has no versions or tags: the entries of `CHANGELOG.md` in `eSoul-cz/app-templates` (newest first, each with `Affects:` and `Migration:`) are the update interface, and `main` of `eSoul-cz/template-<variant>` is the latest template. This skill carries the project from the recorded commit to `main` in one reviewable PR and never overwrites what the project made its own. Template facts: the builder's README, "Publishing flow" and "Updating existing projects".
 
@@ -12,7 +14,7 @@ Requires `esoul-workflow` (branch, checks, PR), `esoul-review` (finish the PR), 
 ## 1. Preconditions
 
 1. The worktree is clean and on an up-to-date default branch; the project has `AGENTS.md` and `docs/project_guidelines/`.
-2. An issue or task for the update exists, or the user has said in this conversation that it is small administrative work without one (ask; never assume). Name the branch by the branch rule of `docs/project_guidelines/workflow.md`: `chore/<issue-number>-update-template-<variant>`, and without an issue `chore/update-template-<variant>`.
+2. An issue or task for the update exists, or it is small administrative work without one: `CONTEXT.md › ## Tasking convention` records that allowance, or the user has said so in this conversation (otherwise ask; never assume). Name the branch by the branch rule of `docs/project_guidelines/workflow.md`: `chore/<issue-number>-update-template-<variant>`, and without an issue `chore/update-template-<variant>`.
 3. Read `.esoul/template.json`:
    - missing, or present without `commit` (an old record with a `version` key): adopt it first ([references/adopt.md](references/adopt.md), a retrofit action of `esoul-project-lifecycle` done here only for the update), then continue with the commit it recorded;
    - `commit: null`: [references/adopt.md](references/adopt.md), "commit: null" replaces steps 3 to 5 with a per-file comparison;

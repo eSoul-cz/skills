@@ -18,6 +18,9 @@ install routes, drift); read it there and do not copy it.
    files next to the rendered ones (step 5); they add to the guidelines.
 3. Cite a rule as `docs/project_guidelines/<file>.md` › Heading: the flat file name as rendered
    into the repository, no layer folder (`docs/project_guidelines/workflow.md` › Commits).
+4. A heading a skill cites that the project's files lack means the project's guidelines are older
+   than the skill: compare `package_version` in `esoul-guidelines.lock` with the latest release
+   and offer the update (step 3) instead of guessing the rule.
 
 Done when you can name the file and heading for each rule the change depends on. A repository
 without `docs/project_guidelines/` needs the install below.
@@ -80,7 +83,11 @@ esoul-guidelines sync
 Commit `esoul-guidelines.json`, `esoul-guidelines.lock`, `docs/project_guidelines/` and
 `AGENTS.md` (the managed block). `sync` refuses to overwrite a block that was edited locally;
 move the edit below the block instead of using `--force`. A new guideline version arrives with
-`composer update esoul-cz/guidelines` (or the newer PHAR) followed by `sync`.
+`composer update esoul-cz/guidelines` (or the newer PHAR) followed by `sync`; another minor needs
+the constraint raised first, because on 0.x `^0.3` never reaches 0.4 (`composer require --dev
+esoul-cz/guidelines:^<new minor>`). A project several versions behind, or one whose skills lock and skill
+names are old too, takes the setup update of `esoul-project-update`
+(`references/setup.md`: constraint, `sync`, reconcile, skills lock, retired names).
 
 A changed guideline rule is a change to `esoul-cz/guidelines`, never to the project: its own PR
 there.
@@ -91,7 +98,8 @@ committed.
 ## 4. Check in CI
 
 `esoul-guidelines check` is a read-only pipeline step: exit 1 means drift (a managed block was
-edited) or outdated content (run `sync`).
+edited) or outdated content (run `sync`). It finds drift, not violations: whether a change
+follows the guidelines is `esoul-review` (its standards-only path).
 
 - PHP project: `esoul-guidelines check` joins the other read-only checks of `tools.md`.
 - Project without PHP: CI runs the version recorded in `esoul-guidelines.lock`
