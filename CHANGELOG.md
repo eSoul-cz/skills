@@ -4,6 +4,10 @@ All notable changes to `eSoul-cz/skills` are recorded here. The format follows [
 
 ## Unreleased
 
+## 0.27.0 - 2026-11-24
+
+The npm helper `@esoul-cz/skills` 0.2.0 ships with this release, and the compatibility line holds now: the skills cite guideline sections that exist from `esoul-cz/guidelines` 0.5.0 (released 2026-11-24, the repository itself is rendered with it).
+
 ### Added
 
 - `esoul-project-lifecycle` › `references/bootstrap.md`: the `composer create-project esoul-cz/template-<variant>:dev-main <dir>` command in step 2 (with the three repositories of `astro-cms`), an "Adopt the template" checklist (the `replace-with-` values of the `Jenkinsfile` and `.env.example`, names, locks, what stays), and step 5 says every variant ships `esoul-guidelines.json` and the lock (`init` only for a project without them). `conformance.mjs` reports `replace-with-…` values in `Jenkinsfile`, `.env.example`, `composer.json` and `package.json` as the error `template-leftover` (test).
