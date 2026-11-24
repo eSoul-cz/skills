@@ -10,8 +10,8 @@ profile for the exact commands and the project's `tools.md` for the checks.
       (`composer check`, `pnpm check`, or the stack equivalent), named in `tools.md`.
 - [ ] Jenkins runs the same gates on every PR and `main`, plus `esoul-guidelines check`; the
       `Jenkins` check is required by the ruleset.
-- [ ] Static analysis at the strictest level the stack profile sets; existing violations, if any,
-      are in a ratchet baseline mapped to gap issues.
+- [ ] Static analysis at the strictest level the stack profile sets, with no PHPStan baseline;
+      existing violations, if any, are gap issues and the level is raised one step at a time.
 - [ ] Architecture or structure checks enforce the layer rules from the guidelines, and have a
       test proving they detect a breach.
 - [ ] Mutation testing: the `package/mutation-testing` layer is in `esoul-guidelines.json` and

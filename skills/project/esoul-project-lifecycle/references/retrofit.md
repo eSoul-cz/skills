@@ -35,8 +35,12 @@ Create the retrofit work as issue + Freelo pairs up front, via `esoul-task-creat
    the project part of `AGENTS.md`, LFS.
 4. Guidelines: `esoul-guidelines init` and `sync`, `esoul-guidelines check` in CI
    (skill `esoul-guidelines`); migrate an existing `docs/project_guidelines/`.
-5. Linters, strict types, formatter, one local check command. Existing violations go into a
-   ratchet (baseline or suppressions file) mapped to gap issues, so the list only shrinks.
+5. Linters, strict types, formatter, one local check command. Existing violations are mapped to
+   gap issues, so the list only shrinks. PHPStan gets no baseline (`docs/project_guidelines/tools.md` ›
+   Static analysis: the baseline stays empty, a new error is fixed, not baselined): raise the
+   level one step per PR, fixing what each step finds, and record the distance to the guideline's
+   level as a `**Target.**` block with a gap issue. A suppressions file is for a tool whose own
+   guideline allows one.
 6. Glossary from the code and the client's language.
 7. ADRs written retroactively. Each one states the target, then `Implementation status as of
    <date>` with the files and tests that implement it and every gap with its issue or
