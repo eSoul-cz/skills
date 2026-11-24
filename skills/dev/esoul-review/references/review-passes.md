@@ -84,7 +84,7 @@ Added to the Standards brief for the touched stacks. The guidelines of the stack
 - **Symfony:** Doctrine flush in loops, serializer groups exposing internal fields.
 - **JavaScript / TypeScript / Vue:** `any` and non-null assertions hiding real nulls, reactive state mutated outside its store, missing `key` in lists, unhandled promise rejections, `window` on the server, secrets in runtime config exposed to the client; a prop named like a local `computed`, props destructured into constants where reactivity is needed; a composable with module-level state (`frontend.md` › Composables with module-level state).
 - **WordPress:** `$wpdb->prepare`, escaping on output and sanitizing on input, no direct edits of core, plugins or Oxygen/Breakdance data outside their APIs, upload URLs relative to the domain.
-- **SQL and data scripts:** transactions, idempotent re-runs.
+- **SQL and data scripts:** transactions and idempotent re-runs; a dry run or a count of the affected rows before the write, and a `WHERE` on every `UPDATE` and `DELETE`; reported counts come from affected rows; one-off import scripts and their output are working material (`esoul-data`), not committed unless anonymised.
 - **Shell, CI, Docker:** quoting, `set -euo pipefail`, secrets passed as arguments or baked into images, pinned versions, cache keys.
 
 ## Verifier brief
