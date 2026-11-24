@@ -100,7 +100,7 @@ test('the helper package ships what its bin needs', async () => {
     const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
     assert.equal(pkg.name, '@esoul-cz/skills');
     assert.equal(pkg.publishConfig.access, 'public');
-    assert.deepEqual(pkg.dependencies ?? {}, {}, 'the helper has no runtime dependencies');
+    assert.deepEqual(Object.keys(pkg.dependencies ?? {}), ['@clack/prompts'], 'the only runtime dependency is the prompt library');
     for (const file of [pkg.bin['esoul-skills'], ...pkg.files, 'lib/cli.mjs', 'lib/layers.mjs', 'lib/stack.mjs']) {
         assert.ok(existsSync(join(root, file)), `${file} is missing`);
     }
