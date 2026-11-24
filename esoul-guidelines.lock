@@ -1,6 +1,6 @@
 {
     "schema_version": 1,
-    "package_version": "v0.3.4",
+    "package_version": "v0.3.5",
     "layers": [
         "general",
         "profile/internal"
