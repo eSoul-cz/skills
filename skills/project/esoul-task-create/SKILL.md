@@ -70,6 +70,9 @@ scenarios) leaves the minimal path and takes the full flow below.
 3. `github-freelo`: one GitHub repository (explicit target, repository configuration, or an
    unambiguous remote), and each result classified as a new pair, an existing pair to refine or a
    missing counterpart: [references/github-freelo.md](references/github-freelo.md).
+4. Platform items a task depends on (the Jenkins job, a Komodo stack, secrets in 1Password) are
+   asked of devops or the project lead and never created here; the task names who owes them
+   (`esoul-project-lifecycle` › `references/bootstrap.md` › New project infrastructure).
 
 Done when the mode, the project (and repository) are confirmed and the cache is loaded.
 
