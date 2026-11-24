@@ -16,13 +16,16 @@ Base: <ref> <sha>; head: <sha>
 Files to review (and only these): <path list, with status>
 Path instructions: <path glob → instructions, for the files above>
 What failure looks like here: <docs/project_guidelines/code-review.md › Default Critical findings and
-Default Major findings, plus the project's own, or "not defined">
+Default Major findings, plus the project's own, or "not defined"; with no guidelines in the project,
+the severity definitions of the general scale (`esoul-review` A2 › No guidelines in the project)>
 Already decided on this change (do not raise again without new evidence):
 <id or title, path:line, decision (fixed in <sha> | rejected: <reason> | accepted: <reason>); or "none">
 
 Read every hunk with enough surrounding code, callers and tests to judge it. Report only
 problems you can point to in the code. For each candidate return: severity (Critical, Major,
-Minor or Nitpick, as the guidelines' code-review.md defines them), title; location path:line;
+Minor or Nitpick, as the guidelines' code-review.md defines them; with no guidelines in the
+project, as the definitions above say, and then name the rule as general, not the project's),
+title; location path:line;
 evidence (at most 5 quoted lines); expected behaviour and its source; the smallest fix, as a
 unified diff when short; the test or check that proves it; confidence (high | medium, omit low);
 pre-existing (yes when the diff did not introduce it); instances (when the problem is a
