@@ -1,6 +1,6 @@
 ---
 name: esoul-docs
-description: Create, refresh or verify application documentation (user guide, developer/operator guide) as evidence-backed, audience-specific Markdown, with a documentation specification, screenshot manifest and redaction, and correctness and completeness review. Use for documentation specs, user or operator guides, doc refreshes after a change, screenshot plans, doc reviews; optionally builds reproducible PDFs with the `docs/documentation` tool and its CI stage. Not for contracts, reports or offers (esoul-office-documents, esoul-offer-authoring).
+description: Use to create, refresh or verify application documentation - user guides and developer/operator guides as evidence-backed Markdown, with a documentation specification, screenshot manifest and redaction, and correctness and completeness review. Owns client-facing application guides as PDF (optional `docs/documentation` tool and its CI stage). Not for DOCX/XLSX/PPTX business documents such as contracts, reports and offers (esoul-office-documents, esoul-offer-authoring).
 ---
 
 # Application documentation
@@ -12,9 +12,9 @@ Rules of the guidelines are not repeated here: `docs/project_guidelines/document
 ## Start every run
 
 1. Select `create`, `refresh` or `verify`. Ask only when the request does not imply a mode.
-2. Read [workflow.md](references/workflow.md) (shared policy: evidence, outlines, publication contract), then only the file for the mode: [workflow-create.md](references/workflow-create.md), [workflow-refresh.md](references/workflow-refresh.md) or [workflow-verify.md](references/workflow-verify.md).
+2. Read [workflow.md](references/workflow.md): the shared policy (evidence, outlines, publication contract), then only the section of the selected mode (Create, Refresh or Verify).
 3. Inspect the repository before asking what the code can answer.
-4. Read `docs/documentation-spec.md`, `docs/documentation-decisions.md`, `docs/documentation.toml` (when present) and the guides in scope. Look up domain terms in `GLOSSARY.md` (or the contexts named by `GLOSSARY-MAP.md`) when you need them; read it in full only when authoring or reviewing terminology.
+4. Read `docs/documentation-spec.md`, `docs/documentation-decisions.md`, `docs/documentation.toml` (when present) and the guides in scope. Look up domain terms as `esoul-workflow` describes (the term, not the whole glossary); read the glossary in full only when authoring or reviewing terminology.
 
 ## Specification first
 
@@ -32,7 +32,7 @@ The decision record (`docs/documentation-decisions.md`) is the documentation's o
 
 - One H1 per source file, relative links, descriptive image alt text, ordinary Markdown tables, fenced code, footnotes, GitHub alert callouts, Mermaid fences.
 - Each Mermaid fence is immediately preceded by `<!-- diagram-alt: ... -->`, a concise text alternative of the flow.
-- Math: `$...$` inline and `$$...$$` display with basic commands (fractions, roots, sums, Greek letters, `\text`, `\mathrm`, `\operatorname`); a command outside the PDF renderer's allow list fails the PDF build with `Unsafe TeX math command: \x`, so rewrite the formula with basic commands or put it in a fenced code block.
+- Math: `$...$` inline and `$$...$$` display with basic commands (fractions, roots, sums, Greek letters, `\text`, `\mathrm`, `\operatorname`). A command outside the PDF renderer's allow list is an error: `docs/documentation validate` names the file and the command (`unsafe TeX math command \x`), and the PDF build fails on it. Rewrite the formula with basic commands or put it in a fenced code block.
 - Planned content: a blockquote starting with bold `Planned`.
 - No raw LaTeX or renderer directives in authored pages; layout belongs in `docs/documentation.toml`.
 - Separate user and developer/operator guides by default; the approved specification may adapt chapters. Keep planning, decisions, review records and screenshot manifests out of PDF source lists.
@@ -62,13 +62,13 @@ Skip this section when the project publishes Markdown only. The PDFs are build a
 /docs/pdf/
 ```
 
-A PDF that Git already tracks stays tracked after the ignore rule: propose removing it from the index as the guideline says, as its own commit. `commit_pdf_outputs` in `docs/documentation.toml` is deprecated and stays `false` (the template forces it).
+A PDF that Git already tracks stays tracked after the ignore rule: propose removing it from the index as the guideline says, as its own commit. `commit_pdf_outputs` in `docs/documentation.toml` stays `false` (the default; `true` only prints a notice).
 
-**Install.** When `docs/documentation` is absent and setup or rendering was requested, or when previewing an upgrade, follow [setup.md](references/setup.md) after confirming the absolute project root. Treat `docs/documentation` as the only interface; without it, continue non-rendering work and report that project tooling is required before validation or PDF work. The tool distribution (Go, Lua, Docker, renderer, installer) is separate from this skill and is not reconstructed from these documents.
+**Install.** When `docs/documentation` is absent and setup or rendering was requested, or when previewing an upgrade, follow [setup.md](references/setup.md): the first install adds a committed wrapper, managed files and a renderer image pin, so it counts as a new dependency and needs the maintainer's approval, linked in the pull request (`docs/project_guidelines/workflow.md` › Repository rules); an upgrade needs only the user's confirmation of the previewed plan. Treat `docs/documentation` as the only interface; without it, continue non-rendering work and report that project tooling is required before validation or PDF work. The tool distribution (Go, Lua, Docker, renderer, installer) is separate from this skill and is not reconstructed from these documents.
 
 **Commands.** `docs/documentation doctor | validate | build | render | version`, and `docs/documentation redact <plan.json>` for screenshots. Run `doctor` before changing an installed tool profile or diagnosing a hosted renderer. Run `validate` and `build` through a test runner subagent when the harness offers one, which returns the verdict and failures only; otherwise run them yourself and keep only the failures.
 
-**Theme and templates.** `pdf.theme = "esoul"` for eSoul-branded client deliverables, `default` for neutral presentation unless the approved specification says otherwise. Licensed client fonts go in a project-owned directory listed by `pdf.font_dirs`. Read [pdf-pipeline.md](references/pdf-pipeline.md) only when changing the PDF configuration, theme, templates or math.
+**Theme, language and templates.** `pdf.theme = "esoul"` for eSoul-branded client deliverables, `default` for neutral presentation unless the approved specification says otherwise. Set `language` on each `[[guides]]` block to the language the specification names for that guide (`primary_language` is the default for guides without one). Licensed client fonts go in a project-owned directory listed by `pdf.font_dirs`. Read [pdf-pipeline.md](references/pdf-pipeline.md) only when changing the PDF configuration, theme, templates or math.
 
 **Visual inspection.** Inspect every rendered page, but not in the main session: when the harness offers subagents, delegate the page-by-page inspection of the page images in `rendered/` inside `work_dir` to a fresh-context reviewer, briefed to return only a defect list with page numbers, and open only the reported pages; otherwise inspect the pages yourself. Structural validation, successful builds, visual inspection and the privacy and accessibility checks are PDF gates of the Publication contract.
 

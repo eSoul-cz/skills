@@ -124,7 +124,7 @@ func prepareRemoteProfileUpgrade(
 	}
 	if version != targetVersion {
 		return remoteUpgradePlan{}, fmt.Errorf(
-			"catalog release %s does not match bundled managed tooling %s; use the tooling revision published for the target release",
+			"release %s does not match bundled managed tooling %s; use the tooling revision published for the target release",
 			targetVersion,
 			version,
 		)

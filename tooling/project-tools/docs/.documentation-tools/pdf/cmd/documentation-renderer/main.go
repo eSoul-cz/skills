@@ -38,6 +38,7 @@ var (
 	guideIDPattern        = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 	pagesPattern          = regexp.MustCompile(`(?m)^Pages:\s+([0-9]+)$`)
 	redactionColorPattern = regexp.MustCompile(`^#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?$`)
+	languageTagPattern    = regexp.MustCompile(`^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$`)
 	runCommand            = execute
 )
 
@@ -88,6 +89,7 @@ type guideConfig struct {
 	ID                 string   `toml:"id"`
 	Title              string   `toml:"title"`
 	Output             string   `toml:"output"`
+	Language           string   `toml:"language"`
 	DocumentVersion    string   `toml:"document_version"`
 	DocumentDate       string   `toml:"document_date"`
 	Classification     string   `toml:"classification"`
@@ -97,6 +99,11 @@ type guideConfig struct {
 	LinkNoticePaths    string   `toml:"link_notice_paths"`
 	Sources            []string `toml:"sources"`
 	LandscapeSources   []string `toml:"landscape_sources"`
+}
+
+// guideLanguage returns the language of one guide: its own `language`, else the project-wide `primary_language`, else English.
+func guideLanguage(cfg config, guide guideConfig) string {
+	return valueOr(guide.Language, valueOr(cfg.PrimaryLanguage, "en"))
 }
 
 type pandocDocument struct {
@@ -718,7 +725,7 @@ func writeMetadata(root, stagingDir, path string, cfg config, guide guideConfig)
 	values := []string{
 		"title: " + yamlString(title),
 		"subtitle: " + yamlString(strings.Join(metadata, " | ")),
-		"lang: " + yamlString(valueOr(cfg.PrimaryLanguage, "en")),
+		"lang: " + yamlString(guideLanguage(cfg, guide)),
 		"titlepage: " + strconv.FormatBool(!theme.Branded),
 		"toc: true",
 		"toc-own-page: true",

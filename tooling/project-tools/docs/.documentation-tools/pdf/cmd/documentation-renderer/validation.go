@@ -125,7 +125,7 @@ func validateProject(root string, cfg config) validationResult {
 	if workErr == nil {
 		validateDedicatedDirectory(root, workDir, "work_dir", &result)
 	}
-	validateDeprecatedOptions(cfg, &result)
+	noticeCommitPDFOutputs(cfg, &result)
 	validateGitState(root, cfg, &result)
 	validateProjectLogo(root, cfg.Project.Logo, &result)
 	validatePDFConfig(root, cfg.PDF, &result)
@@ -169,6 +169,9 @@ func validateProject(root string, cfg config) validationResult {
 		validateDisplayMetadata("document_version", guide.DocumentVersion, 80, label, &result)
 		validateDisplayMetadata("document_date", guide.DocumentDate, 80, label, &result)
 		validateDisplayMetadata("classification", guide.Classification, 80, label, &result)
+		if guide.Language != "" && !languageTagPattern.MatchString(guide.Language) {
+			result.error(fmt.Sprintf("Guide %s: language must be a language tag such as 'en' or 'cs'.", label))
+		}
 		seenOutputs[guide.Output] = true
 		if len(guide.Sources) == 0 {
 			result.error(fmt.Sprintf("Guide %s: sources must be a non-empty array.", label))
@@ -279,9 +282,9 @@ func validateDedicatedDirectory(root, directory, key string, result *validationR
 	}
 }
 
-func validateDeprecatedOptions(cfg config, result *validationResult) {
+func noticeCommitPDFOutputs(cfg config, result *validationResult) {
 	if cfg.CommitPDFOutputs {
-		result.warn("commit_pdf_outputs is deprecated and must be false: generated PDFs are never committed, not even to LFS. Set it to false and keep the PDF output directory ignored by Git.")
+		result.notice("commit_pdf_outputs is true, so the ignore check for the PDF output directory is skipped. The default is false: generated PDFs are build artifacts and are not committed (guideline documentation.md, Generated documentation).")
 	}
 }
 
@@ -430,6 +433,7 @@ func validateMarkdown(root, source string, cfg config, guideSources map[string]b
 			documentCache,
 		)
 	}
+	validateMath(relative, document, result)
 	validateRawHTMLImages(root, source, relative, pandocRawHTML(document), result, rasters)
 }
 

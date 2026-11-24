@@ -803,24 +803,6 @@ func TestPackagingUsesGoAndMermanWithoutBrowserRuntime(t *testing.T) {
 	}
 }
 
-func TestDeprecatedCommitPDFOutputsWarns(t *testing.T) {
-	deprecated := "commit_pdf_outputs is deprecated"
-	result := validationResult{}
-	cfg := baseValidationConfig()
-	validateDeprecatedOptions(cfg, &result)
-	if validationContains(result.Warnings, deprecated) {
-		t.Errorf("commit_pdf_outputs = false must not warn; warnings: %#v", result.Warnings)
-	}
-	cfg.CommitPDFOutputs = true
-	validateDeprecatedOptions(cfg, &result)
-	if !validationContains(result.Warnings, deprecated) {
-		t.Errorf("expected a deprecation warning for commit_pdf_outputs = true; warnings: %#v", result.Warnings)
-	}
-	if len(result.Errors) != 0 {
-		t.Errorf("the deprecation must be a warning, not an error; errors: %#v", result.Errors)
-	}
-}
-
 func baseValidationConfig() config {
 	return config{
 		SchemaVersion:    1,

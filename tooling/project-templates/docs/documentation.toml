@@ -1,10 +1,12 @@
 schema_version = 1
 documentation_version = ""
+# Default language of every guide; set `language` on a [[guides]] block to override it for that guide
+# (for example a Czech user guide and an English developer guide).
 primary_language = "en"
 output_dir = "docs/pdf"
 work_dir = "docs/.documentation-work"
-# Deprecated: keep false. Generated PDFs are never committed, not even to LFS
-# (guidelines general/documentation.md); the renderer warns when this is true.
+# Keep false (the default): generated PDFs are build artifacts and are not committed, not even to LFS
+# (guidelines general/documentation.md). true only prints a notice and skips the ignore check.
 commit_pdf_outputs = false
 
 [project]
@@ -62,6 +64,8 @@ allowed_hosts = []
 id = "user-guide"
 title = "Application User Guide"
 output = "application-user-guide.pdf"
+# Optional per-guide language (overrides primary_language):
+# language = "cs"
 # Optional eSoul cover metadata:
 # document_version = "1.0"
 # document_date = "28 July 2026"

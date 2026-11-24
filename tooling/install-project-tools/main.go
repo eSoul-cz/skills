@@ -51,10 +51,10 @@ func main() {
 	profile := flag.String("profile", "auto", "installation profile: auto, local, or remote")
 	configTemplate := flag.String("config-template", "", "create missing "+projectConfigRelativePath+" from this template")
 	rendererImage := flag.String("renderer-image", "", "immutable renderer image written to a newly initialized remote configuration")
-	planRemoteUpgrade := flag.Bool("plan-remote-upgrade", false, "preview a catalog-resolved remote-profile upgrade without changing files")
-	applyRemoteUpgrade := flag.Bool("apply-remote-upgrade", false, "apply a catalog-resolved remote-profile upgrade transaction")
-	targetVersion := flag.String("target-version", "", "catalog-resolved renderer version for a remote-upgrade operation")
-	targetImage := flag.String("target-image", "", "catalog-resolved immutable renderer image for a remote-upgrade operation")
+	planRemoteUpgrade := flag.Bool("plan-remote-upgrade", false, "preview a release-resolved remote-profile upgrade without changing files")
+	applyRemoteUpgrade := flag.Bool("apply-remote-upgrade", false, "apply a release-resolved remote-profile upgrade transaction")
+	targetVersion := flag.String("target-version", "", "release-resolved renderer version for a remote-upgrade operation")
+	targetImage := flag.String("target-image", "", "release-resolved immutable renderer image for a remote-upgrade operation")
 	targetConfigSchema := flag.Int("target-config-schema", 0, "required project configuration schema for a remote-upgrade operation")
 	displayProjectRoot := flag.String("display-project-root", "", "host project path shown by a remote-upgrade operation")
 	flag.Parse()
@@ -688,7 +688,7 @@ func installWithPostAction(
 		fmt.Println(postActionMessage)
 	}
 	fmt.Println("Ensure /docs/.documentation-work/ is ignored by Git.")
-	fmt.Println("Ignore /docs/pdf/ unless documentation.toml intentionally commits PDF outputs.")
+	fmt.Println("Keep the PDF output directory (/docs/pdf/ by default, or the configured output_dir) ignored by Git: generated PDFs are build artifacts and are not committed.")
 	return nil
 }
 

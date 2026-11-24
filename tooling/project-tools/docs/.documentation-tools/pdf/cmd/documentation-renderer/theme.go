@@ -304,7 +304,7 @@ func newThemeDocument(cfg config, guide guideConfig) themeDocument {
 		DocumentVersion: valueOr(guide.DocumentVersion, cfg.DocumentationVersion),
 		DocumentDate:    strings.TrimSpace(guide.DocumentDate),
 		Classification:  strings.TrimSpace(guide.Classification),
-		Language:        valueOr(cfg.PrimaryLanguage, "en"),
+		Language:        guideLanguage(cfg, guide),
 	}
 }
 

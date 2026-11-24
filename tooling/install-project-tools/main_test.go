@@ -90,6 +90,23 @@ func TestFreshInstallCheckAndDrift(t *testing.T) {
 	}
 }
 
+func TestInstallReminderKeepsPDFOutputIgnored(t *testing.T) {
+	assets := fixtureAssets(t, "0.4.0", map[string]fixtureFile{
+		"docs/documentation":                {Content: "#!/bin/sh\n", Mode: 0o755},
+		"docs/.documentation-tools/VERSION": {Content: "0.4.0\n", Mode: 0o644},
+	})
+	output, err := captureStdout(t, func() error { return install(t.TempDir(), assets, false, "local") })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output, "Keep the PDF output directory") || !strings.Contains(output, "are not committed") {
+		t.Fatalf("expected the PDF-ignore reminder; output: %s", output)
+	}
+	if strings.Contains(output, "unless documentation.toml intentionally commits") {
+		t.Fatalf("the reminder must not allow committed PDFs; output: %s", output)
+	}
+}
+
 func TestFreshInstallRefusesUnmanagedConflict(t *testing.T) {
 	assets := fixtureAssets(t, "0.4.0", map[string]fixtureFile{
 		"docs/documentation":                {Content: "managed\n", Mode: 0o755},
