@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { execFile } from 'node:child_process';
+import { execFile, spawnSync } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -70,6 +70,9 @@ test('every source of layers.json resolves and lists its skills', { skip: proces
         layers: new Set(['own']),
     });
     const entries = [...sources.values()];
+    // Concurrent first runs of `npx -y skills` race on the shared npx cache (ENOTEMPTY); install it once before the parallel listing.
+    const warm = spawnSync('npx', ['-y', 'skills', '--help'], { encoding: 'utf8', timeout: 240000 });
+    assert.equal(warm.status, 0, `npx -y skills --help failed: ${warm.stderr}`);
     const listed = await Promise.all(entries.map(({ source }) => listSkills(source)));
     const missing = [];
     entries.forEach(({ source, skills, layers }, index) => {
