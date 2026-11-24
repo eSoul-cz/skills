@@ -21,5 +21,7 @@ if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
     exit 1
 fi
 
-tar --exclude=.git --exclude=node_modules -cf - . |
+# COPYFILE_DISABLE and the `._*` exclude keep the macOS AppleDouble files out of the stream: on a macOS agent they
+# would appear next to every file and the tests that list a folder would read them as real files.
+COPYFILE_DISABLE=1 tar --exclude=.git --exclude=node_modules --exclude='._*' -cf - . |
     docker run --rm -i "${NODE_IMAGE}" sh -c 'mkdir /work && cd /work && tar -xf - && exec node "$@"' node_run "$@"

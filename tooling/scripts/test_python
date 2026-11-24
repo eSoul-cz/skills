@@ -35,5 +35,5 @@ if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
     exit 1
 fi
 
-tar --exclude=.git --exclude=node_modules -cf - . |
+COPYFILE_DISABLE=1 tar --exclude=.git --exclude=node_modules --exclude='._*' -cf - . |
     docker run --rm -i "${PYTHON_IMAGE}" sh -c "mkdir /work && cd /work && tar -xf - && sh -c '${DISCOVER}'"
