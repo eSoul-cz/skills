@@ -13,12 +13,15 @@ What a test contains and how many a change gets: `docs/project_guidelines/testin
 |---|---|
 | Deciding how many tests a behaviour gets | How much to test |
 | Scaffolding tests (migration, backfill, import, ETL rules, exploration) | Temporary tests |
-| A suite or a PR that adds test time | Suite time budget |
+| A suite or a PR that adds test time | Suite time budget (measure it as below) |
 | `sandbox`, `quarantine`, `db-engine` | Test groups |
 | A test that fails and passes on the same tree | Flaky tests |
 | Bug fix | Regression tests, and `workflow.md` › Fixing a bug |
 | Behaviour change without a test | Every behaviour change carries a test (`No test:` line) |
 | Final run before the PR | Testing workflow |
+| Mutation testing, where the project has the `package/mutation-testing` layer | Mutation testing: a diagnostic, never a gate and never in the pull request; a run is waiting, not work (`esoul-task-work` › `references/freelo.md`) |
+
+Measuring the 30 seconds: the project's `phpunit.xml` writes `.ci/junit/phpunit.xml` (`<logging><junit outputFile=".ci/junit/phpunit.xml"/></logging>`; the template has it), the `PHP Tests` stage publishes it, and Jenkins shows the per-test times on the build's Test Result page. Locally, run the full suite before and after the change and sum the test cases of the report: `grep -o '<testcase [^>]*' .ci/junit/phpunit.xml | grep -o ' time="[0-9.]*"' | awk -F'"' '{s+=$2} END{print s " s"}'`. A project without the report gets the `<logging>` line first.
 
 ## Writing tests: the upstream `tdd` skill
 

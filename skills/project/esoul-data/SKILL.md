@@ -52,11 +52,11 @@ Both hold:
 | Data model | migrations, schema changes, added, removed or renamed columns, column types, `nullable`/`unique`, indexes, foreign keys, relations, enums, seeders, factories |
 | Data changed through code | one-off PHP scripts, `tinker`, `artisan` commands that change production data |
 
-It applies even when the change is "one line" or the user mentions it in passing. When unsure whether something is in the table, treat it as if it is. A schema change the issue explicitly specifies and that was approved is in scope and may be implemented.
+It applies even when the change is "one line" or the user mentions it in passing. When unsure whether something is in the table, treat it as if it is. A schema change the issue explicitly specifies and that was approved is in scope and may be implemented, and so is an importer, command or migration the issue names or specifies: build it with its tests. The table covers what the issue does not specify.
 
 ### What is allowed
 
-- Read code, migrations, schema and data (`SELECT`, `EXPLAIN`, `SHOW CREATE TABLE`) under the data rules of `security-and-data.md`: ask the owner before reading production or sensitive data; a data fix reaches a real environment only as a reviewed migration or a command, which you propose as new work; nothing you read is exported into the repository, issues or PRs.
+- Read code, migrations, schema and data (`SELECT`, `EXPLAIN`, `SHOW CREATE TABLE`) under the data rules of `security-and-data.md`: ask the owner before reading production or sensitive data; a data fix reaches a real environment only as a reviewed migration or a command, which you propose as new work; nothing you read is exported into the repository, issues or PRs. The owner's approval to read production or sensitive data, and to write to a local database or environment for this task, is recorded as a comment in the data issue (who approved, what, when), like the "just do it" approval below; ask where it is, and when it is missing, ask the user to have the owner add it before you read or write.
 - Analyse data, quantify the impact, prepare an anonymised sample of the faulty records.
 - Write a **proposal** with a concrete diff, SQL or migration as an example in the text of the new work: the GitHub issue in `github-freelo` mode, the Freelo task description in `freelo-only` mode. A proposal in that text is fine; a proposal written into a file in the repository is not.
 - Finish every part of the data task that needs no such change.

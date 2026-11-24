@@ -12,6 +12,10 @@ Language of the title (descriptions and Freelo text stay Czech):
 
 The pull request title is derived from the task title when the PR is opened (`esoul-task-work` › Open the PR). In `freelo-only` mode the PR links the Freelo task URL instead of an issue.
 
+### Category label
+
+The category is a label, never a prefix. A feature that spans layers (frontend and backend) is one result, so one issue: it takes the label of the larger part, or both labels where `CONTEXT.md › ## Tasking convention` allows more than one category label (a project that says "exactly one" means one). Separate issues per layer only when each part is independently deliverable.
+
 ### Description
 
 Optimize for a typical programmer's understanding, not maximum technical density. Use a short narrative for simple work and optional sections for complex work. Select only useful sections:
