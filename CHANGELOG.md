@@ -4,6 +4,21 @@ All notable changes to `eSoul-cz/skills` are recorded here. The format follows [
 
 ## Unreleased
 
+## 0.27.1 - 2026-11-24
+
+Patch release with the npm helper `@esoul-cz/skills` 0.2.1 (owner feedback on the helper; the skills themselves are unchanged). Reasons: a developer should see and trim what gets installed instead of learning the layer names, and a full install ran the same `npx skills add` for one repository several times (each run clones the source again).
+
+### Added
+
+- `esoul-skills install` (without a layer) and `esoul-skills project init` open an interactive selector in a terminal without `--yes`: the target first (`auto`, `project` or `user`; preselected from the command: `project init`, `--project` and `-p` give `project`, `--global` and `-g` give `user`, otherwise `auto`), then the layers (core, dev and upstream-core and the stack groups `project init` detected are preselected; each is shown with where it goes, for example `core (project)`; the layers they require are added after a question), then the skills of those layers grouped by layer, third-party sources included (deselect one to skip it). `--dry-run` works with it and prints the batched commands. The prompt library is `@clack/prompts` (the one `npx skills` uses), the helper's only runtime dependency, loaded only when a terminal asks.
+- `--target auto|project|user`: `auto` (the default) sends each layer where `layers.json` says, so one run can install project and user skills; `project` and `user` put every layer there. `--global`/`-g` and `--project`/`-p` stay as aliases (`--target` wins over them), and the commands of a named, non-interactive selection are unchanged.
+- Tests: batching per source and scope, the pinned commands of a named selection, `--target` and its aliases, and the selector with a stubbed prompt layer (target, layers, skills, required layers, declining, a failing run).
+
+### Changed
+
+- The helper runs one `npx skills add` per source repository, ref and target (all chosen skills of that source in one `--skill` list) instead of one per layer and source: a full `install` of every layer takes 10 runs instead of 15, `project init` 4 instead of 5. The error message after a failed run and the `skills-lock.json` and `.agents/skills/` reminder for project scope are unchanged; the printed plan names the layers of a run (`[core, dev · project]`).
+- `esoul-skills install --yes` without a layer is now an error also in a terminal (the old readline prompt asked despite `--yes`); `engines.node` is `>=20.12.0`, the minimum of `@clack/prompts`.
+
 ## 0.27.0 - 2026-11-24
 
 The npm helper `@esoul-cz/skills` 0.2.0 ships with this release, and the compatibility line holds now: the skills cite guideline sections that exist from `esoul-cz/guidelines` 0.5.0 (released 2026-11-24, the repository itself is rendered with it).

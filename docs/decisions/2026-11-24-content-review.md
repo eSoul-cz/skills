@@ -865,3 +865,10 @@ Layers 1–2 installed per project (every developer gets them); others are globa
 - 09 g2: `workflow.md` says a new stage in the push build is not small admin work (needs an ADR per the deployment rule). 09 g5: `project init` installs `esoul-jenkins-libraries` for projects with a `Jenkinsfile` when the developer has access (private repo; skipped otherwise).
 - 03 g10 / 02 g9: a `commit: null` adoption may record declined groups of files in `declined`.
 - 10 g5: yes, a "SQL and data scripts" note in `esoul-review` stack references.
+
+### Helper selector (owner feedback, 2026-11-24, plugin 0.27.1)
+
+- Interactive selector for `install` and `project init` in a terminal (target, layers, skills; third-party skills listed where `layers.json` names them), non-interactive behaviour for scripts and CI unchanged. Reason: people should see and trim what is installed without learning the layer names.
+- Target choice (owner): `auto`, `project` or `user`, asked first so the layer step can show where each layer goes; `auto` (each layer to its own scope from `layers.json`) lets one command install project and user skills. Preselected from the command; `--target` plus the existing flags as aliases.
+- One `npx skills add` per (source, scope) instead of per layer and source (fewer clones; 15 to 10 for a full install). The variadic `--skill a b c` form stays; `--skill a --skill b` was checked against `skills` 1.9.0 and works too.
+- `@clack/prompts` chosen (as `npx skills`), lazy-loaded so tests and scripts need no `node_modules`; the helper test now allows exactly this one dependency.

@@ -1,6 +1,6 @@
 {
   "name": "@esoul-cz/skills",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Installer for the eSoul agent skills: seven layers (core, dev, project, helpers, business and the third-party manifests) on top of `npx skills`.",
   "keywords": ["agent-skills", "skills", "claude-code", "codex", "esoul"],
   "homepage": "https://github.com/eSoul-cz/skills#readme",

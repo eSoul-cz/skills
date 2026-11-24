@@ -2,7 +2,7 @@
 
 Reusable agent skills and companion tools for eSoul projects, installed in layers.
 
-**Version.** The Claude Code plugin (`esoul-skills`) is at **0.27.0**; each release is tagged `plugin-<version>` (the bare `0.6.x` tags belong to the documentation tool). The helper package `@esoul-cz/skills` has its own version in `package.json` (0.2.0 ships with plugin 0.27.0). Maintainers are listed in [`CONTEXT.md`](CONTEXT.md).
+**Version.** The Claude Code plugin (`esoul-skills`) is at **0.27.1**; each release is tagged `plugin-<version>` (the bare `0.6.x` tags belong to the documentation tool). The helper package `@esoul-cz/skills` has its own version in `package.json` (0.2.1 ships with plugin 0.27.1). Maintainers are listed in [`CONTEXT.md`](CONTEXT.md).
 
 **Principles.** The guidelines (`eSoul-cz/guidelines`) are the source of truth; a skill holds only the procedure for an agent and points to the guideline by file and heading. The eSoul skills build on [mattpocock's skills](https://github.com/mattpocock/skills), which are installed from their source and never copied here. Every layer works without the optional ones; a skill that uses a more optional skill says what to do when it is missing. Agents, hooks and Codex files are optional.
 
