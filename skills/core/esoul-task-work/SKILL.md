@@ -84,7 +84,9 @@ body.
 › Pull requests say, and write it in the commit standard of the developer you work for.
 Mapping into the recommended Gitmoji format: the context becomes the lowercase kebab-case
 `[context]`, the result stays the message, `Order history: Add filter` →
-`:sparkles: [order-history] Add filter`.
+`:sparkles: [order-history] Add filter`. The PR title is always English: when the tracker title is
+Czech (a project that keeps Czech tracker titles), the PR title is an English, descriptive title of
+the same result that links the issue (`workflow.md` › Tasking), never the Czech title.
 `gitmoji-commit` writes the commits and this title when it is installed; a developer's or
 repository's own standard is applied the same way (`workflow.md` › Commits).
 
