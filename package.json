@@ -1,0 +1,30 @@
+{
+  "name": "@esoul-cz/skills",
+  "version": "0.1.0",
+  "description": "Installer for the eSoul agent skills: seven layers (core, dev, project, helpers, business and the third-party manifests) on top of `npx skills`.",
+  "keywords": ["agent-skills", "skills", "claude-code", "codex", "esoul"],
+  "homepage": "https://github.com/eSoul-cz/skills#readme",
+  "repository": { "type": "git", "url": "git+https://github.com/eSoul-cz/skills.git" },
+  "bugs": { "url": "https://github.com/eSoul-cz/skills/issues" },
+  "license": "MIT",
+  "author": "eSoul <info@esoul.cz> (https://esoul.cz)",
+  "type": "module",
+  "bin": {
+    "esoul-skills": "bin/esoul-skills.mjs"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "layers.json",
+    "codex"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "test": "node --test tooling/scripts/test_layers.mjs tooling/scripts/test_layers_manifest.mjs"
+  }
+}

@@ -1,0 +1,346 @@
+{
+  "version": 1,
+  "repo": "eSoul-cz/skills",
+  "layers": {
+    "core": {
+      "title": "General workflow and rules",
+      "description": "The entry-point workflow, the managed guidelines and the development side of tasking. Every developer gets it in every project.",
+      "scope": "project",
+      "requires": [],
+      "skills": [
+        "esoul-workflow",
+        "esoul-guidelines",
+        "esoul-task-work"
+      ]
+    },
+    "dev": {
+      "title": "Code development work",
+      "description": "Code review and PR loop, testing, application documentation. Builds on the upstream code-review, tdd and diagnosing-bugs skills.",
+      "scope": "project",
+      "requires": [
+        "core",
+        "upstream-core"
+      ],
+      "skills": [
+        "esoul-review",
+        "esoul-testing",
+        "esoul-docs"
+      ]
+    },
+    "project": {
+      "title": "Optional project steps",
+      "description": "Project setup and updates, UAT, task creation, data and import work, mockups.",
+      "scope": "user",
+      "requires": [
+        "core"
+      ],
+      "skills": [
+        "esoul-project-lifecycle",
+        "esoul-project-update",
+        "esoul-uat",
+        "esoul-task-create",
+        "esoul-data",
+        "esoul-mockup-authoring"
+      ]
+    },
+    "helpers": {
+      "title": "Optional helpers and tools",
+      "description": "Recommended commit format, model routing and role briefs, and the optional test queue. The worker agents and hooks are installed separately (esoul-skills agents).",
+      "scope": "user",
+      "requires": [],
+      "skills": [
+        "gitmoji-commit",
+        "esoul-model-routing"
+      ],
+      "sources": [
+        {
+          "repo": "eSoul-cz/test-queue",
+          "skills": [
+            "test-queue"
+          ],
+          "optional": true
+        }
+      ]
+    },
+    "business": {
+      "title": "Project-management skills",
+      "description": "Office documents and client offers.",
+      "scope": "user",
+      "requires": [],
+      "skills": [
+        "esoul-office-documents",
+        "esoul-offer-authoring"
+      ]
+    },
+    "upstream-core": {
+      "title": "Core third-party skills",
+      "description": "Installed from their source, never copied into this repository: mattpocock's engineering skills (pinned to a tag), the official Freelo skill, find-skills, and stack skills (groups, installed by `project init` when the project's stack matches).",
+      "scope": "project",
+      "requires": [],
+      "sources": [
+        {
+          "repo": "mattpocock/skills",
+          "ref": "v1.3.2",
+          "skills": [
+            "code-review",
+            "tdd",
+            "diagnosing-bugs",
+            "grilling",
+            "handoff",
+            "prototype",
+            "codebase-design",
+            "domain-modeling",
+            "improve-codebase-architecture",
+            "research",
+            "implement",
+            "grill-with-docs",
+            "grill-me",
+            "to-questionnaire",
+            "teach",
+            "wait-what",
+            "writing-for-agents"
+          ]
+        },
+        {
+          "repo": "freeloio/freelo-cli",
+          "skills": [
+            "freelo"
+          ]
+        },
+        {
+          "repo": "vercel-labs/skills",
+          "skills": [
+            "find-skills"
+          ]
+        }
+      ],
+      "groups": {
+        "lsr": {
+          "default": false,
+          "detect": [
+            "framework/lsr"
+          ],
+          "sources": [
+            {
+              "repo": "Heroyt/lsr-skills",
+              "skills": [
+                "lsr-app-di",
+                "lsr-async-jobs",
+                "lsr-auth-session",
+                "lsr-cache",
+                "lsr-console",
+                "lsr-cqrs",
+                "lsr-db",
+                "lsr-db-migrations",
+                "lsr-framework-orchestration",
+                "lsr-inertia-backend",
+                "lsr-latte-stack",
+                "lsr-localization",
+                "lsr-logging",
+                "lsr-observability",
+                "lsr-orm",
+                "lsr-quality-rules",
+                "lsr-request-flow",
+                "lsr-roadrunner-runtime",
+                "lsr-routing",
+                "lsr-scheduler",
+                "lsr-serializer-validation",
+                "lsr-text-catalog",
+                "lsr-vue-inertia"
+              ]
+            }
+          ]
+        },
+        "vue": {
+          "default": false,
+          "detect": [
+            "package/inertia-vue"
+          ],
+          "sources": [
+            {
+              "repo": "vuejs-ai/skills",
+              "skills": [
+                "vue-best-practices",
+                "vue-debug-guides",
+                "create-adaptable-composable"
+              ]
+            },
+            {
+              "repo": "unovue/shadcn-vue",
+              "skills": [
+                "shadcn-vue"
+              ]
+            }
+          ]
+        },
+        "vue-options-api": {
+          "default": false,
+          "sources": [
+            {
+              "repo": "vuejs-ai/skills",
+              "skills": [
+                "vue-options-api-best-practices"
+              ]
+            }
+          ]
+        },
+        "laravel": {
+          "default": false,
+          "detect": [
+            "framework/laravel"
+          ],
+          "managedBy": "Laravel Boost",
+          "sources": []
+        }
+      }
+    },
+    "upstream-picks": {
+      "title": "Recommended third-party skills",
+      "description": "Manifest of community skills eSoul found useful, split by tool, plus the optional rest of mattpocock's set. The project guidelines take precedence over their advice. Install a group with upstream-picks:<group>.",
+      "scope": "user",
+      "requires": [],
+      "groups": {
+        "laravel": {
+          "sources": [
+            {
+              "repo": "sickn33/agentic-awesome-skills",
+              "skills": [
+                "php-pro",
+                "laravel-expert",
+                "laravel-security-audit"
+              ]
+            }
+          ]
+        },
+        "wordpress": {
+          "sources": [
+            {
+              "repo": "sickn33/agentic-awesome-skills",
+              "skills": [
+                "wordpress-plugin-development",
+                "wordpress-theme-development",
+                "wordpress-woocommerce-development"
+              ]
+            }
+          ]
+        },
+        "web": {
+          "sources": [
+            {
+              "repo": "sickn33/agentic-awesome-skills",
+              "skills": [
+                "seo-audit",
+                "web-performance-optimization",
+                "accessibility-compliance-accessibility-audit"
+              ]
+            },
+            {
+              "repo": "AgriciDaniel/claude-seo",
+              "skills": [
+                "seo-schema",
+                "seo-technical"
+              ]
+            }
+          ]
+        },
+        "frontend": {
+          "sources": [
+            {
+              "repo": "anthropics/skills",
+              "skills": [
+                "frontend-design"
+              ]
+            },
+            {
+              "repo": "stareezy-1/frontend-architecture-skill",
+              "skills": [
+                "frontend-architecture",
+                "frontend-lighthouse"
+              ]
+            }
+          ]
+        },
+        "devops": {
+          "sources": [
+            {
+              "repo": "sickn33/agentic-awesome-skills",
+              "skills": [
+                "docker-expert"
+              ]
+            },
+            {
+              "repo": "BagelHole/DevOps-Security-Agent-Skills",
+              "skills": [
+                "mysql"
+              ]
+            }
+          ]
+        },
+        "testing": {
+          "sources": [
+            {
+              "repo": "sickn33/agentic-awesome-skills",
+              "skills": [
+                "e2e-testing",
+                "e2e-testing-patterns"
+              ]
+            }
+          ]
+        },
+        "data": {
+          "sources": [
+            {
+              "repo": "sickn33/agentic-awesome-skills",
+              "skills": [
+                "sql-optimization-patterns",
+                "data-storytelling"
+              ]
+            }
+          ]
+        },
+        "jenkins": {
+          "sources": [
+            {
+              "repo": "eSoul-cz/jenkins-libraries",
+              "skills": [
+                "esoul-jenkins-libraries"
+              ]
+            }
+          ]
+        },
+        "matt-extra": {
+          "default": false,
+          "sources": [
+            {
+              "repo": "mattpocock/skills",
+              "ref": "v1.3.2",
+              "skills": [
+                "to-spec",
+                "to-tickets",
+                "triage",
+                "wayfinder",
+                "implement-spec",
+                "pr",
+                "setup-matt-pocock-skills",
+                "git-guardrails-claude-code",
+                "ask-matt",
+                "retro",
+                "wizard",
+                "migrate-to-shoehorn",
+                "scaffold-exercises",
+                "setup-pre-commit",
+                "chief-of-staff",
+                "claude-handoff",
+                "loop-me",
+                "setup-ts-deep-modules",
+                "writing-beats",
+                "writing-fragments",
+                "writing-shape"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}
