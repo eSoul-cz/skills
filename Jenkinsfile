@@ -1,18 +1,31 @@
 @Library(['testing', 'dockerHelpers']) _
 
+// True when the previous build of this job did not succeed or there is none. A `changeset` condition only sees the
+// commits since the previous build, so after a red build every stage runs again instead of skipping the broken one.
+def previousBuildFailed() {
+	def previous = currentBuild.previousBuild
+	return previous == null || previous.result != 'SUCCESS'
+}
+
 pipeline {
 	// A branch or pull request build only verifies, which takes minutes: it may run on the
 	// Quick node (label quick, reserved for the quick jobs of the infrastructure repositories)
 	// or on a general one, and has to end within the 15 minutes that node allows. A tag build
-	// publishes the multi-arch images and waits for the image builders, so it stays on a
-	// general node with the long limit.
-	agent { label env.TAG_NAME ? 'general' : 'quick || general' }
+	// publishes the multi-arch images and waits for the image builders, and a build of the
+	// default branch (the weekly scheduled build runs every stage there), so both stay on a
+	// general node with a long limit.
+	agent { label((env.TAG_NAME || env.BRANCH_NAME == 'master') ? 'general' : 'quick || general') }
+
+	// The full run every Monday morning on the default branch: every test group and the upstream release check.
+	triggers {
+		cron(env.BRANCH_NAME == 'master' ? 'H H(4-6) * * 1' : '')
+	}
 
 	options {
 		disableConcurrentBuilds()
 		skipDefaultCheckout(true)
 		timestamps()
-		timeout(time: env.TAG_NAME ? 120 : 15, unit: 'MINUTES')
+		timeout(time: env.TAG_NAME ? 120 : (env.BRANCH_NAME == 'master' ? 45 : 15), unit: 'MINUTES')
 	}
 
 	environment {
@@ -56,15 +69,210 @@ pipeline {
 			}
 		}
 
-		stage('Verify skills') {
+		// The release notes of a tooling release are the `## <version>` section of tooling/CHANGELOG.md. A missing or empty
+		// section fails the tag build before anything is built or published.
+		stage('Read release notes') {
+			when {
+				allOf {
+					buildingTag()
+					expression { env.PLUGIN_RELEASE != 'true' }
+				}
+			}
 			steps {
-				sh 'tooling/scripts/test_skills'
+				script {
+					env.UPGRADE_NOTES = sh(
+						script: "tooling/scripts/node_run tooling/scripts/release_notes.mjs '${env.DOCUMENTATION_TOOLS_VERSION}'",
+						returnStdout: true
+					).trim()
+					echo "Release notes: ${env.UPGRADE_NOTES}"
+				}
+			}
+		}
+
+		// Each test group runs when its files changed, and always on a tag, on the scheduled build and after a build that
+		// did not succeed (a changeset only lists the commits since the previous build, so a red build must not turn
+		// green by skipping the stage that failed). `changeset` patterns are Ant patterns.
+		stage('Verify skills') {
+			when {
+				anyOf {
+					buildingTag()
+					triggeredBy 'TimerTrigger'
+					expression { previousBuildFailed() }
+					changeset 'skills/**'
+					changeset 'agents/**'
+					changeset 'hooks/**'
+					changeset 'codex/**'
+					changeset 'lib/**'
+					changeset 'bin/**'
+					changeset 'layers.json'
+					changeset 'package.json'
+					changeset 'README.md'
+					changeset '.claude-plugin/**'
+					changeset 'tooling/scripts/**'
+					changeset 'Jenkinsfile'
+				}
+			}
+			steps {
+				sh 'tooling/scripts/test_skills contract'
+			}
+		}
+
+		stage('Verify review scripts') {
+			when {
+				anyOf {
+					buildingTag()
+					triggeredBy 'TimerTrigger'
+					expression { previousBuildFailed() }
+					changeset 'skills/dev/esoul-review/**'
+					changeset 'tooling/review-evals/**'
+					changeset 'tooling/scripts/**'
+				}
+			}
+			steps {
+				sh 'tooling/scripts/test_skills review'
+			}
+		}
+
+		// One stage per skill folder that holds Node tests. The 'Verify skills' stage fails when a skill with tests is missing here.
+		stage('Verify skill scripts: esoul-task-work') {
+			when {
+				anyOf {
+					buildingTag()
+					triggeredBy 'TimerTrigger'
+					expression { previousBuildFailed() }
+					changeset 'skills/core/esoul-task-work/**'
+					changeset 'tooling/scripts/**'
+				}
+			}
+			steps {
+				sh 'tooling/scripts/test_skills skills/core/esoul-task-work'
+			}
+		}
+
+		stage('Verify skill scripts: esoul-project-lifecycle') {
+			when {
+				anyOf {
+					buildingTag()
+					triggeredBy 'TimerTrigger'
+					expression { previousBuildFailed() }
+					changeset 'skills/project/esoul-project-lifecycle/**'
+					changeset 'tooling/scripts/**'
+				}
+			}
+			steps {
+				sh 'tooling/scripts/test_skills skills/project/esoul-project-lifecycle'
+			}
+		}
+
+		stage('Verify skill scripts: esoul-project-update') {
+			when {
+				anyOf {
+					buildingTag()
+					triggeredBy 'TimerTrigger'
+					expression { previousBuildFailed() }
+					changeset 'skills/project/esoul-project-update/**'
+					changeset 'tooling/scripts/**'
+				}
+			}
+			steps {
+				sh 'tooling/scripts/test_skills skills/project/esoul-project-update'
+			}
+		}
+
+		stage('Verify skill scripts: esoul-quality-gates') {
+			when {
+				anyOf {
+					buildingTag()
+					triggeredBy 'TimerTrigger'
+					expression { previousBuildFailed() }
+					changeset 'skills/project/esoul-quality-gates/**'
+					changeset 'tooling/scripts/**'
+				}
+			}
+			steps {
+				sh 'tooling/scripts/test_skills skills/project/esoul-quality-gates'
+			}
+		}
+
+		stage('Verify skill scripts: esoul-uat') {
+			when {
+				anyOf {
+					buildingTag()
+					triggeredBy 'TimerTrigger'
+					expression { previousBuildFailed() }
+					changeset 'skills/project/esoul-uat/**'
+					changeset 'tooling/scripts/**'
+				}
+			}
+			steps {
+				sh 'tooling/scripts/test_skills skills/project/esoul-uat'
+			}
+		}
+
+		stage('Verify skill scripts: esoul-website-launch') {
+			when {
+				anyOf {
+					buildingTag()
+					triggeredBy 'TimerTrigger'
+					expression { previousBuildFailed() }
+					changeset 'skills/project/esoul-website-launch/**'
+					changeset 'tooling/scripts/**'
+				}
+			}
+			steps {
+				sh 'tooling/scripts/test_skills skills/project/esoul-website-launch'
+			}
+		}
+
+		stage('Verify skill scripts: esoul-mockup-authoring') {
+			when {
+				anyOf {
+					buildingTag()
+					triggeredBy 'TimerTrigger'
+					expression { previousBuildFailed() }
+					changeset 'skills/project/esoul-mockup-authoring/**'
+					changeset 'tooling/scripts/**'
+				}
+			}
+			steps {
+				sh 'tooling/scripts/test_skills skills/project/esoul-mockup-authoring'
+			}
+		}
+
+		// The Python tests of the skills (stdlib unittest, in a python:3 container when the node has no python3). The mockup
+		// preview test (tooling/scripts/test_mockup_preview.mjs) needs an application checkout and Chrome and stays manual.
+		stage('Verify Python scripts') {
+			when {
+				anyOf {
+					buildingTag()
+					triggeredBy 'TimerTrigger'
+					expression { previousBuildFailed() }
+					changeset 'skills/**/*.py'
+					changeset 'skills/**/requirements*.txt'
+					changeset 'tooling/scripts/test_python'
+				}
+			}
+			steps {
+				sh 'tooling/scripts/test_python'
 			}
 		}
 
 		// The rules rendered by `esoul-guidelines` are current and unedited. The check runs the installer version the project recorded
 		// in esoul-guidelines.lock (that release's PHAR, checksum verified, in the PHP test image), so a guidelines release cannot break it.
 		stage('Verify guidelines') {
+			when {
+				anyOf {
+					buildingTag()
+					triggeredBy 'TimerTrigger'
+					expression { previousBuildFailed() }
+					changeset 'esoul-guidelines.json'
+					changeset 'esoul-guidelines.lock'
+					changeset 'docs/project_guidelines/**'
+					changeset 'AGENTS.md'
+					changeset 'CLAUDE.md'
+					changeset 'Jenkinsfile'
+				}
+			}
 			steps {
 				withCredentials([string(credentialsId: env.SCALEWAY_REGISTRY_CREDENTIALS_ID, variable: 'SECRET')]) {
 					dockerRegistryLogin(registryUrl: 'rg.fr-par.scw.cloud/testing-images', password: env.SECRET)
@@ -78,13 +286,50 @@ pipeline {
 			}
 		}
 
+		// The documentation tool: the Go installer, the wrapper and bootstrap scripts, the renderer image smoke test.
 		stage('Verify tooling') {
+			when {
+				anyOf {
+					buildingTag()
+					triggeredBy 'TimerTrigger'
+					expression { previousBuildFailed() }
+					changeset 'tooling/project-tools/**'
+					changeset 'tooling/install-project-tools/**'
+					changeset 'tooling/project-templates/**'
+					changeset 'tooling/scripts/*_project_tools'
+					changeset 'tooling/scripts/tooling_version'
+					changeset 'tooling/scripts/test_tooling_version'
+					changeset 'tooling/scripts/test_bootstrap_*'
+					changeset 'tooling/scripts/test_documentation_wrapper'
+					changeset 'tooling/scripts/test_renderer_smoke'
+					changeset 'install.sh'
+					changeset 'Jenkinsfile'
+				}
+			}
 			steps {
 				sh 'tooling/scripts/test_tooling_version'
 				sh 'tooling/scripts/test_bootstrap_manifest'
 				sh 'tooling/scripts/test_documentation_wrapper'
 				sh 'tooling/scripts/test_renderer_smoke'
 				sh 'tooling/scripts/test_bootstrap_install'
+			}
+		}
+
+		// Scheduled build only: a pinned third-party source (a `ref` in layers.json) with a newer release makes the build
+		// unstable and names the source. Reading the upstream changes and bumping the ref stays a deliberate step.
+		stage('Check upstream releases') {
+			when {
+				triggeredBy 'TimerTrigger'
+			}
+			steps {
+				script {
+					def status = sh(script: 'tooling/scripts/node_run tooling/scripts/check_upstream.mjs', returnStatus: true)
+					if (status == 1) {
+						unstable('A pinned upstream source has a newer release; see the report above.')
+					} else if (status != 0) {
+						error('The upstream check could not run; see the report above.')
+					}
+				}
 			}
 		}
 
@@ -149,7 +394,7 @@ pipeline {
 						sourceCommit: sourceCommit,
 						releaseMetadata: [
 							CONFIG_SCHEMA_VERSION: configSchemaVersion,
-							UPGRADE_NOTES: 'Typesets code with fvextra instead of listings, so Czech letters, arrows and box drawing in inline code and code blocks render in order; adds DejaVu fallbacks for missing symbols and lets inline code wrap after underscores. Code blocks no longer show line numbers. The upgrade replaces the managed header.tex; configuration schema remains 1.',
+							UPGRADE_NOTES: env.UPGRADE_NOTES,
 						],
 						releaseFiles: [
 							'install.sh': bootstrapScript,
@@ -213,10 +458,13 @@ pipeline {
 			'''
 		}
 		success {
-			echo 'Documentation tooling pipeline completed successfully.'
+			echo 'Pipeline completed successfully.'
+		}
+		unstable {
+			echo 'Pipeline completed unstable: a pinned upstream source has a newer release (see the stage log).'
 		}
 		failure {
-			echo 'Documentation tooling pipeline failed.'
+			echo 'Pipeline failed.'
 		}
 	}
 }

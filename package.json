@@ -25,6 +25,6 @@
     "access": "public"
   },
   "scripts": {
-    "test": "node --test tooling/scripts/test_layers.mjs tooling/scripts/test_layers_manifest.mjs"
+    "test": "tooling/scripts/test_skills"
   }
 }

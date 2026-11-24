@@ -1,0 +1,25 @@
+#!/bin/sh
+# Runs `node <arguments>` from the repository root: with the local Node.js when the machine has Node.js and git,
+# otherwise inside a node:22 container that gets the working tree streamed in (the check also works when the Docker
+# daemon runs on another host than this workspace). Used by test_skills and by the Jenkinsfile.
+# Usage: tooling/scripts/node_run tooling/scripts/check_upstream.mjs
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
+REPOSITORY_ROOT=$(CDPATH= cd "${SCRIPT_DIR}/../.." && pwd)
+# The full image: `skills add --list` clones with git, which the alpine and slim images lack.
+NODE_IMAGE='node:22'
+
+cd "${REPOSITORY_ROOT}"
+
+if command -v node >/dev/null 2>&1 && command -v git >/dev/null 2>&1; then
+    exec node "$@"
+fi
+
+if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
+    echo 'node_run needs Node.js with git, or a running Docker daemon.' >&2
+    exit 1
+fi
+
+tar --exclude=.git --exclude=node_modules -cf - . |
+    docker run --rm -i "${NODE_IMAGE}" sh -c 'mkdir /work && cd /work && tar -xf - && exec node "$@"' node_run "$@"

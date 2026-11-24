@@ -1,0 +1,39 @@
+#!/bin/sh
+# Runs the Python tests of the skills (skills/**/*_test.py and skills/**/test_*.py) with unittest discovery, one run per
+# folder that holds such files. Uses the local python3, otherwise a python:3 container that gets the working tree
+# streamed in. A test whose optional library (for example python-docx or openpyxl) is not installed must skip itself
+# (`unittest.skipUnless`): the plain python:3 image has none of them.
+# Usage: tooling/scripts/test_python
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
+REPOSITORY_ROOT=$(CDPATH= cd "${SCRIPT_DIR}/../.." && pwd)
+PYTHON_IMAGE='python:3'
+
+cd "${REPOSITORY_ROOT}"
+
+# The discovery runs in the shell of the interpreter, so the same text serves the local and the container run.
+DISCOVER='
+set -eu
+dirs=$(find skills -type f \( -name "*_test.py" -o -name "test_*.py" \) -not -path "*/node_modules/*" -exec dirname {} \; | sort -u)
+if [ -z "${dirs}" ]; then
+    echo "test_python: no Python tests found under skills/"
+    exit 0
+fi
+for dir in ${dirs}; do
+    echo "== ${dir}"
+    (cd "${dir}" && python3 -m unittest discover -s . -p "*test*.py" -v)
+done
+'
+
+if command -v python3 >/dev/null 2>&1; then
+    exec sh -c "${DISCOVER}"
+fi
+
+if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
+    echo 'test_python needs python3, or a running Docker daemon.' >&2
+    exit 1
+fi
+
+tar --exclude=.git --exclude=node_modules -cf - . |
+    docker run --rm -i "${PYTHON_IMAGE}" sh -c "mkdir /work && cd /work && tar -xf - && sh -c '${DISCOVER}'"

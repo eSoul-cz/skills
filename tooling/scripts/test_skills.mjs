@@ -4,6 +4,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
+import { MODELS } from './build_codex_agents.mjs';
 
 // Every skill's description is loaded into every agent session, so the descriptions are a
 // standing cost. Keep each one short and the sum bounded.
@@ -83,6 +84,21 @@ test('every skill has a matching name and a bounded description', () => {
     assert.ok(total <= MAX_DESCRIPTIONS_TOTAL, `descriptions total ${total} characters, limit ${MAX_DESCRIPTIONS_TOTAL}`);
 });
 
+// `npx skills` skips a skill whose frontmatter is not valid YAML, and an unquoted plain scalar breaks on ": " or " #".
+test('every description is a valid YAML scalar (quoted when it holds ": " or " #")', () => {
+    const broken = [];
+    for (const name of skills) {
+        const line = readFileSync(join(skillPaths.get(name), 'SKILL.md'), 'utf8').match(/^---\n([\s\S]*?)\n---\n/)[1].split('\n').find((entry) => entry.startsWith('description:'));
+        const value = line?.slice('description:'.length).trim() ?? '';
+        const quoted = /^(".*"|'.*')$/.test(value);
+        const block = /^[>|][+-]?$/.test(value);
+        if (!quoted && !block && (/:\s/.test(value) || /\s#/.test(value) || /^[`*&!|>%@\[{]/.test(value))) {
+            broken.push(`${name}: quote the description (it holds ": ", " #" or starts with a YAML indicator)`);
+        }
+    }
+    assert.deepEqual(broken, []);
+});
+
 test('relative links in skill documents resolve', () => {
     const broken = [];
     for (const file of skillMarkdown()) {
@@ -100,16 +116,24 @@ test('relative links in skill documents resolve', () => {
     assert.deepEqual(broken, []);
 });
 
-test('every skill is listed in the plugin manifest and the README', () => {
+test('every skill is named in the plugin manifest, and the README layer list is generated and complete', () => {
     const manifest = JSON.parse(readFileSync(join(root, '.claude-plugin', 'plugin.json'), 'utf8'));
     const readme = readFileSync(join(root, 'README.md'), 'utf8');
     for (const name of skills) {
         assert.match(manifest.description, new RegExp(`\\b${name}\\b`), `${name}: missing from plugin.json description`);
-        assert.ok(readme.includes(`\`${name}\``), `${name}: missing from the README layer tables`);
+        assert.ok(readme.includes(`[\`${name}\`](${relative(root, skillPaths.get(name))}/SKILL.md)`), `${name}: missing from the generated README list`);
     }
     for (const layer of readdirSync(skillsDir)) {
         assert.ok(manifest.skills.includes(`./skills/${layer}`), `plugin.json skills must list ./skills/${layer}`);
     }
+    const result = spawnSync('node', [join(root, 'tooling/scripts/build_readme_skills.mjs'), '--check'], { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+});
+
+test('the README states the plugin version of plugin.json', () => {
+    const manifest = JSON.parse(readFileSync(join(root, '.claude-plugin', 'plugin.json'), 'utf8'));
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    assert.ok(readme.includes(`**${manifest.version}**`), `README.md must state the plugin version **${manifest.version}**`);
 });
 
 test('skills do not link into other skills or the repository tooling, and do not vendor upstream text', () => {
@@ -165,7 +189,7 @@ test('every plugin agent pins its model and effort, and no skill depends on the 
         );
         assert.equal(fields.name, file.replace(/\.md$/, ''), `${file}: name differs from its file name`);
         assert.ok(fields.description, `${file}: description is missing`);
-        assert.match(fields.model ?? '', /^(haiku|sonnet|opus|fable)$/, `${file}: model must be a pinned alias`);
+        assert.ok(Object.hasOwn(MODELS, fields.model ?? ''), `${file}: model must be a pinned alias the Codex generator maps (${Object.keys(MODELS).join(', ')})`);
         assert.match(fields.effort ?? '', /^(low|medium|high|xhigh)$/, `${file}: effort must be set`);
     }
     // Agents are optional (the plugin or the Codex installer): skills describe delegation by job. Only the role
@@ -177,7 +201,7 @@ test('every plugin agent pins its model and effort, and no skill depends on the 
     assert.deepEqual(named, []);
 });
 
-test('generated Codex agents match agents/', () => {
+test('generated Codex agents, codex/AGENTS.md and hooks/session-rules.md match agents/', () => {
     const result = spawnSync('node', [join(root, 'tooling/scripts/build_codex_agents.mjs'), '--check'], { encoding: 'utf8' });
     assert.equal(result.status, 0, result.stderr);
 });

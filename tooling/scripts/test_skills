@@ -1,30 +1,47 @@
 #!/bin/sh
-# Runs every Node test of the repository: the skill checks (frontmatter, links, layers.json, the sources of
-# every layer resolving through `npx skills add --list`, generated role briefs) and the tests of the skill
-# scripts and of the @esoul-cz/skills helper. The source check needs git and the network.
+# Runs the Node tests of the repository: the skill checks (frontmatter, links, layers.json, the sources of every layer
+# resolving through `npx skills add --list`, generated files in sync) and the script tests of the skills. The source
+# check needs git and the network. The mockup preview test needs an application checkout and Chrome and stays manual:
+#   node --test tooling/scripts/test_mockup_preview.mjs
+#
+# Usage: tooling/scripts/test_skills [group | path ...]
+#   (no argument)  every test
+#   contract       the repository-level tests: skills, layers, generated files, helper, upstream check, release notes
+#   review         the esoul-review script tests and the review eval cases
+#   <path>         the *.test.mjs files under that skill folder, e.g. skills/project/esoul-uat
+# The Jenkinsfile runs one group per stage, each only when its files changed.
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
 REPOSITORY_ROOT=$(CDPATH= cd "${SCRIPT_DIR}/../.." && pwd)
-# The full image: `skills add --list` clones with git, which the alpine and slim images lack.
-NODE_IMAGE='node:22'
 
 cd "${REPOSITORY_ROOT}"
 
-TESTS=$(find skills tooling/scripts -type f \( -name '*.test.mjs' -o -name 'test_*.mjs' \) -not -path '*/node_modules/*' | sort | tr '\n' ' ')
+REVIEW_PATTERN='tooling/scripts/test_(review_evals|review_scope|wait_pr|post_review)\.mjs$'
 
-if command -v node >/dev/null 2>&1 && command -v git >/dev/null 2>&1; then
-    # shellcheck disable=SC2086
-    exec node --test ${TESTS}
-fi
+all_tests() {
+    find skills tooling/scripts -type f \( -name '*.test.mjs' -o -name 'test_*.mjs' \) -not -path '*/node_modules/*' -not -name test_mockup_preview.mjs | sort
+}
 
-if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
-    echo 'test_skills needs Node.js with git, or a running Docker daemon.' >&2
+select_tests() {
+    if [ "$#" -eq 0 ]; then
+        all_tests
+        return
+    fi
+    for target in "$@"; do
+        case "${target}" in
+            contract) all_tests | grep '^tooling/scripts/' | grep -v -E "${REVIEW_PATTERN}" ;;
+            review) all_tests | grep -E "${REVIEW_PATTERN}" ;;
+            *) find "${target}" -type f -name '*.test.mjs' -not -path '*/node_modules/*' | sort ;;
+        esac
+    done
+}
+
+TESTS=$(select_tests "$@" | tr '\n' ' ')
+if [ -z "${TESTS}" ]; then
+    echo "test_skills: no tests found for: $*" >&2
     exit 1
 fi
 
-# Stream the files into the container instead of bind-mounting them, so the check also works
-# when the Docker daemon runs on another host than this workspace.
-tar --exclude=.git --exclude=node_modules -cf - . |
-    docker run --rm -i "${NODE_IMAGE}" sh -c \
-        "mkdir /work && cd /work && tar -xf - && node --test ${TESTS}"
+# shellcheck disable=SC2086
+exec "${SCRIPT_DIR}/node_run" --test ${TESTS}
