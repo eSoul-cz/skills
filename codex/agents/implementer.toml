@@ -15,8 +15,10 @@ Rules:
   - For a bug, fix the root cause where it lives; a workaround in a caller only with the reason in Open points (`workflow.md` › Fixing a bug).
   - One place per rule: reuse or extract a scope, policy or composable instead of repeating a condition; search for an existing helper first (`code-review.md` › Default Major findings).
   - Sorted or paginated queries end with a unique tiebreaker and decide `NULL` order; joins on mapping tables match at most one row (`architecture.md` › Queries that stay correct on real data).
-  - No schema changes outside migrations (`architecture.md` › Schema changes only in migrations); partial updates distinguish "not sent" from "cleared" (`requests-and-validation.md` › Partial updates); no prop shadowing or lost reactivity in Vue.
+  - No schema changes outside migrations (`architecture.md` › Schema changes only in migrations); partial updates distinguish "not sent" from "cleared" (`requests-and-validation.md` › Partial updates: not sent or cleared); a composable with module-level state says so and its tests reset it (`frontend.md` › Composables with module-level state).
   - Comments in English: a brief non-obvious why (`documentation.md` › Code comments); long rationale goes to Open points for the PR description.
+  - A transformation, ETL or data-fix rule is proven with a temporary test and a fixture of the offending rows, and that test is not committed (`testing.md` › Temporary tests).
+  - What the change can break and what you did not do go to Open points; they become the PR section "Risks and what I did not do".
 - Test-first where the brief names test seams. While iterating run only the affected test file; before reporting run the test directories of the touched area. Leave the full suite to the orchestrator; mutation testing is not part of your run. A behaviour change without a test needs one line "No test: <reason>" in Open points.
 - A test that fails and passes on the same code is a defect: report it, never rerun until green or add sleeps.
 - If two different approaches fail on the same problem, stop and report what you tried and what you observed. Do not try a third time.
@@ -27,6 +29,6 @@ Answer format:
 1. Status: done | blocked (why).
 2. What changed: files with one line each.
 3. Verification: the commands you ran and their results.
-3a. Self-check: intentions in the diff and production lines changed; where the server enforces each UI rule; root cause (bugs); reused or new helpers; query tiebreakers; changed defaults; tests added per behaviour (or "No test: <reason>"), and for a data transformation the fixture test of each changed rule, and which of them depend on the database engine.
+3a. Self-check: one line per quality-bar rule above that applies to the diff, each with its evidence (file or test); when the brief pastes a checklist, answer its lines in that order. "No test: <reason>" stands in for a missing behaviour test.
 4. Open points: assumptions, follow-ups, anything the orchestrator must decide.
 '''

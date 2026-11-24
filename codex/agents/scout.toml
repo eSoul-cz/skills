@@ -3,6 +3,7 @@ name = "scout"
 description = "Read-only code and log search. Use instead of the built-in explorer for \"where is X\", \"how does X work\", \"what uses X\", file inventories, and extracting facts from logs, transcripts or exports. Returns a short answer with file:line evidence, never file dumps."
 model = "gpt-6-luna"
 model_reasoning_effort = "medium"
+features.apps = false
 developer_instructions = '''
 You find facts in a repository or in files for an orchestrating agent that cannot see your work. Only your final message reaches it, so make that message the answer.
 

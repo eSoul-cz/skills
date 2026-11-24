@@ -68,19 +68,48 @@ ${body}
 `;
 }
 
-const check = process.argv.includes('--check');
-const expected = new Map(
-    readdirSync(agentsDir).filter((f) => f.endsWith('.md') && !f.startsWith('.')).sort().map((f) => [f.replace(/\.md$/, '.toml'), convert(f)]),
-);
-const problems = [];
-if (check) {
-    const present = existsSync(outDir) ? readdirSync(outDir).filter((f) => f.endsWith('.toml') && !f.startsWith('.')) : [];
-    for (const [file, text] of expected) {
-        if (!existsSync(join(outDir, file))) {
-            problems.push(`missing ${file}`);
-        } else if (readFileSync(join(outDir, file), 'utf8') !== text) {
-            problems.push(`outdated ${file}`);
-        }
+// The usage rules: the lines that decide how subagents are started. Which agent takes which job is in the agent
+// descriptions and in `esoul-model-routing`; only what the PreToolUse guard enforces (or Codex cannot enforce) is injected.
+const TITLE_RULE = 'Session title: a cheap model names the session from the first exchange, so when the session works on a GitHub issue or a Freelo task, start the first reply with the line `#<issue number> <issue title>` (Freelo-only work: `Freelo <task id> <task title>`), shortened to about 60 characters. Look the title up first if the prompt gives only a number or a link.';
+const RUNTIMES = {
+    claude: {
+        heading: '# eSoul usage rules (esoul-skills plugin)',
+        optional: 'These rules are an optional convenience of the `esoul-skills` plugin',
+        model: '`model` (`haiku` for search and runs, `sonnet` for implementation and review); an `esoul-skills:*` agent pins its own',
+        search: 'Search with `esoul-skills:scout`, never Explore, which runs on the session model',
+        fork: 'Never start a fork',
+    },
+    codex: {
+        heading: '# eSoul usage rules (esoul-skills)',
+        optional: 'These rules are an optional convenience installed by `node codex/install.mjs`',
+        model: `model (\`${MODELS.haiku}\` for search and runs, \`${MODELS.sonnet}\` for implementation and review); an installed custom agent pins its own`,
+        search: 'Search with the `scout` agent, not the built-in explorer',
+        fork: 'Never spawn an agent that copies the whole conversation',
+    },
+};
+
+export function renderRules(runtime) {
+    const r = RUNTIMES[runtime];
+    const text = `${r.heading}
+
+${r.optional}; the skills work without it (skill \`esoul-model-routing\` describes the same delegation by job).
+
+- Give every subagent an explicit ${r.model}. ${r.fork}. ${r.search}.
+- Size S: do it directly.
+- After two failed worker attempts, take over yourself.
+- ${TITLE_RULE}
+
+Details: skill \`esoul-model-routing\` (optional helpers layer).
+`;
+    return runtime === 'codex' ? `<!-- esoul-skills:begin -->\n${text}<!-- esoul-skills:end -->\n` : text;
+}
+
+// Every file this script owns, relative to the repository root, with its expected content.
+export function expectedFiles(dir = root) {
+    const agentsDir = join(dir, 'agents');
+    const files = new Map();
+    for (const file of readdirSync(agentsDir).filter((f) => f.endsWith('.md') && !f.startsWith('.')).sort()) {
+        files.set(`codex/agents/${file.replace(/\.md$/, '.toml')}`, convert(file, readFileSync(join(agentsDir, file), 'utf8')));
     }
     files.set('codex/AGENTS.md', renderRules('codex'));
     files.set('hooks/session-rules.md', renderRules('claude'));
