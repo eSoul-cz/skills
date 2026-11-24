@@ -1,0 +1,7 @@
+{
+  "id": "clean-02-popup-form-width",
+  "kind": "clean",
+  "repository": "private/node-cms",
+  "intent": "Let editors make a popup form full width.",
+  "expected": []
+}

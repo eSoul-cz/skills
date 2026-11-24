@@ -1,0 +1,14 @@
+{
+  "id": "bug-03-dependency-upgrade-hidden-column",
+  "kind": "bug",
+  "repository": "private/node-cms",
+  "intent": "Upgrade dependencies to clear all audit advisories, including two critical remote-code-execution ones.",
+  "expected": [
+    {
+      "path": "package.json",
+      "line": 36,
+      "defect": "The upgrade makes the storage plugin add a hidden column to the media table, but no migration is included, so production pages return 500.",
+      "blocking": true
+    }
+  ]
+}

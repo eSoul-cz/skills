@@ -1,0 +1,14 @@
+{
+  "id": "bug-09-timestamp-strict-default",
+  "kind": "bug",
+  "repository": "private/laravel-app",
+  "intent": "Add a report engine with a paginated preview backed by stored report run snapshots.",
+  "expected": [
+    {
+      "path": "database/migrations/create_report_run_snapshots_tables.php",
+      "line": 21,
+      "defect": "The non-nullable timestamp('expires_at') column gets an implicit zero default that MySQL strict mode rejects (error 1067), so the migration fails.",
+      "blocking": true
+    }
+  ]
+}

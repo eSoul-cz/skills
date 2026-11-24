@@ -1,0 +1,7 @@
+{
+  "id": "clean-04-promote-on-approval",
+  "kind": "clean",
+  "repository": "private/laravel-app",
+  "intent": "Promote evaluated records to the next stage when results are approved.",
+  "expected": []
+}

@@ -1,0 +1,14 @@
+{
+  "id": "bug-10-conflict-pairing-later-patch",
+  "kind": "bug",
+  "repository": "private/laravel-integration",
+  "intent": "Resolve a 409 on CRM company creation by pairing with the existing partner record, and gate creation on the duplicate check.",
+  "expected": [
+    {
+      "path": "app/Services/Integration/Handlers/SyncCompanyHandler.php",
+      "line": 180,
+      "defect": "After a 409 legacy pairing, later jobs of the same webhook burst still PATCH the partner in the other system, overwriting the salesman with the CRM creator.",
+      "blocking": true
+    }
+  ]
+}

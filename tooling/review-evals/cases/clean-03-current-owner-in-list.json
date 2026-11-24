@@ -1,0 +1,7 @@
+{
+  "id": "clean-03-current-owner-in-list",
+  "kind": "clean",
+  "repository": "private/laravel-app",
+  "intent": "Show the current owner in a list of records.",
+  "expected": []
+}

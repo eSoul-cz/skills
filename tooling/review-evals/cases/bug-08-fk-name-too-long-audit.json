@@ -1,0 +1,14 @@
+{
+  "id": "bug-08-fk-name-too-long-audit",
+  "kind": "bug",
+  "repository": "private/laravel-app",
+  "intent": "Add backend recalculation of locked normalized values with an append-only audit table of confirmed changes.",
+  "expected": [
+    {
+      "path": "database/migrations/create_snapshot_changes_table.php",
+      "line": 25,
+      "defect": "The auto-generated foreign key name for the source version column is 67 characters, over the 64-character MariaDB limit, so the migration fails.",
+      "blocking": true
+    }
+  ]
+}

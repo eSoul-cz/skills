@@ -8,7 +8,7 @@ import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 
-const skillRoot = fileURLToPath(new URL('../../skills/esoul-mockup-authoring/', import.meta.url));
+const skillRoot = fileURLToPath(new URL('../../skills/project/esoul-mockup-authoring/', import.meta.url));
 const appRoot = process.env.ESOUL_MOCKUP_APP_ROOT;
 const chrome = process.env.CHROME_BINARY;
 

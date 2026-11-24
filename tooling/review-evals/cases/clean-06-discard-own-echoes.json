@@ -1,0 +1,7 @@
+{
+  "id": "clean-06-discard-own-echoes",
+  "kind": "clean",
+  "repository": "private/laravel-integration",
+  "intent": "Discard echoes of the middleware own writes at intake.",
+  "expected": []
+}

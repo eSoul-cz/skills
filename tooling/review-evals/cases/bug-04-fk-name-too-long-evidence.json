@@ -1,0 +1,14 @@
+{
+  "id": "bug-04-fk-name-too-long-evidence",
+  "kind": "bug",
+  "repository": "private/laravel-api",
+  "intent": "Accept change batches via webhooks and store them with backlog evidence.",
+  "expected": [
+    {
+      "path": "database/migrations/create_backlog_evidence_table.php",
+      "line": 15,
+      "defect": "The auto-generated foreign key name for the backlog item column is 72 characters, over the 64-character MariaDB limit, so the migration fails.",
+      "blocking": true
+    }
+  ]
+}

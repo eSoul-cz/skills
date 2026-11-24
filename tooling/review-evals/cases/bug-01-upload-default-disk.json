@@ -1,0 +1,14 @@
+{
+  "id": "bug-01-upload-default-disk",
+  "kind": "bug",
+  "repository": "private/laravel-admin",
+  "intent": "Store admin media uploads on a dedicated disk without needing an extra setting.",
+  "expected": [
+    {
+      "path": "app/Providers/AppServiceProvider.php",
+      "line": 22,
+      "defect": "The admin upload component ignores the media-library default disk and falls back to the filesystem default local disk, so uploads miss the dedicated disk and 404 (absence in boot(); line is its declaration).",
+      "blocking": true
+    }
+  ]
+}

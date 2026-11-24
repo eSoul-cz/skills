@@ -14,9 +14,9 @@ import {
     parseWait,
     planReview,
     rateLimitState,
-} from '../../skills/esoul-review/scripts/post-review.mjs';
+} from '../../skills/dev/esoul-review/scripts/post-review.mjs';
 
-const script = fileURLToPath(new URL('../../skills/esoul-review/scripts/post-review.mjs', import.meta.url));
+const script = fileURLToPath(new URL('../../skills/dev/esoul-review/scripts/post-review.mjs', import.meta.url));
 const HEAD = 'a'.repeat(40);
 const BASE = 'b'.repeat(40);
 const PR_URL = 'https://github.com/o/r/pull/7';
@@ -191,7 +191,7 @@ test('places findings inline, outside the diff, or skips them as duplicates', ()
     assert.deepEqual(plan.existing.map((entry) => [entry.title, entry.resolved]), [['Already open', false], [null, true]]);
 
     const { body } = plan.payload;
-    assert.ok(body.startsWith(`<!-- pre-pr-review:review head=${HEAD} -->\n\n## 🤖 Pre-PR review (náhrada za CodeRabbit)`));
+    assert.ok(body.startsWith(`<!-- pre-pr-review:review head=${HEAD} -->\n\n## 🤖 esoul-review (náhrada za CodeRabbit)`));
     assert.match(body, /CodeRabbit narazil na limit\. Tuto review vytvořil agent/);
     assert.match(body, /\*\*Inline nálezy:\*\* 3 · \*\*Mimo diff:\*\* 2 · \*\*Už nahlášeno:\*\* 2/);
     assert.match(body, /<summary>Nálezy mimo rozsah diffu \(2\)<\/summary>/);
@@ -215,6 +215,13 @@ test('tags pre-existing findings so they do not read as the author\'s fault', ()
 
     const cs = planReview({ input: { ...input, language: 'cs' }, files, threads: [], reviewBodies: [] });
     assert.match(cs.payload.comments[0].body, /`Existovalo už před PR`/);
+});
+
+test('shows the guidelines\' severity names for the older ones', () => {
+    const files = [{ filename: 'src/a.php', patch: PATCH }];
+    const plan = planReview({ input: { head: HEAD, findings: [finding({ severity: 'Blocker' }), finding({ severity: 'low', title: 'Low one', line: 4 })] }, files, threads: [], reviewBodies: [] });
+    assert.match(plan.payload.comments[0].body, /^🔴 \*\*Critical\*\* · \*\*Value is overwritten\*\*/);
+    assert.match(plan.payload.comments[1].body, /^🔵 \*\*Nitpick\*\* · \*\*Low one\*\*/);
 });
 
 test('approves a head only when nothing was found and no fallback thread is open', () => {

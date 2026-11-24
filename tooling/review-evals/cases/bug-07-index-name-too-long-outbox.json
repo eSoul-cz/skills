@@ -1,0 +1,14 @@
+{
+  "id": "bug-07-index-name-too-long-outbox",
+  "kind": "bug",
+  "repository": "private/laravel-shop",
+  "intent": "Introduce a generic transactional outbox with per-aggregate and per-target ordering.",
+  "expected": [
+    {
+      "path": "database/migrations/create_outbox_messages_table.php",
+      "line": 53,
+      "defect": "The auto-generated name of this composite index is 68 characters, over the 64-character MariaDB limit, so the migration fails.",
+      "blocking": true
+    }
+  ]
+}

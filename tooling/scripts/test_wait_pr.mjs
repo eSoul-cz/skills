@@ -6,7 +6,7 @@ import { delimiter, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 
-const script = fileURLToPath(new URL('../../skills/esoul-review/scripts/wait-pr.mjs', import.meta.url));
+const script = fileURLToPath(new URL('../../skills/dev/esoul-review/scripts/wait-pr.mjs', import.meta.url));
 const HEAD = 'a'.repeat(40);
 const BASE = 'b'.repeat(40);
 

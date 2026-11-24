@@ -1,0 +1,20 @@
+{
+  "id": "bug-05-websocket-origins-and-extension",
+  "kind": "bug",
+  "repository": "private/laravel-api",
+  "intent": "Wire WebSocket live updates end to end between the backend and the browser.",
+  "expected": [
+    {
+      "path": "config/reverb.php",
+      "line": 88,
+      "defect": "Allowed origins are passed through as full URLs while the server compares hostnames, so browser connections are rejected.",
+      "blocking": true
+    },
+    {
+      "path": "docker/production/Dockerfile",
+      "line": 10,
+      "defect": "The production image installs no pcntl PHP extension, so the WebSocket server dies on startup.",
+      "blocking": true
+    }
+  ]
+}

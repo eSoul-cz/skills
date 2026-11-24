@@ -1,0 +1,7 @@
+{
+  "id": "clean-01-testing-mode-guidance",
+  "kind": "clean",
+  "repository": "private/game-app",
+  "intent": "Apply a guidance setting in a testing mode of a game round.",
+  "expected": []
+}

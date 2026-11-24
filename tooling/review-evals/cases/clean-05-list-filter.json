@@ -1,0 +1,7 @@
+{
+  "id": "clean-05-list-filter",
+  "kind": "clean",
+  "repository": "private/laravel-app",
+  "intent": "Add a filter to a records list.",
+  "expected": []
+}
