@@ -6,6 +6,8 @@ All notable changes to `eSoul-cz/skills` are recorded here. The format follows [
 
 ### Added
 
+- `esoul-project-update` › `references/setup.md`: the "update a project's eSoul setup" procedure (measure, guidelines constraint and `sync`, reconcile, skills lock with `project init`, retired names in project files, PR); linked from retrofit step 11, `esoul-guidelines` and `esoul-workflow`.
+- `layers.json` `retired` map (the one place for retired skill names and what replaced them) with validation and a pinning test; `esoul-skills status` flags installed skills with a retired name and `skills-lock.json` entries of this repository whose skill is gone or whose path moved, and prints the `npx skills remove` and reinstall commands; `project init` reports the same lock entries; `esoul-skills retired` lists the map and a `git grep` for the renamed names.
 - `layers.json` `skillRequires` (layer level): naming a skill with `--skill` also installs the skills it needs; `esoul-website-launch` requires `esoul-quality-gates`. The helper validates the map and a test covers it.
 - `esoul-mockup-authoring`: `preview` runs standalone (unvalidated, announced) when no application checkout is available; `validate` and publishing still need it.
 - `esoul-project-lifecycle`: the stack profiles' pitfalls and the "numbers only from podklady" rule point at the guidelines (new text in `eSoul-cz/guidelines` Unreleased: `general/domain.md`, `tools.md` known pitfalls of the Laravel, LSR, Astro and Laravel Inertia layers).
@@ -35,6 +37,15 @@ All notable changes to `eSoul-cz/skills` are recorded here. The format follows [
 
 ### Changed
 
+- `esoul-review`: a standards-only run answers "does this follow our guidelines?" (diff against base, guideline files only, no repository checks, no verifiers, findings in the conversation) and the description triggers on that phrasing; on an open PR the scope is the PR head (`headRefOid`, the PR base) and the existing review threads are read once and passed as "already decided"; a project without `docs/project_guidelines/` is reviewed against the general rules only, with "Not covered" in the report and an offer of `esoul-guidelines`; the CodeRabbit CLI does not replace the Spec axis when the task has acceptance criteria or `## UAT`.
+- `esoul-uat`: an `issue` mode runs one issue's `## UAT` block without a catalogue and without `## Project profile` (degrades with a note, asks for the environment, reports in the conversation, ticking the boxes only after approval).
+- Standing small-admin decision: the owner can record in `CONTEXT.md › ## Tasking convention` that a kind of small administrative work needs no issue (`esoul-task-create` › `references/convention.md` › Standing decisions); `esoul-workflow`, `esoul-task-work`, `esoul-review` and `esoul-project-update` read it, the default stays: ask. The `CONTEXT-sections.md` template carries the optional line.
+- `esoul-task-create` / `esoul-task-work`: `Backlog` may lack an estimate, `To Do` requires it; a task named from `Backlog` gets the estimate asked from the person before `In progress` (or after pick-up when the person says so).
+- `esoul-project-lifecycle` retrofit and handover no longer allow a PHPStan baseline (guideline: the baseline stays empty): the level is raised stepwise and the distance is a `**Target.**` block with a gap issue; retrofit step 11 points at the setup update.
+- `esoul-guidelines`: on 0.x another minor needs the constraint raised (`^0.3` never reaches 0.4); a cited heading missing from the project's files means older guidelines; `check` finds drift, not violations (`esoul-review` answers that); a project far behind takes the setup update.
+- `esoul-project-update` › `apply.md`: a "Render guidelines" entry raises the constraint on another minor, and its regenerated output is its own mechanical commit.
+- `esoul-testing`: mutation testing row and how to measure the 30 seconds from `.ci/junit/phpunit.xml`; `esoul-task-create` › `task-content.md`: one category label rule for work that spans layers; `esoul-data`: an importer, command or migration the issue names is in scope, and where the owner's approval to read sensitive data or write locally is recorded.
+- `conformance.mjs` reads `## Project profile` and `## Tasking convention` from `GLOSSARY.md` when `CONTEXT.md` lacks them and warns to move them (`convention-in-glossary`).
 - `esoul-task-work`: an unassigned `To Do` task is ready for anyone; the pick-up flow lists them, lets the user choose, assigns the user and moves the task to `In progress`. `To Do` means complete, estimated and unblocked — no assignee needed.
 - `esoul-task-work`: the Freelo working rules own the estimate (the person's time, 15-minute steps, split above 4 h) and define a work report as the person's active time, measured from the session when one exists; the one-week sprint sentence is dropped.
 - `esoul-task-work` / `esoul-task-create`: the PR title is derived from the task title by procedure (Gitmoji `[context]` mapping or the developer's own standard); the title rule itself is the guideline's and is no longer restated in the skills.
@@ -67,6 +78,10 @@ All notable changes to `eSoul-cz/skills` are recorded here. The format follows [
 - The session rules (`hooks/session-rules.md`, `codex/AGENTS.md`) shrank to the guard-relevant lines and are generated from one template together with the Codex agents (`build_codex_agents.mjs --check` covers all of them); read-only Codex agents get their connectors switched off (a Codex agent file cannot set a sandbox).
 - `upstream-picks` pruned to the picks that do not conflict with the guidelines: accessibility, sql-optimization-patterns, seo-technical, seo-schema, frontend-lighthouse, frontend-design, the `wordpress` bundle and `esoul-jenkins-libraries`.
 - Guideline link: the title shape `Context: Result` and the English pull request title are now stated by `docs/project_guidelines/workflow.md` (guidelines main, Unreleased); `esoul-task-work` holds the mapping into the developer's commit standard and `esoul-workflow` points at it.
+
+### Fixed
+
+- `esoul-skills project init --help` (and `--help`/`-h` of every command) ran the install; it now prints the usage and calls nothing (tested through the binary with an `npx` stand-in).
 
 ### Removed
 

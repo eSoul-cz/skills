@@ -135,6 +135,7 @@ Review a change on two axes (Standards, Spec) before its PR and carry the PR thr
 - Review my branch, diff or WIP (Path A).
 - CodeRabbit is limited: post a fallback review.
 - Open the PR, take it through CI, answer review comments (Path B).
+- "Does this follow our guidelines?": the standards-only run (diff against base, guideline files only, no checks, no verifiers; added 2026-11-24 after scenario 05).
 
 ### Coverage check
 
@@ -236,6 +237,7 @@ Carry a template-born eSoul project from the app-templates commit recorded in `.
 - A project that deliberately never takes an entry: record it in `declined` so it stops being offered.
 - Changes landed in a variant after the newest changelog entry: offered as "unlisted changes".
 - A project that predates the published variant (`commit: null`): per-file comparison.
+- A project whose guidelines version, skills lock or skill names in its files lag the current layout: the setup update (`references/setup.md`, added 2026-11-24 after scenarios 02, 03, 04 and 07).
 
 ### Coverage check
 - Missing coverage found and fixed: a mistyped or rewritten recorded commit silently re-applied everything (guard added); old `version`-only record had no branch; `declined` state absent; trailing variant changes without an entry were marked as landed; helper variables unassigned; no done criteria for fetch and PR steps.
@@ -303,6 +305,7 @@ Plan, verify, run and report end-user acceptance (UAT) of eSoul apps, e-shops an
 - Render the run report (Markdown, optionally PDF) and hand the manual remainder to a human tester (`report`).
 - Turn failed results into issue + Freelo task pairs (or Freelo-only tasks) with one approved preview (`bugs`).
 - Optionally keep scenarios and results in a living Google Doc for clients and testers (bridge).
+- Check one issue's `## UAT` block without a catalogue or a project profile (`issue`, added 2026-11-24 after scenario 04).
 
 ### Coverage check
 - **Missing coverage.** None found against the use cases. Gaps closed in this pass: a completion criterion per mode; a usable browser requirement outside the Claude-only extension (UT-D7); one bug severity vocabulary (UT-D1); one secrets location and an honest statement of password exposure (UT-D5); a staging-write rule that is explicit about its exception (UT-D4).
