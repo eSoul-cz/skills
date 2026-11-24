@@ -12,6 +12,7 @@ The `common` layer is identical in every variant, so any variant yields the same
 | `.coderabbit.yaml` | English; narrows only generated input |
 | `.editorconfig` | |
 | `.gitattributes` | Git LFS and diff drivers; extend it for `assets/**`, `*.pen`, design images, office files and dumps |
+| `.gitignore` | A template-born project has it with `/_reference/`. A project without a template creates or extends its own with `/_reference/` (local, non-anonymised client material, never committed) |
 | `.github/PULL_REQUEST_TEMPLATE.md` | One template for both tiers |
 | `AGENTS.md` | Intro only; the managed guideline block and [the project part](#3-what-this-skill-adds) are added to it |
 | `CLAUDE.md` | `@AGENTS.md` |
