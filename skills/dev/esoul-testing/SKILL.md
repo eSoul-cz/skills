@@ -14,6 +14,7 @@ What a test contains and how many a change gets: `docs/project_guidelines/testin
 | Deciding how many tests a behaviour gets | How much to test |
 | Scaffolding tests (migration, backfill, import, ETL rules, exploration) | Temporary tests |
 | A suite or a PR that adds test time | Suite time budget (measure it as below) |
+| An existing suite over the budget or breaking the tiers (retrofit step R5, owner-approved) | Suite time budget, then [references/suite-cleanup.md](references/suite-cleanup.md): baseline, tier-1 ADR, waves, ledger, re-measure |
 | `sandbox`, `quarantine`, `db-engine` | Test groups |
 | A test that fails and passes on the same tree | Flaky tests |
 | Bug fix | Regression tests, and `workflow.md` › Fixing a bug |
