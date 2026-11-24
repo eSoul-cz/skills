@@ -51,6 +51,11 @@ Do not invent identifiers, links, people, prices, figures, legal or tax rules. W
 - Use the glossary's terms. Keep non-English labels only where they document the client's vocabulary or interface copy, and explain them in English prose.
 - The language of each kind of document is set per place and audience in the project's `CONTEXT.md`. Anything code- or programming-related MUST be English (code, identifiers, code comments, commit messages, developer documentation, pull request templates, `CONTRIBUTING`); the full matrix is in [workflow.md](workflow.md#repository-rules). User guides and client-facing material are written in the project's language.
 
+## Code comments
+
+- Code comments are English ([Authoring rules](#authoring-rules)). A comment explains a **non-obvious why** briefly, in a few lines; the code and its names say what it does.
+- A long rationale (the alternatives, the incident, the trade-off) goes into the pull request description or an ADR ([ADR or guideline](#adr-or-guideline)), linked from a one-line comment.
+
 ## Documentation rides with the change
 
 Documentation that describes a change rides with that change: updating it in the **same pull request** as the code that makes it necessary is PREFERRED, because it keeps the documentation current while the work is fresh. A separate pull request, preferably stacked on the change, is allowed. Changing `CONTEXT.md`, `GLOSSARY.md`, an ADR or `AGENTS.md` *incidentally* is forbidden; the cases below are part of the task, not incidental. So is recording a missing convention or cache in `CONTEXT.md` (commit convention, tasking convention, Freelo cache): it is allowed in any pull request, as its own commit, mentioned in the pull request description.
@@ -71,9 +76,16 @@ A finding about stale documentation is a normal review finding: it names the sta
 
 Use an ADR for a decision with real alternatives and consequences (see [ADR or guideline](#adr-or-guideline)). Write it in English from the template; an `accepted` ADR keeps an *Implementation status as of YYYY-MM-DD* line with its files, tests and known gaps (each gap linked to an issue or marked "No issue"). Never reuse a number and never delete a superseded record: set its status to `superseded by ADR-NNNN` and link forward. Status authority is in [domain.md](domain.md#adr-status-authority).
 
+## Project exceptions
+
+- A project MAY deviate from a guideline rule only with the **owner's approval** (a developer MAY obtain it on the project's behalf) and an **accepted ADR** that records the decision, what applies instead and the reason. Nobody, agent or developer, decides an exception alone.
+- The exception is listed in `esoul-guidelines.json` (`rule`, `instead`, `adr`). `esoul-guidelines sync` then marks it under the overridden heading in the generated guideline, and `esoul-guidelines check` fails when the rule or the ADR no longer exists. The mechanism and the format are in the [package README](https://github.com/eSoul-cz/guidelines#project-exceptions).
+- The security and production-data rules ([security-and-data.md](security-and-data.md)) cannot be excepted.
+- A **new project** follows the rules closely and asks before it deviates. A **migration** of a running project is lenient: the project is not rewritten to fit the guidelines or the templates, and each deviation it keeps is a recorded exception. A rule that is wrong for every project is changed in the guidelines, as its own pull request ([workflow.md](workflow.md#repository-rules)), not excepted project by project.
+
 ## Generated documentation
 
-User and developer guides MAY be rendered into reproducible PDFs with the `esoul-maintain-application-documentation` skill. The configuration lists each PDF's sources; generated PDFs are build artifacts, reproducible from their sources, and are never committed, not even to Git LFS. A PDF that is already committed is removed from Git with `git rm --cached` (and ignored), so it stays in the working tree. A successful build is a mechanical check, not proof of correctness: review the rendered PDF and resolve or explicitly accept every privacy and content finding before publication.
+User and developer guides are written in Markdown and MAY be rendered into reproducible PDFs with the `esoul-docs` skill. The configuration lists each PDF's sources; generated PDFs are build artifacts, reproducible from their sources, and are never committed, not even to Git LFS. A PDF that is already committed is removed from Git with `git rm --cached` (and ignored), so it stays in the working tree. A successful build is a mechanical check, not proof of correctness: review the rendered PDF and resolve or explicitly accept every privacy and content finding before publication.
 
 > Local additions go below this managed block. Content outside the block is preserved when the guidelines are synced.
 <!-- esoul-guidelines:end documentation -->

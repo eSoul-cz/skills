@@ -41,6 +41,7 @@ The *Implementation status* section of an `accepted` ADR, not its *Decision*, te
 
 - Text marked as open, working, deferred or awaiting confirmation is not a requirement and MUST NOT be guessed. An open point blocks only the dependent slice: split it out and ask through the question register: the project's tracker, as an issue or task labelled `question`, never a file ([documentation.md](documentation.md#where-a-piece-of-knowledge-belongs)).
 - A rule that is not written down is not settled. Decide it, and record it where it belongs, before implementing it; never guess a rule because the data seems to imply it.
+- Numbers, formulas and calculations come only from the client's materials (the source documents, spreadsheets and exports kept as evidence) or from a recorded decision (an ADR or the plan's decision register); never from memory, from the code of the previous system alone or from a guess. Where the client works in spreadsheets, pin the calculation with parity tests, and record a number the materials do not give as an open point.
 - If an issue, a guideline or a proposed change contradicts an `accepted` ADR, or two accepted ADRs contradict each other, or an `accepted` ADR and a decision in the plan's decision register contradict each other, or a supersession target is missing, report the conflict instead of choosing a source silently.
 
 ## Money

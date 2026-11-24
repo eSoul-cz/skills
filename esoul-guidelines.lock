@@ -1,6 +1,6 @@
 {
     "schema_version": 1,
-    "package_version": "v0.3.5",
+    "package_version": "v0.5.0",
     "layers": [
         "general",
         "profile/internal"
@@ -13,38 +13,38 @@
         },
         "docs/project_guidelines/code-review.md": {
             "block": "code-review",
-            "sha256": "bca4e91718762d52c68c82dc380b459c72f70857974c16ade78aa69a64ee8f30",
+            "sha256": "2cd67ecafe520bbfad84ec463cab8a12ba07b1b7dfae7534ffc20fc6bffa8751",
             "sources": {
-                "general/code-review.md": "b62bc2a89cb5e421ab8aa361ace6359d390acd30f61b257d9ddc67c8d7aa7d56",
+                "general/code-review.md": "45ef58cb71107ea80c6e9781c3f42b74044c997aa9a839f299de0aca3d5ac1df",
                 "profile/internal/code-review.md": "285390a1e5416b4bdfb5563fc228abbd3a2bd572ae0aa87e05db93574d97362c"
             }
         },
         "docs/project_guidelines/dependencies.md": {
             "block": "dependencies",
-            "sha256": "2d37c9dd6c0b515a04f99b3f045610113d1157ab9e80a4686bd757546e70cf64",
+            "sha256": "a1d687561bc1640e3d7ca8f91afc64adfa3b861fae9018439ff51b11828c996c",
             "sources": {
-                "general/dependencies.md": "f6f260f75b71e1dafe8e712e61b1b9cf75f9ae7c0c3eb984f44b9a8d1eae8ee2"
+                "general/dependencies.md": "dcac284b018e572c2d683117adc48e94160f449c57a71c7263e36127870a95b4"
             }
         },
         "docs/project_guidelines/deployment.md": {
             "block": "deployment",
-            "sha256": "6b870ec2de6b1be3ac5b3453969b472343f1c813edec20f5cc3691bbda9e989a",
+            "sha256": "36012252db5d95e8b8702225de3fc2a7f6a4ff520a8c4a5690fd70c075140975",
             "sources": {
-                "general/deployment.md": "2f3cbfcdb399e27e006a692a6656d04c0cdcc8ba6429032b53b0f46bcc09cc28"
+                "general/deployment.md": "e50fc968099f34e722aa8461dc1d9270a54e2e390ac2e05a54356985bad69572"
             }
         },
         "docs/project_guidelines/documentation.md": {
             "block": "documentation",
-            "sha256": "704d6286dbcb2f8b1b7203c67cec6aa0c0bde7c17f96923ee821eb44e8bac1aa",
+            "sha256": "8a62c2043ed6a8ef33cbfecd6e532f5a5561d29b75e91780eaa0d72856764354",
             "sources": {
-                "general/documentation.md": "4748f9bca548a69d8c4e3cc0150160fe76aebaf0c7212ee2b095f8ed00083a50"
+                "general/documentation.md": "6747558c10e9ef02f9fe0126f8ffdba80958a87ddc49ea144b971823e4ee4c6a"
             }
         },
         "docs/project_guidelines/domain.md": {
             "block": "domain",
-            "sha256": "4ddc59d5b3aaab075bb86e653722dd1c900706ff8994e14fe7aa22a8cc10ef93",
+            "sha256": "5156415baba6eb3cd2c05102a78493df250168efe4f09d32b13411fd3090989a",
             "sources": {
-                "general/domain.md": "bb56a67c92fa62ac373974313f842aaf91c394b4ea5bc24b44c1e87fd6a63e9f"
+                "general/domain.md": "65930749b8463ad2f1934239a3c2a5debabe5fb3ddd5d3c655c886add1532a80"
             }
         },
         "docs/project_guidelines/index.md": {
@@ -74,10 +74,10 @@
         },
         "docs/project_guidelines/workflow.md": {
             "block": "workflow",
-            "sha256": "43c9d39807205b967e51c8e643824b82243b0441219c81590c2f8f45c1ef53db",
+            "sha256": "9141c3a3ac286781d4ea4475a2eabf37d94cc5b75ff9d2e479e095ed4001188f",
             "sources": {
-                "general/workflow.md": "e016a9aab1d0120ab4276e87314d1fd5828463278e0111b9f8497d6fefd23584",
-                "profile/internal/workflow.md": "f1f909068f54ce22ae53d0e830a872c70017851682c63dd65d2ffdd37bdc9506"
+                "general/workflow.md": "d878d1aa775071a9f9d709fa10b53b699dc13fd0c1b55842d551cd8e445cf63d",
+                "profile/internal/workflow.md": "f04e75eeeaa458ea66563c941e27bc587df06d9993ae258fbec1cc9aa8a7aae2"
             }
         }
     }

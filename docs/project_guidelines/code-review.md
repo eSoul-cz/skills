@@ -47,9 +47,14 @@ A finding is `Critical` by default when it can:
 - **leak data across a boundary**: another tenant's, customer's or role's data in a payload, an export, a notification or a log. Filtering in the browser is not a boundary;
 - make a **data change untraceable**: stored data changed without the record, history entry or source reference that lets the change be explained or recomputed;
 - put a **credential, personal data or non-public client data** (real amounts, rates, prices, documents) into code, tests, fixtures, issues or pull requests, except what [security-and-data.md](security-and-data.md#personal-and-client-data) allows (public data and its exports, an anonymised sample of faulty records, recorded exceptions);
-- **break a published contract without a migration path**: the public API of a released package, a webhook, REST or export payload that another system consumes, or an irreversible migration without a rollback plan.
+- **break a published contract without a migration path**: the public API of a released package, a webhook, REST or export payload that another system consumes, or an irreversible migration without a rollback plan;
+- **rely on the interface alone to enforce a rule**: a deadline, a permission, a limit, a required field or a state that hides a button or a tab. Every rule the interface shows is enforced on the server too (form request, policy or the domain check in the command handler) and tested there by a call that expects the rejection ([security-and-data.md](security-and-data.md#authorization), [testing.md](testing.md#authorization-tests)). Hiding a control is presentation, not enforcement.
 
 These are the findings a later fix does not repair. A project MAY add its own default Critical findings in its project-specific guidelines.
+
+### Default Major findings
+
+- A rule that decides visibility, scoping, eligibility or status lives in more than one place: two methods with the same branching, or the same markup copied into each branch of a template. The rule is one query scope, policy, enum method or composable that every caller uses, and the author searches for an existing one before writing a new helper. Copies that already disagree are the defect the rule prevents.
 
 ## Keeping review short
 
