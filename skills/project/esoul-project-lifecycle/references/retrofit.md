@@ -39,7 +39,7 @@ Create the retrofit work as issue + Freelo pairs up front, via `esoul-task-creat
 `blocked_by` so the order is visible. The default order:
 
 1. Critical bugs found in the audit.
-2. CI green and required on `main` (ruleset).
+2. CI green and required on `main` (ruleset), and the merge settings of bootstrap step 12 (squash merging only), both after the person approves the exact `gh api` calls.
 3. **R1, the project's skills** (`npx @esoul-cz/skills project init`, `skills-lock.json`); a
    project that already has a lock from before the 0.26.0 layout, retired skill names in its files
    or an older guidelines minor takes the setup update first (`esoul-project-update` ›

@@ -76,10 +76,12 @@ documents.
     guidelines' `tools.md`, plus `esoul-guidelines check` (skill `esoul-guidelines`). Run
     them on the empty scaffold; they must pass, or be explicitly skipped by a condition that
     switches them on automatically once code exists (for example PHPStan while `app/` has no PHP).
-12. **Repository settings** (needs approval, show the exact `gh api` calls first): the merge and
-    ruleset settings of the guideline `workflow.md` › Pull requests (squash merge only, default
-    to PR title, delete branch on merge; ruleset on `main` with required check `Jenkins`, one
-    approval, dismiss stale approvals, no bypass for `esoul-cz-user`), and the label set of
+12. **Repository settings** (needs approval, show the exact `gh api` calls first). Squash merge
+    is a repository setting, not a guideline rule: allow squash merging only, with the PR title
+    as the commit title, and delete the branch on merge
+    (`gh api -X PATCH repos/<owner>/<repo> -F allow_squash_merge=true -F allow_merge_commit=false -F allow_rebase_merge=false -f squash_merge_commit_title=PR_TITLE -f squash_merge_commit_message=PR_BODY -F delete_branch_on_merge=true`).
+    Then the ruleset on `main` (required check `Jenkins`, one approval, dismiss stale approvals,
+    no bypass for `esoul-cz-user`; `workflow.md` › Pull requests) and the label set of
     [labels.md](labels.md).
 13. **Documentation tooling** (full tier, when client PDFs are expected): hand over to
     `esoul-docs` (its PDF section).
