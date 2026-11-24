@@ -1,18 +1,20 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
-import { chmodSync, existsSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { agents, listRetired, parseArgs, projectInit, stackGroupArgs } from '../../lib/cli.mjs';
+import { agents, install, listRetired, parseArgs, projectInit, stackGroupArgs } from '../../lib/cli.mjs';
 import { boostChecks, boostSkills, detectGuidelineLayers, projectGuidelineLayers } from '../../lib/stack.mjs';
 import {
     PROJECT_INIT_LAYERS,
+    batchInvocations,
     expandLayerArgs,
     findStaleSetup,
     groupsForGuidelineLayers,
     groupsForProjectFiles,
+    layerChoices,
     layerSkills,
     managedGroups,
     parseLayerArg,
@@ -20,6 +22,7 @@ import {
     renamedSkills,
     resolveSelection,
     satisfiedLayers,
+    selectionGroups,
     staleFix,
     validateManifest,
     withSkillRequires,
@@ -510,4 +513,236 @@ test('retired lists every retired name and a git grep over the renamed ones', ()
     assert.match(text, /^ {2}test-queue .*same name, now from eSoul-cz\/test-queue/m);
     assert.match(text, /git grep -nwE 'final-pr-review\|pre-pr-review\|esoul-tasking\|[^']*' -- \./);
     assert.doesNotMatch(text, /git grep[^\n]*\|freelo\|/);
+});
+
+/** Runs `install` in-process and returns what it printed; `--dry-run` keeps it away from npx. */
+async function dryInstall(layers, args, definition = manifest, ui = {}) {
+    const lines = [];
+    const originalLog = console.log;
+    console.log = (line = '') => lines.push(String(line));
+    try {
+        await install(layers, parseArgs([...args, '--dry-run']), definition, ui);
+    } finally {
+        console.log = originalLog;
+    }
+    return lines.filter((line) => line !== '');
+}
+
+// Pinned before the interactive selector and the batching were added: a named selection (no terminal,
+// --yes or explicit arguments) prints exactly these commands when no two layers share a source and scope.
+test('pinned: named layers without a shared source print the same commands as before', async () => {
+    assert.deepEqual(await dryInstall(['up'], []), ['[up · project] npx -y skills add m/skills@v1 --skill x y']);
+    assert.deepEqual(await dryInstall(['extra', 'picks'], ['--optional', '--yes', '--agent', 'claude', '--copy']), [
+        'Required layers not installed yet: core. Adding them.',
+        '[core · project] npx -y skills add org/skills --skill a b --yes --agent claude --copy',
+        '[extra · user] npx -y skills add org/skills --skill d --global --yes --agent claude --copy',
+        '[extra · user] npx -y skills add org/queue --skill q --global --yes --agent claude --copy',
+        '[picks · user] npx -y skills add p/one --skill p1 --global --yes --agent claude --copy',
+        '[picks · user] npx -y skills add p/two --skill p2 --global --yes --agent claude --copy',
+    ]);
+    assert.deepEqual(await dryInstall(['dev'], ['--skill', 'c,x']), [
+        'Required layers not installed yet: core, up. Adding them.',
+        '[up · project] npx -y skills add m/skills@v1 --skill x',
+        '[dev · project] npx -y skills add org/skills --skill c',
+    ]);
+});
+
+test('batching: one command per source repository, ref and scope, with every chosen skill', () => {
+    const calls = batchInvocations(
+        [
+            { layer: 'core', scope: 'project', repo: 'org/skills', skills: ['a', 'b'] },
+            { layer: 'up', scope: 'project', repo: 'm/skills', ref: 'v1', skills: ['x'] },
+            { layer: 'dev', scope: 'project', repo: 'org/skills', skills: ['b', 'c'] },
+            { layer: 'extra', scope: 'user', repo: 'org/skills', skills: ['d'] },
+            { layer: 'up', scope: 'project', repo: 'm/skills', ref: 'v2', skills: ['y'] },
+            { layer: 'matt', scope: 'project', repo: 'm/skills', ref: 'v1', skills: ['z'] },
+        ],
+        { yes: true, passthrough: ['--agent', 'claude'] },
+    );
+    assert.deepEqual(calls.map((call) => call.args), [
+        ['add', 'org/skills', '--skill', 'a', 'b', 'c', '--yes', '--agent', 'claude'],
+        ['add', 'm/skills@v1', '--skill', 'x', 'z', '--yes', '--agent', 'claude'],
+        ['add', 'org/skills', '--skill', 'd', '--global', '--yes', '--agent', 'claude'],
+        ['add', 'm/skills@v2', '--skill', 'y', '--yes', '--agent', 'claude'],
+    ]);
+    assert.deepEqual(calls.map((call) => call.layers), [['core', 'dev'], ['up', 'matt'], ['extra'], ['up']]);
+    assert.deepEqual(calls.map((call) => call.scope), ['project', 'project', 'user', 'project']);
+});
+
+test('plan: layers of one repository and scope share a command; auto keeps project and user apart, a forced target merges', () => {
+    const together = planInstall(manifest, resolveSelection(manifest, ['core', 'dev'], { satisfied: new Set(['up']) }));
+    assert.deepEqual(together.map((call) => call.args), [['add', 'org/skills', '--skill', 'a', 'b', 'c']]);
+    assert.deepEqual(together[0].layers, ['core', 'dev']);
+    const resolved = resolveSelection(manifest, ['core', 'extra']);
+    assert.deepEqual(planInstall(manifest, resolved).map((call) => call.args), [
+        ['add', 'org/skills', '--skill', 'a', 'b'],
+        ['add', 'org/skills', '--skill', 'd', '--global'],
+    ]);
+    assert.deepEqual(planInstall(manifest, resolved, { scope: 'project' }).map((call) => call.args), [['add', 'org/skills', '--skill', 'a', 'b', 'd']]);
+    assert.deepEqual(planInstall(manifest, resolved, { scope: 'user' }).map((call) => call.args), [['add', 'org/skills', '--skill', 'a', 'b', 'd', '--global']]);
+});
+
+test('--target is the same as --global and --project, and wins over them', async () => {
+    const user = ['[extra · user] npx -y skills add org/skills --skill d --global'];
+    assert.deepEqual(await dryInstall(['extra'], ['--no-requires', '--target', 'user']), user);
+    assert.deepEqual(await dryInstall(['extra'], ['--no-requires', '--global']), user);
+    assert.deepEqual(await dryInstall(['extra'], ['--no-requires', '-g']), user);
+    assert.deepEqual(await dryInstall(['extra'], ['--no-requires', '-p']), ['[extra · project] npx -y skills add org/skills --skill d']);
+    assert.deepEqual(await dryInstall(['extra'], ['--no-requires', '--target=project']), ['[extra · project] npx -y skills add org/skills --skill d']);
+    assert.deepEqual(await dryInstall(['extra'], ['--no-requires', '--global', '--target', 'auto']), user);
+    assert.throws(() => parseArgs(['--target', 'everywhere']), /--target must be one of auto, project, user/);
+});
+
+test('the layer step names where each layer goes for a target, groups on request are entries of their own', () => {
+    const auto = layerChoices(manifest);
+    assert.deepEqual(auto.map((choice) => [choice.value, choice.scope]), [
+        ['core', 'project'],
+        ['dev', 'project'],
+        ['extra', 'user'],
+        ['up', 'project'],
+        ['up:stack', 'project'],
+        ['up:manual', 'project'],
+        ['picks', 'user'],
+        ['picks:extra', 'user'],
+    ]);
+    assert.ok(layerChoices(manifest, 'user').every((choice) => choice.scope === 'user'));
+    assert.deepEqual(layerChoices(manifest, 'project').find((choice) => choice.value === 'up:stack').repos, ['s/stack']);
+});
+
+test('the skill step lists the skills of the selection by layer; optional sources are not preselected', () => {
+    const resolved = resolveSelection(manifest, ['extra', 'picks', 'up:stack'], { withRequires: false });
+    const groups = selectionGroups(manifest, resolved);
+    assert.deepEqual(groups.map((group) => [group.id, group.scope, group.skills.map((skill) => `${skill.name}${skill.selected ? '' : '?'}`)]), [
+        ['extra', 'user', ['d', 'q?']],
+        ['picks:one', 'user', ['p1']],
+        ['picks:two', 'user', ['p2']],
+        ['up:stack', 'project', ['s1', 's2']],
+    ]);
+    assert.deepEqual(groups[0].skills.map((skill) => skill.repo), ['org/skills', 'org/queue']);
+    assert.equal(selectionGroups(manifest, resolved, { withOptional: true })[0].skills[1].selected, true);
+    assert.deepEqual(selectionGroups(manifest, resolved, { scope: 'project' }).map((group) => group.scope), ['project', 'project', 'project', 'project']);
+});
+
+/** A prompt layer stand-in: answers from `answers`, records every call. */
+function stubPrompts(answers) {
+    const calls = [];
+    const record = (name, value) => (data) => {
+        calls.push([name, data]);
+        return typeof value === 'function' ? value(data) : value;
+    };
+    return {
+        calls,
+        intro: record('intro'),
+        outro: record('outro'),
+        log: record('log'),
+        note: record('note'),
+        target: record('target', answers.target),
+        layers: record('layers', answers.layers),
+        skills: record('skills', answers.skills),
+        confirm: record('confirm', answers.confirm ?? true),
+    };
+}
+
+const forbiddenPrompts = stubPrompts({
+    target: () => assert.fail('the selector must not run'),
+    layers: () => assert.fail('the selector must not run'),
+    skills: () => assert.fail('the selector must not run'),
+});
+
+test('selector: target first, then layers, then skills; the result is batched per source and scope', async () => {
+    const prompts = stubPrompts({ target: 'auto', layers: ['core', 'dev', 'extra'], skills: (data) => data.groups.flatMap((group) => group.skills.filter((skill) => skill.selected).map((skill) => skill.name)).filter((name) => name !== 'b') });
+    const lines = await dryInstall([], ['--no-requires'], manifest, { prompts });
+    assert.deepEqual(prompts.calls.filter(([name]) => ['target', 'layers', 'skills'].includes(name)).map(([name]) => name), ['target', 'layers', 'skills']);
+    assert.deepEqual(lines, ['[core, dev · project] npx -y skills add org/skills --skill a c', '[extra · user] npx -y skills add org/skills --skill d --global']);
+    assert.equal(prompts.calls.at(-1)[0], 'outro');
+});
+
+test('selector: the layers the command preselects, the target the command names, the choices show the resolved target', async () => {
+    const plain = stubPrompts({ target: 'auto', layers: ['core'], skills: ['a'] });
+    await dryInstall([], ['--no-requires'], manifest, { prompts: plain });
+    assert.equal(plain.calls.find(([name]) => name === 'target')[1].initial, 'auto');
+    assert.deepEqual(plain.calls.find(([name]) => name === 'layers')[1].initial, PROJECT_INIT_LAYERS.filter((id) => id in manifest.layers));
+    for (const [flag, initial] of [['--project', 'project'], ['-p', 'project'], ['--global', 'user'], ['--target=user', 'user']]) {
+        const prompts = stubPrompts({ target: initial, layers: ['extra'], skills: ['d'] });
+        await dryInstall([], ['--no-requires', flag], manifest, { prompts });
+        assert.equal(prompts.calls.find(([name]) => name === 'target')[1].initial, initial, flag);
+    }
+    const chosen = stubPrompts({ target: 'user', layers: ['core'], skills: ['a', 'b'] });
+    const lines = await dryInstall([], ['--no-requires'], manifest, { prompts: chosen });
+    assert.deepEqual(chosen.calls.find(([name]) => name === 'layers')[1].choices.map((choice) => choice.scope), Array(8).fill('user'));
+    assert.deepEqual(lines, ['[core · user] npx -y skills add org/skills --skill a b --global']);
+});
+
+test('selector: required layers are added (listed in the skill step), a deselected skill is skipped, a needed one comes back', async () => {
+    const requiring = structuredClone(manifest);
+    requiring.layers.dev.skillRequires = { c: ['a'] };
+    const prompts = stubPrompts({ target: 'project', layers: ['dev'], skills: ['c', 'x'] });
+    const lines = await dryInstall([], [], requiring, { prompts });
+    const groups = prompts.calls.find(([name]) => name === 'skills')[1].groups;
+    assert.deepEqual(groups.map((group) => group.id), ['core', 'up', 'dev']);
+    assert.ok(prompts.calls.some(([name, text]) => name === 'log' && text === 'Required layers not installed yet: core, up. Adding them.'));
+    assert.deepEqual(lines, ['[core, dev · project] npx -y skills add org/skills --skill a c', '[up · project] npx -y skills add m/skills@v1 --skill x']);
+    assert.match(prompts.calls.find(([name, text]) => name === 'log' && /needs/.test(text))[1], /Also installed .*: a\./);
+});
+
+test('selector: project init preselects the detected layers and groups under the project target', async () => {
+    const definition = withJenkinsGroup();
+    const prompts = stubPrompts({ target: 'project', layers: ['core', 'upstream-core', 'upstream-core:stack'], skills: ['a', 'x', 's1'] });
+    const lines = [];
+    const originalLog = console.log;
+    console.log = (line = '') => lines.push(String(line));
+    try {
+        await projectInit(parseArgs(['--dry-run', '--stack', 'stack']), definition, project({ Jenkinsfile: '//' }), () => true, { prompts });
+    } finally {
+        console.log = originalLog;
+    }
+    assert.equal(prompts.calls.find(([name]) => name === 'target')[1].initial, 'project');
+    assert.deepEqual(prompts.calls.find(([name]) => name === 'layers')[1].initial, ['core', 'dev', 'upstream-core', 'upstream-core:stack', 'picks:ci']);
+    assert.ok(lines.includes('[core · project] npx -y skills add org/skills --skill a'));
+    assert.ok(lines.includes('[upstream-core · project] npx -y skills add m/skills@v1 --skill x'));
+});
+
+test('no prompt without a terminal, with --yes, or with layer or --skill arguments: the selector stays out of it', async () => {
+    for (const [layers, args] of [[['up'], []], [['up'], ['--yes']], [['core', 'dev'], ['--skill', 'a,c', '--yes']]]) {
+        assert.deepEqual(await dryInstall(layers, args, manifest, { prompts: forbiddenPrompts }), await dryInstall(layers, args));
+    }
+    await assert.rejects(() => dryInstall([], ['--yes'], manifest, { prompts: forbiddenPrompts }), /Name the layers to install/);
+    await assert.rejects(() => dryInstall([], ['--skill', 'x'], manifest, { prompts: forbiddenPrompts }), /Name the layers to install/);
+    // No terminal: the binary has no TTY on stdin or stdout here.
+    const { root, run } = fakeNpx([], []);
+    const result = run('install', '--dry-run');
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Name the layers to install/);
+    assert.doesNotMatch(result.stdout, /Where should the skills go/);
+    assert.ok(!existsSync(join(root, 'npx.log')), 'nothing ran');
+});
+
+test('selector: confirming runs one npx skills per source and scope, declining stops, a failure keeps the resume message', async () => {
+    const { root, log, run } = fakeNpx([], []);
+    void run;
+    const previous = process.env.ESOUL_SKILLS_NPX;
+    process.env.ESOUL_SKILLS_NPX = join(root, 'npx');
+    const lines = [];
+    const originalLog = console.log;
+    console.log = (line = '') => lines.push(String(line));
+    try {
+        const accept = stubPrompts({ target: 'auto', layers: ['core', 'dev', 'extra'], skills: ['a', 'b', 'c', 'd'] });
+        await install([], parseArgs(['--no-requires']), manifest, { prompts: accept });
+        const calls = readFileSync(log, 'utf8').trim().split('\n');
+        assert.deepEqual(calls, ['-y skills add org/skills --skill a b c', '-y skills add org/skills --skill d --global']);
+        assert.match(lines.join('\n'), /Project layers installed \(core, dev\)\. Commit skills-lock\.json and the installed skill folders \(\.agents\/skills\/\)/);
+        assert.equal(accept.calls.find(([name]) => name === 'note')[1].split('\n').length, 2);
+        const decline = stubPrompts({ target: 'auto', layers: ['core'], skills: ['a'], confirm: false });
+        await assert.rejects(() => install([], parseArgs(['--no-requires']), manifest, { prompts: decline }), /Cancelled; nothing installed/);
+        assert.equal(readFileSync(log, 'utf8').trim().split('\n').length, 2, 'declined: nothing more ran');
+        writeFileSync(join(root, 'npx'), '#!/bin/sh\nexit 3\n');
+        await assert.rejects(() => install([], parseArgs(['--no-requires']), manifest, { prompts: stubPrompts({ target: 'project', layers: ['core'], skills: ['a'] }) }), /npx skills add org\/skills failed \(exit 3\)\. Fix the cause and run the command again; finished sources are skipped quickly\./);
+    } finally {
+        console.log = originalLog;
+        if (previous === undefined) {
+            delete process.env.ESOUL_SKILLS_NPX;
+        } else {
+            process.env.ESOUL_SKILLS_NPX = previous;
+        }
+    }
 });

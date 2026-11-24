@@ -90,7 +90,7 @@ The helper is a Node package on top of [`npx skills`](https://github.com/vercel-
 # (LSR, Vue/Inertia; Laravel is checked for Boost) and esoul-jenkins-libraries when the project
 # has a Jenkinsfile and you can read that private repository; commit skills-lock.json and
 # .agents/skills/ afterwards
-npx @esoul-cz/skills project init                 # --stack lsr,vue to choose, --no-stack to skip them
+npx @esoul-cz/skills project init                 # --stack lsr,vue to choose, --no-stack to skip them; in a terminal it opens the selector (below)
 
 # layers, with the layers they require; project layers go into the project, user layers are global
 npx @esoul-cz/skills install dev
@@ -99,7 +99,7 @@ npx @esoul-cz/skills install upstream-picks:wordpress,web
 npx @esoul-cz/skills install upstream-picks:matt-extra       # the rest of mattpocock's set (off by default)
 npx @esoul-cz/skills install helpers --optional                # also the test queue
 npx @esoul-cz/skills install dev --skill esoul-review,esoul-testing   # chosen skills of the layers
-npx @esoul-cz/skills install                                   # interactive: pick layers, then skills
+npx @esoul-cz/skills install                                   # in a terminal: the selector, target then layers then skills
 
 npx @esoul-cz/skills layers      # what the layers contain
 npx @esoul-cz/skills status      # which layers and skills are installed, project and user; flags retired names and stale lock entries
@@ -107,7 +107,11 @@ npx @esoul-cz/skills retired     # the retired skill names, what replaced them, 
 npx @esoul-cz/skills agents claude|codex   # optional worker agents and hooks
 ```
 
-Useful options: `--dry-run` prints the `npx skills add` commands, `--yes` adds required layers without asking, `--agent <name>` and `--copy` go to `npx skills`, `--global` / `--project` override the scope of every layer. The helper refuses to install a layer whose required layers are missing and offers to add them. `--help` (or `-h`) of any command prints the usage and installs nothing.
+Useful options: `--dry-run` prints the `npx skills add` commands, `--yes` adds required layers without asking, `--agent <name>` and `--copy` go to `npx skills`, `--target auto|project|user` (aliases `--project`/`-p` and `--global`/`-g`) says where the layers go: `auto` (the default) puts every layer where `layers.json` says, project layers into the project and user layers for the person, `project` or `user` put all of them there. The helper refuses to install a layer whose required layers are missing and offers to add them. `--help` (or `-h`) of any command prints the usage and installs nothing.
+
+**Interactive selector.** `install` with no layer and `project init`, in a terminal and without `--yes` (or a layer or `--skill` argument), ask in three steps instead of installing at once: the target (`auto`, `project` or `user`; preselected from the command: `project init` and `--project`/`-p` → `project`, `--global`/`-g` → `user`, otherwise `auto`), the layers (core, dev and upstream-core preselected, plus the stack groups `project init` detected; each is shown with where it goes, for example `core (project)`; the layers a chosen layer requires are added after a question), and the skills of those layers grouped by layer, third-party sources included, all selected (deselect one to skip it). `--dry-run` prints the commands and installs nothing. Without a terminal, with `--yes` or with layer or `--skill` arguments nothing is asked and the helper behaves as a script expects.
+
+The skills are installed with one `npx skills add` per source repository and scope (`auto` can give a project and a user command for the same repository): a full `install` of every layer takes 10 commands instead of 15, `project init` 4 instead of 5. Whenever a project-scope command ran, the helper reminds you to commit `skills-lock.json` and `.agents/skills/`.
 
 **New developer.** A project commits `skills-lock.json` and `.agents/skills/`, so after the clone its skills are already there:
 
