@@ -84,12 +84,12 @@ pipeline {
 			}
 			steps {
 				script {
-					// runCommandInTest does not return the output of the command: the notes go to a file in the workspace.
-					runCommandInTest(
+					// returnStdout: the notes are the output of the script; a missing or empty section exits non-zero and fails the step.
+					env.UPGRADE_NOTES = runCommandInTest(
 						image: env.NODE_TEST_IMAGE,
-						command: "mkdir -p build && node tooling/scripts/release_notes.mjs '${env.DOCUMENTATION_TOOLS_VERSION}' > build/release-notes.txt".toString()
+						command: "node tooling/scripts/release_notes.mjs '${env.DOCUMENTATION_TOOLS_VERSION}'".toString(),
+						returnStdout: true
 					)
-					env.UPGRADE_NOTES = readFile(file: 'build/release-notes.txt').trim()
 					echo "Release notes: ${env.UPGRADE_NOTES}"
 				}
 			}
@@ -329,15 +329,13 @@ pipeline {
 			}
 			steps {
 				script {
-					// runCommandInTest fails the step on any non-zero exit and returns nothing: the command records the exit
-					// status of the check (1: newer release, anything else: could not run) in a file and itself ends with 0.
-					// The backslash keeps the outer shell from expanding the dollar sign: runCommandInTest wraps the command in
-					// double quotes.
-					runCommandInTest(
+					// returnStatus: the exit status of the check (1: newer release, anything else: could not run) is the result;
+					// the report goes to the build log.
+					def status = runCommandInTest(
 						image: env.NODE_TEST_IMAGE,
-						command: 'mkdir -p build && { node tooling/scripts/check_upstream.mjs; echo \\$? > build/upstream-status; }'
+						command: 'node tooling/scripts/check_upstream.mjs',
+						returnStatus: true
 					)
-					def status = readFile(file: 'build/upstream-status').trim().toInteger()
 					if (status == 1) {
 						unstable('A pinned upstream source has a newer release; see the report above.')
 					} else if (status != 0) {
