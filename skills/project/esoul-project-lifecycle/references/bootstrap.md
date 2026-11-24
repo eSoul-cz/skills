@@ -17,7 +17,7 @@ documents.
    (the variants are published as `dev-main` only, so Composer needs the version; Laravel
    variants also: `laravel new <dir> --using=esoul-cz/template-<variant>`), then `git init`.
    Adopt the template ([checklist below](#adopt-the-template)), then commit it alone, in the
-   project's commit format (for example `:tada: [infra] Scaffold the project` in the
+   developer's commit standard (for example `:tada: [infra] Scaffold the project` in the
    recommended Gitmoji format). Other stacks: the skeleton per the stack profile
    (`references/stacks/`). A site with a CMS (`astro-cms`) is three repositories, each created
    from its own template (`template-laravel-cms`, `template-astro-cms-frontend`, and the thin

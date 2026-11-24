@@ -11,7 +11,7 @@ Severities, default Critical and Major findings, finding states and PR rules bel
 
 ## Scope and authority
 
-- Invoking Path A authorizes reading, fetching the base (it only updates remote-tracking refs), running the repository's read-only checks and reporting. Fixing needs an explicit request ("review and fix") or Path B. Commit only when committing is authorized (`gitmoji-commit` when installed, otherwise the project's convention). Path A never pushes or opens a PR.
+- Invoking Path A authorizes reading, fetching the base (it only updates remote-tracking refs), running the repository's read-only checks and reporting. Fixing needs an explicit request ("review and fix") or Path B. Commit only when committing is authorized (`gitmoji-commit` when installed, otherwise the developer's own commit standard). Path A never pushes or opens a PR.
 - A request to run Path B authorizes task-scoped fixes, verification, commits, pushes, PR creation or update, review requests, evidence-backed replies, and the fallback review (event `COMMENT`) when CodeRabbit is limited on the current head. Loading this skill alone authorizes none of them.
 - Merge, approval on GitHub and ruleset bypass need the owner's explicit authorization for that PR, recorded in the PR description (`code-review.md` › Who reviews). Beyond that, do not dismiss someone else's review, weaken checks or protection, change CodeRabbit policy, spend usage credits or install tools without separate authorization.
 - Findings live in the conversation, the work ledger and PR threads (`code-review.md` › Findings stay in the pull request); write no review file into the repository.

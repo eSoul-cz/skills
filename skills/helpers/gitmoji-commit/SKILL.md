@@ -13,8 +13,8 @@ The format and the split rules are the guideline's: `docs/project_guidelines/wor
 
 Take the first that applies:
 
-1. The commit standard the developer stated: in the request, in the applicable `AGENTS.md` already in context, or in a personal instruction. A developer's own standard wins; the guideline only requires English and a descriptive message.
-2. The `## Commit convention` section of the repository-root `CONTEXT.md`, falling back to the root `GLOSSARY.md` for repositories that renamed it. Read only that section, with `for f in CONTEXT.md GLOSSARY.md; do awk -v h='## Commit convention' '$0==h{p=1;s=$0 ORS;next} /^## /{p=0} p{s=s $0 ORS; if(NF)n=1} END{if(n)printf "%s",s; exit !n}' "$f" 2>/dev/null && break; done`. Write conventions only to `CONTEXT.md`, never to `GLOSSARY.md`.
+1. The commit standard the developer stated: in the request or in their personal instructions. The developer's own standard wins over everything below; the guideline only requires English and a descriptive message. It is not recorded in the project.
+2. The project's recorded convention (`AGENTS.md` of the repository, or the `## Commit convention` section of the repository-root `CONTEXT.md`, falling back to the root `GLOSSARY.md` for repositories that renamed it): a recommendation, followed when step 1 gave nothing. Read only that section, with `for f in CONTEXT.md GLOSSARY.md; do awk -v h='## Commit convention' '$0==h{p=1;s=$0 ORS;next} /^## /{p=0} p{s=s $0 ORS; if(NF)n=1} END{if(n)printf "%s",s; exit !n}' "$f" 2>/dev/null && break; done`. Write conventions only to `CONTEXT.md`, never to `GLOSSARY.md`.
 3. Gitmoji, the recommended format, and record that choice in `CONTEXT.md`.
 
 Read [references/convention-bootstrap.md](references/convention-bootstrap.md) when step 2 and `AGENTS.md` disagree or step 3 applies. With a non-Gitmoji standard, skip the catalog and the subject shape below; inspection, splitting, staging and verification still apply.

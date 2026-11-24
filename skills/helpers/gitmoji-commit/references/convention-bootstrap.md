@@ -9,9 +9,9 @@ When `AGENTS.md` defines a commit convention:
 - replace a conflicting commit-convention section while preserving all unrelated context;
 - make the edit idempotent;
 - commit this synchronization on its own, using the effective `AGENTS.md` convention, and mention it in the pull request description (recording a missing convention is allowed in any pull request as its own commit);
-- follow that convention, not Gitmoji.
+- follow that convention, not Gitmoji, unless the developer stated their own standard (the recorded convention is a recommendation).
 
-When only `CONTEXT.md` or its `GLOSSARY.md` fallback defines a different convention, respect it and do not overwrite it.
+When only `CONTEXT.md` or its `GLOSSARY.md` fallback defines a different convention, recommend it the same way and do not overwrite it.
 
 When nothing defines a convention and the developer stated none, create or update the root `CONTEXT.md` with this block, preserving all existing content:
 

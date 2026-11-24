@@ -9,7 +9,7 @@ Two procedures, one skill. **Setup update:** the project's guidelines version, `
 
 A project built from `eSoul-cz/app-templates` records `{variant, commit, declined}` in `.esoul/template.json`: the variant it follows, the last app-templates commit it has caught up with, and the changelog entries it deliberately never takes. The template has no versions or tags: the entries of `CHANGELOG.md` in `eSoul-cz/app-templates` (newest first, each with `Affects:` and `Migration:`) are the update interface, and `main` of `eSoul-cz/template-<variant>` is the latest template. This skill carries the project from the recorded commit to `main` in one reviewable PR and never overwrites what the project made its own. Template facts: the builder's README, "Publishing flow" and "Updating existing projects".
 
-Requires `esoul-workflow` (branch, checks, PR), `esoul-review` (finish the PR), authenticated `gh`, `git`, Node 22 for the helper. Commits follow the project's commit standard; the recommended Gitmoji format is written by `gitmoji-commit` when installed, otherwise by hand. `$SKILL_DIR` is this skill's directory. The agent never merges.
+Requires `esoul-workflow` (branch, checks, PR), `esoul-review` (finish the PR), authenticated `gh`, `git`, Node 22 for the helper. Commits follow the developer's own commit standard; the recommended Gitmoji format (used in the examples below) is written by `gitmoji-commit` when installed, otherwise by hand. `$SKILL_DIR` is this skill's directory. The agent never merges.
 
 ## 1. Preconditions
 

@@ -53,7 +53,7 @@ Guidelines versions: an entry that renders a newer `esoul-cz/guidelines` (its ti
 
 ## Commit
 
-One commit per entry in the project's commit standard (the recommended Gitmoji format when the project has none; `gitmoji-commit` writes it when installed): subject `:arrow_up: [template] <entry title>`, body one line per conflict or unfinished migration action. Stage only files this entry touched. An entry with nothing to change makes no commit. The regenerated guidelines and lock output of a "Render guidelines" entry is a second, mechanical commit of its own (`:arrow_up: [guidelines] Render guidelines <x.y.z>`), so the entry's commit stays reviewable and the PR stays within the size rule of `workflow.md` › Pull requests, which excludes mechanical commits.
+One commit per entry in the developer's commit standard (the recommended Gitmoji format when the developer has none; `gitmoji-commit` writes it when installed): subject `:arrow_up: [template] <entry title>`, body one line per conflict or unfinished migration action. Stage only files this entry touched. An entry with nothing to change makes no commit. The regenerated guidelines and lock output of a "Render guidelines" entry is a second, mechanical commit of its own (`:arrow_up: [guidelines] Render guidelines <x.y.z>`), so the entry's commit stays reviewable and the PR stays within the size rule of `workflow.md` › Pull requests, which excludes mechanical commits.
 
 ## Statuses for `record`
 
