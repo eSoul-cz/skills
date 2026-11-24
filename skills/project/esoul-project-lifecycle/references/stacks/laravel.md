@@ -89,18 +89,13 @@ Gate B4 is green only when all of these hold on `main`:
 - Calculation parity with source workbooks; audit trail and change history.
 - Deployment and runtime (Docker targets, Komodo stack, storage buckets).
 
-## Pitfalls seen in eSoul projects
+## Pitfalls
 
-- Migrations that pass on SQLite and fail on MariaDB/MySQL: generated index or foreign key names
-  over 64 characters (guarded by the schema identifier test), a `timestamp()` column without
-  `nullable()` or a default under strict mode (error 1067), and `ONLY_FULL_GROUP_BY` rejecting a
-  SELECT expression that differs from the GROUP BY one.
-- PHPStan fails with "no files to analyse" on an empty `app/`: guard it instead of disabling it.
-- Editing the generated Boost block in `AGENTS.md` by hand; it is overwritten by `boost:update`.
-- Wayfinder routes not generated before the frontend build or typecheck in CI
-  (`php artisan wayfinder:generate`, `WAYFINDER_TYPES_PREGENERATED=true`).
-- LFS-heavy `assets/` and `docs/design_pencil/` cloned by Jenkins: set `GIT_LFS_SKIP_SMUDGE=1` and
-  keep `docs/` out of the Docker build context (`.dockerignore`).
+The stack pitfalls are guideline rules: `docs/project_guidelines/tools.md` › Known pitfalls
+(strict-mode migrations, PHPStan on an empty `app/`, Boost block), `architecture.md` › Migrations,
+`deployment.md` (LFS and the Docker build context) and the Inertia `tools.md` (Wayfinder in CI).
+Two are about project preparation and stay here:
+
 - Project-local tasking skills drifting from `CONTEXT.md`: replace them with
   `## Tasking convention` in `CONTEXT.md`.
 - A project that grew 40+ ADRs without an index table or `Implementation status`: retrofit adds

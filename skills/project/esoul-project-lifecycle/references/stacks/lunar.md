@@ -46,7 +46,6 @@ only the Lunar specifics.
 
 ## Pitfalls
 
-- Requiring Lunar's sub-packages, Filament or Livewire directly instead of following Lunar's pins.
-- Editing `vendor/` or Lunar's pipeline in place instead of an extension point.
-- Queries inside a loop over candidate shipping options or rows in a modifier: a `Major` review
-  finding (`architecture.md › Calculation cost` of the layer).
+The stack pitfalls are guideline rules of the Lunar layer: `docs/project_guidelines/architecture.md`
+› Versions and upgrades (Lunar's pins), Extension points (no editing of `vendor/` or the pipeline
+in place) and Calculation cost (no queries in a loop).

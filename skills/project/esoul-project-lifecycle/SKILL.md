@@ -87,8 +87,8 @@ milestones agreed with the client; `G0` (ready for development) is reached at B5
 ## 4. Rules that live elsewhere
 
 This skill holds no company rule of its own beyond its process: the process tiers
-([tiers.md](references/tiers.md)), gates B0–B5 (above), the label set ([labels.md](references/labels.md))
-and the podklady rule in Guardrails. Every other rule lives in the guideline or skill named here.
+([tiers.md](references/tiers.md)), gates B0–B5 (above) and the label set
+([labels.md](references/labels.md)). Every other rule lives in the guideline or skill named here.
 
 | Topic | Owner |
 |---|---|
@@ -114,8 +114,9 @@ and the podklady rule in Guardrails. Every other rule lives in the guideline or 
 - A missing fact is written as `TBD` and becomes a `question` issue; open client questions are
   not the agent's to answer (`domain.md` › Open points and conflicts). Accepted ADRs change only
   by dated note or supersession ([adr.md](references/adr.md)).
-- Numbers and calculations come only from podklady. Where the client works in spreadsheets,
-  pin them with parity tests.
+- Numbers and calculations come only from the client's materials or a recorded decision, and a
+  spreadsheet is pinned with parity tests: `domain.md` › Open points and conflicts. The materials
+  are the podklady; an ambiguous or wrong source becomes a `question` issue.
 - Source material without personal data lives in `assets/klient/` (Git LFS) and `docs/podklady/`;
   personal data and non-anonymised exports follow `security-and-data.md`, and a gitignored local
   folder (by convention `_reference/`) holds non-anonymised legacy evidence

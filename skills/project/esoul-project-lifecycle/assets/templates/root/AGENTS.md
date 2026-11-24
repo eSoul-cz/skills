@@ -19,10 +19,11 @@ silently.
 
 ## Rules for this project
 
-- **Numbers and calculations come from `docs/podklady/`, never from your own reasoning.** If a
-  source is ambiguous or wrong, the point becomes an issue labelled `question` and the client
-  answers it. Do not invent a formula, do not "improve" one, and do not round anywhere the
-  guidelines do not say. Where the client has a workbook, a parity test reproduces it.
+- **Numbers and calculations come from `docs/podklady/` or a recorded decision, never from your
+  own reasoning** (`docs/project_guidelines/domain.md` › Open points and conflicts). If a source
+  is ambiguous or wrong, the point becomes an issue labelled `question` and the client answers
+  it. Do not invent a formula, do not "improve" one, and do not round anywhere the guidelines do
+  not say.
 - **Open questions are not yours to answer.** A point the client has not decided is an open issue
   labelled `question`; do not guess it from the podklady, the legacy system or your own reasoning.
   Split the dependent work out and ask.

@@ -48,9 +48,6 @@ On top of the root files and the docs tree ([bootstrap.md](../bootstrap.md)):
 
 ## Pitfalls
 
-- Locks missing after creating a project from the template: the Docker build fails until
-  both are committed.
-- Per-request data in memoized or static worker state: correctness must not depend on the
-  recycling by `max_jobs` (`architecture.md › Long-running worker state`).
-- `lsr/*` documentation newer than the locked versions: read the installed `vendor/lsr/*` source
-  before concluding that a feature is unavailable.
+The stack pitfalls are guideline rules: `docs/project_guidelines/tools.md` (lock files before the
+first Docker build, locked `lsr/*` versions and installed source) and `architecture.md` ›
+Long-running worker state.

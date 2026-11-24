@@ -76,21 +76,14 @@ tests in the same `Checks` stage.
 - Hosting, preview and launch switch; i18n; redesign branch strategy.
 - `C-headless`: export contract and publish flow; ownership of system ADRs in the umbrella repo.
 
-## Pitfalls seen in eSoul projects
+## Pitfalls
 
-- No checks in Jenkins at all: every early Astro repo shipped with build and deploy only. The
-  `Checks` stage is mandatory from the first PR.
-- `docs/` git-ignored as "local only": client content, design and decisions
-  must be tracked (assets in LFS).
-- Mockup bundle accidentally containing LFS pointers, or `.pen` exports read as files instead of
-  through Pencil MCP.
-- Arbitrary values (`text-[15px]`, `bg-[#…]`) and hard-coded copy in components; Tailwind cannot
-  block them, so review and lint must.
-- Playwright clicking before islands hydrate; the dev toolbar covering mobile tap targets.
-- Behind a reverse proxy, missing `X-Forwarded-Proto` turns every Action POST into a 403;
-  appended `X-Forwarded-For` lets visitors dodge rate limits.
-- Fonts API needs network during `astro build` (the Docker build must allow it).
-- Forgetting to flip `PUBLIC_NOINDEX`, `robots.txt` and basic auth at launch, or forgetting 301s
-  from the old URLs.
-- Divergent Node versions across sites; pin per repo in `engines` and the Jenkins image, with
-  the version the guideline `tools.md` names.
+The stack pitfalls are guideline rules: `docs/project_guidelines/tools.md` (the `Checks` stage,
+Playwright, versions), `frontend.md` (no arbitrary values), `deployment.md` (Docker build,
+reverse proxy headers) and `public-website.md` (launch). Two are about project preparation and
+stay here:
+
+- `docs/` git-ignored as "local only": client content, design and decisions must be tracked
+  (assets in LFS).
+- A mockup bundle containing LFS pointers, or `.pen` exports read as files instead of through
+  the Pencil MCP.
