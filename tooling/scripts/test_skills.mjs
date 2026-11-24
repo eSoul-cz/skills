@@ -12,12 +12,22 @@ const MAX_DESCRIPTIONS_TOTAL = 8000;
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const skillsDir = join(root, 'skills');
-const skills = readdirSync(skillsDir)
-    .filter((name) => existsSync(join(skillsDir, name, 'SKILL.md')))
-    .sort();
+// skills/<layer>/<skill>/SKILL.md; the skill name is the key, the directory its location.
+const skillPaths = new Map();
+for (const layer of readdirSync(skillsDir)) {
+    if (!statSync(join(skillsDir, layer)).isDirectory()) {
+        continue;
+    }
+    for (const name of readdirSync(join(skillsDir, layer))) {
+        if (existsSync(join(skillsDir, layer, name, 'SKILL.md'))) {
+            skillPaths.set(name, join(skillsDir, layer, name));
+        }
+    }
+}
+const skills = [...skillPaths.keys()].sort();
 
 function frontmatter(name) {
-    const text = readFileSync(join(skillsDir, name, 'SKILL.md'), 'utf8');
+    const text = readFileSync(join(skillPaths.get(name), 'SKILL.md'), 'utf8');
     const match = text.match(/^---\n([\s\S]*?)\n---\n/);
     assert.ok(match, `${name}: SKILL.md has no frontmatter`);
     const fields = {};
@@ -90,13 +100,37 @@ test('relative links in skill documents resolve', () => {
     assert.deepEqual(broken, []);
 });
 
-test('every skill is listed in the plugin manifest and documented in the README', () => {
+test('every skill is listed in the plugin manifest and the README', () => {
     const manifest = JSON.parse(readFileSync(join(root, '.claude-plugin', 'plugin.json'), 'utf8'));
     const readme = readFileSync(join(root, 'README.md'), 'utf8');
     for (const name of skills) {
         assert.match(manifest.description, new RegExp(`\\b${name}\\b`), `${name}: missing from plugin.json description`);
-        assert.ok(readme.includes(`### \`${name}\``), `${name}: missing README section`);
+        assert.ok(readme.includes(`\`${name}\``), `${name}: missing from the README layer tables`);
     }
+    for (const layer of readdirSync(skillsDir)) {
+        assert.ok(manifest.skills.includes(`./skills/${layer}`), `plugin.json skills must list ./skills/${layer}`);
+    }
+});
+
+test('skills do not link into other skills or the repository tooling, and do not vendor upstream text', () => {
+    const offenders = [];
+    for (const file of skillMarkdown()) {
+        const text = readFileSync(file, 'utf8');
+        const own = [...skillPaths.values()].find((dir) => file.startsWith(`${dir}/`));
+        for (const [, target] of withoutCode(text).matchAll(/\]\(([^)\s#]+)/g)) {
+            if (/^[a-z]+:/i.test(target)) {
+                continue;
+            }
+            const resolved = join(dirname(file), target);
+            if (own && !resolved.startsWith(`${own}/`)) {
+                offenders.push(`${relative(root, file)} → ${target} leaves its skill folder`);
+            }
+        }
+        if (/LICENSE-mattpocock-skills/.test(text)) {
+            offenders.push(`${relative(root, file)} cites a vendored mattpocock licence`);
+        }
+    }
+    assert.deepEqual(offenders, []);
 });
 
 test('skills read convention sections with the one shared command', () => {
@@ -120,7 +154,7 @@ test('skills do not route to retired project-local skills', () => {
 
 // Plugin agents carry the model routing, so each must pin its model and effort; an agent
 // without them silently inherits the caller's (usually most expensive) model.
-test('every plugin agent pins its model and effort, and skills route only to existing agents', () => {
+test('every plugin agent pins its model and effort, and no skill depends on the optional agents', () => {
     const agentsDir = join(root, 'agents');
     const agents = readdirSync(agentsDir).filter((name) => name.endsWith('.md') && !name.startsWith('.'));
     for (const file of agents) {
@@ -134,16 +168,13 @@ test('every plugin agent pins its model and effort, and skills route only to exi
         assert.match(fields.model ?? '', /^(haiku|sonnet|opus|fable)$/, `${file}: model must be a pinned alias`);
         assert.match(fields.effort ?? '', /^(low|medium|high|xhigh)$/, `${file}: effort must be set`);
     }
-    const known = new Set(agents.map((file) => file.replace(/\.md$/, '')));
-    const unknown = [];
-    for (const file of skillMarkdown()) {
-        for (const [, name] of readFileSync(file, 'utf8').matchAll(/esoul-skills:([a-z-]+)/g)) {
-            if (!known.has(name)) {
-                unknown.push(`${relative(root, file)} → esoul-skills:${name}`);
-            }
-        }
-    }
-    assert.deepEqual(unknown, []);
+    // Agents are optional (the plugin or the Codex installer): skills describe delegation by job. Only the role
+    // briefs of esoul-model-routing may name the plugin agents.
+    const allowed = join(skillPaths.get('esoul-model-routing'), 'references/roles.md');
+    const named = skillMarkdown()
+        .filter((file) => file !== allowed && /esoul-skills:[a-z-]+/.test(readFileSync(file, 'utf8')))
+        .map((file) => relative(root, file));
+    assert.deepEqual(named, []);
 });
 
 test('generated Codex agents match agents/', () => {
