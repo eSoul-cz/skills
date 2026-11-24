@@ -41,7 +41,9 @@ into the project; they are committed with `skills-lock.json` in `.agents/skills/
 
 - work: `esoul-workflow`, `esoul-task-work` (pick up and move tasks), `esoul-review`,
   `esoul-testing`, `esoul-guidelines`;
-- documentation: `esoul-docs`.
+- documentation: `esoul-docs`;
+- pipeline: `esoul-jenkins-libraries`, installed too when the project has a `Jenkinsfile` and the
+  developer can read that private repository.
 
 The `project` layer (`npx @esoul-cz/skills install project`) is a user-global install for the
 people who set up and manage projects, and `project init` does not install it; the same holds for

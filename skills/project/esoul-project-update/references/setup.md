@@ -17,10 +17,10 @@ Done when the old and the latest guidelines version, the stale skills and the fi
 ## 2. Skills lock
 
 1. Run the project-scope removals that `esoul-skills status` printed (`npx -y skills remove <names> -y`; it also deletes a lock entry of a skill that is not installed). Skills installed for the person (`user` rows) are their own machine: tell the user the commands and run them only when asked.
-2. `npx @esoul-cz/skills project init` installs `core`, `dev` and `upstream-core` plus the stack groups the project's layers call for (`--stack` and `--no-stack` as the helper's usage says), and rewrites the lock entries of those skills. It never deletes an entry. When the guidelines step below changes the layers in `esoul-guidelines.json`, run it again so the stack groups follow.
-3. `esoul-skills status` shows no retired or moved entry. Commit `skills-lock.json` (and `.agents/skills/` when the project commits the skill folders). Teammates restore the set with `npx skills experimental_install`.
+2. `npx @esoul-cz/skills project init` installs `core`, `dev` and `upstream-core` plus the stack groups the project's layers call for and, for a project with a `Jenkinsfile`, `esoul-jenkins-libraries` when you can read that private repository (`--stack` and `--no-stack` as the helper's usage says), and rewrites the lock entries of those skills. It never deletes an entry. When the guidelines step below changes the layers in `esoul-guidelines.json`, run it again so the stack groups follow.
+3. `esoul-skills status` shows no retired or moved entry. Commit `skills-lock.json` and `.agents/skills/` (the project commits the skill folders, so a clone has them); `npx skills experimental_install` restores or refreshes them.
 
-Done when `esoul-skills status` reports no stale entry and `skills-lock.json` is committed.
+Done when `esoul-skills status` reports no stale entry and `skills-lock.json` and `.agents/skills/` are committed.
 
 ## 3. Guidelines
 

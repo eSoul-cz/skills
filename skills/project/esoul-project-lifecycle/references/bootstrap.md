@@ -69,7 +69,7 @@ documents.
    a public site); the first tasking batch includes them. Without an original site or a public
    website, skip.
 10. **Skills.** Set up the project's skills with `npx @esoul-cz/skills project init`: it installs
-    the layers `core`, `dev` and `upstream-core` into the project and commits nothing. Commit
+    the layers `core`, `dev` and `upstream-core` (and `esoul-jenkins-libraries`, when the project has a `Jenkinsfile` and you can read that private repository) into the project and commits nothing. Commit
     `skills-lock.json` and `.agents/skills/` (the developer commits; propose it in the bootstrap PR),
     and make sure `.claude/skills/<name>` links to them for Claude Code. Add stack skills
     and further layers (for example `npx @esoul-cz/skills install project`) only when the

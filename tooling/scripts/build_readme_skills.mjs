@@ -84,7 +84,7 @@ export function renderBlock(root) {
         }
         for (const [group, definition] of Object.entries(layer.groups ?? {})) {
             const detect = definition.detect?.map((entry) => `\`${entry}\``).join(', ');
-            const tag = definition.default !== false ? '' : detect ? ` (named explicitly, or by \`project init\` for ${detect})` : ' (on request)';
+            const tag = definition.detectFile ? ` (also installed into a project by \`project init\` when it has a \`${definition.detectFile}\`, if you can read the repository)` : definition.default !== false ? '' : detect ? ` (named explicitly, or by \`project init\` for ${detect})` : ' (on request)';
             const content = definition.managedBy
                 ? `installed by ${definition.managedBy}, not by the helper`
                 : (definition.sources ?? []).map(sourceText).join('; ');

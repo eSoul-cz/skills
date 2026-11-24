@@ -76,7 +76,7 @@ Manifest of community skills eSoul found useful, split by tool, plus the optiona
 - Group `web`: `sickn33/agentic-awesome-skills`: `accessibility-compliance-accessibility-audit`; `AgriciDaniel/claude-seo`: `seo-schema`, `seo-technical`
 - Group `frontend`: `anthropics/skills`: `frontend-design`; `stareezy-1/frontend-architecture-skill`: `frontend-lighthouse`
 - Group `data`: `sickn33/agentic-awesome-skills`: `sql-optimization-patterns`
-- Group `jenkins`: `eSoul-cz/jenkins-libraries` (private repository): `esoul-jenkins-libraries`
+- Group `jenkins` (also installed into a project by `project init` when it has a `Jenkinsfile`, if you can read the repository): `eSoul-cz/jenkins-libraries` (private repository): `esoul-jenkins-libraries`
 - Group `matt-extra` (on request): `mattpocock/skills` (`v1.3.2`): 21 skills
 
 <!-- layers:end -->
@@ -87,7 +87,9 @@ The helper is a Node package on top of [`npx skills`](https://github.com/vercel-
 
 ```bash
 # in a project: core, dev and upstream-core, plus the stack skills that match the project
-# (LSR, Vue/Inertia; Laravel is checked for Boost); commit skills-lock.json afterwards
+# (LSR, Vue/Inertia; Laravel is checked for Boost) and esoul-jenkins-libraries when the project
+# has a Jenkinsfile and you can read that private repository; commit skills-lock.json and
+# .agents/skills/ afterwards
 npx @esoul-cz/skills project init                 # --stack lsr,vue to choose, --no-stack to skip them
 
 # layers, with the layers they require; project layers go into the project, user layers are global

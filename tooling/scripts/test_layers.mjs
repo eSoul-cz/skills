@@ -12,6 +12,7 @@ import {
     expandLayerArgs,
     findStaleSetup,
     groupsForGuidelineLayers,
+    groupsForProjectFiles,
     layerSkills,
     managedGroups,
     parseLayerArg,
@@ -244,6 +245,48 @@ test('project init prints the Boost checks for a Laravel project and installs th
     assert.match(text, /FIX {2}laravel\/boost is not installed/);
     assert.match(text, /npx -y skills add s\/stack/);
     assert.doesNotMatch(text, /boosted --skill/);
+});
+
+function withJenkinsGroup() {
+    const copy = structuredClone(manifest);
+    copy.layers['upstream-core'] = copy.layers.up;
+    delete copy.layers.up;
+    copy.layers.dev.requires = ['core', 'upstream-core'];
+    copy.layers.picks.groups.ci = { default: false, detectFile: 'Jenkinsfile', sources: [{ repo: 'git@example.com:org/ci.git', skills: ['p4'], private: true }] };
+    return copy;
+}
+
+async function runProjectInit(root, readable) {
+    const lines = [];
+    const originalLog = console.log;
+    console.log = (line) => lines.push(String(line));
+    try {
+        await projectInit(parseArgs(['--dry-run', '--yes', '--no-stack']), withJenkinsGroup(), root, readable);
+    } finally {
+        console.log = originalLog;
+    }
+    return lines.join('\n');
+}
+
+test('groupsForProjectFiles selects the groups whose detectFile exists', () => {
+    const jenkins = withJenkinsGroup();
+    assert.deepEqual(groupsForProjectFiles(jenkins, (file) => file === 'Jenkinsfile').map((entry) => entry.arg), ['picks:ci']);
+    assert.deepEqual(groupsForProjectFiles(jenkins, () => false), []);
+    jenkins.layers.picks.groups.ci.detectFile = '';
+    assert.match(validateManifest(jenkins).join('\n'), /detectFile must be a file name/);
+});
+
+test('project init installs the Jenkins skill for a project with a Jenkinsfile when the repository is readable', async () => {
+    const text = await runProjectInit(project({ Jenkinsfile: '// pipeline' }), () => true);
+    assert.match(text, /\[picks · project\] npx -y skills add git@example.com:org\/ci.git --skill p4/);
+});
+
+test('project init skips it with one line when the private repository is not readable, and without a Jenkinsfile', async () => {
+    const unreadable = await runProjectInit(project({ Jenkinsfile: '// pipeline' }), () => false);
+    assert.match(unreadable, /Skipped picks:ci: git@example.com:org\/ci.git is private/);
+    assert.doesNotMatch(unreadable, /--skill p4/);
+    const without = await runProjectInit(project({}), () => true);
+    assert.doesNotMatch(without, /--skill p4|Skipped/);
 });
 
 test('satisfied layers need every non-optional skill installed', () => {

@@ -272,6 +272,7 @@
           ]
         },
         "jenkins": {
+          "detectFile": "Jenkinsfile",
           "sources": [
             {
               "repo": "git@github.com:eSoul-cz/jenkins-libraries.git",
