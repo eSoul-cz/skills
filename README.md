@@ -1,508 +1,126 @@
 # eSoul Skills
 
-Reusable agent skills and companion tools for eSoul projects.
+Reusable agent skills and companion tools for eSoul projects, installed in layers.
 
-**Version.** The agent plugin (`esoul-skills`) is at **0.25.0**; each release is tagged `plugin-<version>` (the bare `0.6.x` tags belong to the documentation tool). 0.25.0 removed the lifecycle skill's own `project_guidelines` bundle, so a retrofit of an older project reads it from `plugin-0.24.0`. Maintainers are listed in [`CONTEXT.md`](CONTEXT.md).
+**Version.** The Claude Code plugin (`esoul-skills`) is at **0.26.0**; each release is tagged `plugin-<version>` (the bare `0.6.x` tags belong to the documentation tool). The helper package `@esoul-cz/skills` has its own version in `package.json`. Maintainers are listed in [`CONTEXT.md`](CONTEXT.md).
 
-**Distribution.** `npx skills add eSoul-cz/skills` ([Install](#install)) is the canonical route, and the way a project pins the skills it needs. The Claude Code plugin below is a convenience for colleagues on Claude Code or Codex setups; it carries the same skills and the worker agents.
+**Principles.** The guidelines (`eSoul-cz/guidelines`) are the source of truth; a skill holds only the procedure for an agent and points to the guideline by file and heading. The eSoul skills build on [mattpocock's skills](https://github.com/mattpocock/skills), which are installed from their source and never copied here. Every layer works without the optional ones; a skill that uses a more optional skill says what to do when it is missing. Agents, hooks and Codex files are optional.
 
-## The eSoul workspace (Claude Code / Claude in VS Code)
+## Layers
 
-The fastest way to set a colleague up with the full eSoul workflow is the bundled
-Claude Code marketplace in this repo. It installs eSoul's own skills plus the
-third-party engineering and design skills the workflow relies on.
+Each developer picks layers, and skills inside a layer. Layers marked *project* go into every project (committed with `skills-lock.json`, so every developer gets them); layers marked *user* are installed for the person.
 
-**One-time setup per person:**
+| # | Layer | Scope | Requires | Skills |
+|---|---|---|---|---|
+| 1 | `core` | project | | `esoul-workflow` (entry point: size the task, route each step), `esoul-guidelines` (read, sync and check the managed guidelines), `esoul-task-work` (pick up a task, states, link the PR, close; includes the Freelo working rules) |
+| 2 | `dev` | project | core, upstream-core | `esoul-review` (local review and the PR loop with CI and CodeRabbit), `esoul-testing` (running and writing tests, receipts), `esoul-docs` (application documentation in Markdown, optional PDF tool) |
+| 3 | `project` | user | core | `esoul-project-lifecycle`, `esoul-project-update`, `esoul-uat`, `esoul-task-create` (issue and Freelo task creation), `esoul-data` (project data and data tasks), `esoul-mockup-authoring` |
+| 4 | `helpers` | user | | `gitmoji-commit` (recommended commit format, never forced), `esoul-model-routing` (delegation by job, role briefs, usage report); optional source: [`test-queue`](https://github.com/eSoul-cz/test-queue) |
+| 5 | `business` | user | | `esoul-office-documents`, `esoul-offer-authoring` |
+| 6 | `upstream-core` | project | | manifest only, never copied: mattpocock (pinned tag) `code-review`, `tdd`, `diagnosing-bugs`, `grilling`, `grill-with-docs`, `grill-me`, `handoff`, `prototype`, `codebase-design`, `domain-modeling`, `improve-codebase-architecture`, `research`, `implement`, `to-questionnaire`, `teach`, `wait-what`, `writing-for-agents`; the official `freelo` skill (`freeloio/freelo-cli`); `find-skills` (`vercel-labs/skills`). **Stack groups**, installed by `project init` when the project's guideline layers match (`esoul-guidelines.json`, else detected from `composer.json`/`package.json` like `esoul-guidelines init`): `lsr` (all 23 skills of `Heroyt/lsr-skills`), `vue` (`vuejs-ai/skills` vue-best-practices, vue-debug-guides, create-adaptable-composable; `unovue/shadcn-vue`), `laravel` (**managed by Laravel Boost**: Boost installs its own skills from `boost.json`, nothing is duplicated here; `project init` checks `laravel/boost` and `boost:update` in `post-update-cmd`, `status` reports them as managed); `vue-options-api` (`vue-options-api-best-practices`) only on request |
+| 7 | `upstream-picks` | user | | manifest only, by tool: `laravel`, `wordpress`, `web`, `frontend`, `devops`, `testing`, `data`, `jenkins` (`eSoul-cz/jenkins-libraries`: `esoul-jenkins-libraries`); community skills from their own repositories, the project guidelines win over their advice. `matt-extra` (on request, not part of a plain `install upstream-picks`): the rest of mattpocock's set (`to-spec`, `to-tickets`, `triage`, `wayfinder`, `implement-spec`, `pr`, `setup-matt-pocock-skills`, `git-guardrails-claude-code` and the `in-progress/` and `misc/` skills) |
 
-```bash
-# add the eSoul marketplace (only once per machine)
-claude plugin marketplace add eSoul-cz/skills
+[`layers.json`](layers.json) is the single definition (scope, requires, own skills, third-party sources). The skills live in `skills/<layer>/<skill>/`.
 
-# install the workflow set
-claude plugin install esoul-skills@esoul          # esoul-workflow + all eSoul skills
-claude plugin install esoul-awesome-picks@esoul --scope project   # per project: WordPress, Laravel, SEO, data, ...
-claude plugin install frontend-design@esoul        # distinctive, non-templated UI
-```
+## Install
 
-The same install works in the terminal and in Claude in VS Code: both read the
-same `~/.claude` configuration, so a plugin installed once is available in both.
-
-`esoul-awesome-picks` adds about 21 skill descriptions to every session, so install it per project, only in WordPress, Laravel, SEO, or data projects: `claude plugin install esoul-awesome-picks@esoul --scope project`. A plain install enables it user-wide.
-
-`frontend-design` is referenced from its upstream repository, so its updates come
-from Anthropic. `esoul-skills` and `esoul-awesome-picks` are maintained here.
-
-The parts of Matt Pocock's skills that the eSoul workflow uses (grilling, TDD,
-bug diagnosis, prototypes, handoff, design principles, domain modeling) are
-adapted into `esoul-workflow` and `esoul-project-lifecycle` as references, under
-their MIT license. They cost nothing per session until a step needs them, and
-they follow eSoul's rules (Freelo, `CONTEXT.md`, verification receipts). The full
-upstream plugin stays available but is optional:
+The helper is a Node package on top of [`npx skills`](https://github.com/vercel-labs/skills) (no dependencies of its own):
 
 ```bash
-claude plugin install mattpocock-skills@esoul      # optional: the rest of Matt Pocock's skills
+# in a project: core, dev and upstream-core, plus the stack skills that match the project
+# (LSR, Vue/Inertia; Laravel is checked for Boost); commit skills-lock.json afterwards
+npx @esoul-cz/skills project init                 # --stack lsr,vue to choose, --no-stack to skip them
+
+# layers, with the layers they require; project layers go into the project, user layers are global
+npx @esoul-cz/skills install dev
+npx @esoul-cz/skills install project helpers business
+npx @esoul-cz/skills install upstream-picks:laravel,web
+npx @esoul-cz/skills install upstream-picks:matt-extra       # the rest of mattpocock's set (off by default)
+npx @esoul-cz/skills install helpers --optional                # also the test queue
+npx @esoul-cz/skills install dev --skill esoul-review,esoul-testing   # chosen skills of the layers
+npx @esoul-cz/skills install                                   # interactive: pick layers, then skills
+
+npx @esoul-cz/skills layers      # what the layers contain
+npx @esoul-cz/skills status      # which layers and skills are installed, project and user
+npx @esoul-cz/skills agents claude|codex   # optional worker agents and hooks
 ```
 
-### Upstream skills that agents ignore
+Useful options: `--dry-run` prints the `npx skills add` commands, `--yes` adds required layers without asking, `--agent <name>` and `--copy` go to `npx skills`, `--global` / `--project` override the scope of every layer. The helper refuses to install a layer whose required layers are missing and offers to add them.
 
-The upstream plugin stays installed, but in eSoul repositories agents ignore these of its skills, because they replace an eSoul rule or tool:
+A new developer in a project restores the committed set with `npx skills experimental_install` and adds their own layers with `install`. Update with `npx skills update -p` (project) and `npx skills update -g` (user).
 
-- the tracker set: `to-spec`, `to-tickets`, `triage`, `wayfinder`, `implement-spec` (they publish to GitHub instead of Freelo; use `esoul-tasking`);
-- `setup-matt-pocock-skills` (it renames `CONTEXT.md`);
-- `pr` (the repository's PR template and `esoul-review` write the PR body);
-- `git-guardrails-claude-code` (it blocks the `git push` that `esoul-review` needs).
-
-Grilling follows one rule: rounds of independent questions (`esoul-workflow` `references/grilling.md`), whichever grilling skill is loaded.
-
-To pick up upstream improvements, compare the adapted files with a newer checkout,
-port the changes by hand, then record the new version:
+Without the helper, the raw `npx skills` commands work too:
 
 ```bash
-git clone https://github.com/mattpocock/skills /path/to/mattpocock-skills
-node tooling/scripts/check_upstream.mjs /path/to/mattpocock-skills            # lists changed files
-node tooling/scripts/check_upstream.mjs /path/to/mattpocock-skills --accept   # after porting
+npx skills add eSoul-cz/skills --list
+npx skills add eSoul-cz/skills --skill esoul-workflow esoul-guidelines esoul-task-work
+npx skills add mattpocock/skills@v1.3.2 --skill code-review tdd diagnosing-bugs grilling handoff prototype codebase-design domain-modeling
+npx skills add freeloio/freelo-cli --skill freelo
 ```
 
-**Agents and usage.** `esoul-skills` also ships worker agents in `agents/`, each with its
-model and effort pinned, so the main session (Opus) orchestrates and cheaper models do the
-mechanical work: `scout` (Haiku, read-only search), `test-runner` (Haiku, verification
-runs), `implementer` (Sonnet, builds a specified change), `reviewer` (Sonnet, review
-lenses), `critical-reviewer` (Opus high, risky changes only), `uat-runner` (Sonnet, UAT
-chapters) and `ops` (Haiku, commits and tracker chores). The skills start them as
-`esoul-skills:<name>`; `esoul-model-routing` holds the rules, the recommended settings, and
-a usage report that shows where the weekly limit goes. The plugin's hooks make this automatic:
-a SessionStart hook injects the usage rules into every session, and a PreToolUse guard denies
-Explore, forks and general-purpose agents without an explicit `model` (disable it with
-`ESOUL_AGENT_GUARD=off`). The guard needs Node 22+ on `PATH` and is skipped otherwise.
-
-```bash
-node skills/esoul-model-routing/scripts/usage-report.mjs --days 7
-```
-
-Start any real task with the router:
+Start any real task with the entry point:
 
 ```text
 $esoul-workflow build, fix, review or analyse this eSoul task
 ```
 
-**Optional, situational skills** (install per person only when needed, not part of
-the core workflow):
+## Optional: agents, hooks and Codex
+
+No skill needs them. They are a convenience for people who use Claude Code or Codex with orchestrated subagents.
+
+- **Agents and hooks.** `agents/` holds seven worker agents with pinned models (`scout`, `test-runner`, `implementer`, `reviewer`, `critical-reviewer`, `uat-runner`, `ops`); `hooks/` injects the usage rules at session start and denies Explore, forks and general-purpose agents without an explicit `model` (disable with `ESOUL_AGENT_GUARD=off`; needs Node 22+). Skills describe delegation by job, never by agent name. The role briefs are in `skills/helpers/esoul-model-routing/references/roles.md`, generated from `agents/*.md` (`node tooling/scripts/build_roles.mjs`; CI checks it is in sync), so an agent without the plugin can brief any subagent with the same rules.
+- **Claude Code plugin** (agents, hooks and the skills as one plugin):
+
+  ```bash
+  claude plugin marketplace add eSoul-cz/skills
+  claude plugin install esoul-skills@esoul          # eSoul skills (all layers) with agents and hooks
+  claude plugin install mattpocock-skills@esoul     # optional: the full upstream set
+  claude plugin install frontend-design@esoul       # optional: distinctive, non-templated UI
+  ```
+
+  The plugin reads the layer folders (`skills` in `.claude-plugin/plugin.json`). **0.26.0 is a breaking change:** the skills were renamed and moved between layers (`esoul-tasking` → `esoul-task-work` and `esoul-task-create`, `esoul-freelo-task-authoring` → `esoul-task-create`, `esoul-maintain-application-documentation` → `esoul-docs`, `esoul-project-data` and `esoul-data-task-guard` → `esoul-data`; new `esoul-guidelines` and `esoul-testing`); the `freelo` copy, `test-queue` and the `esoul-awesome-picks` plugin are gone (install `upstream-core`, [`eSoul-cz/test-queue`](https://github.com/eSoul-cz/test-queue) and `upstream-picks` with the helper). Install the third-party skills with `npx @esoul-cz/skills install upstream-core`.
+- **Codex** (agents to `~/.codex/agents`, rules into `~/.codex/AGENTS.md`):
+
+  ```bash
+  git clone https://github.com/eSoul-cz/skills && cd skills
+  node codex/install.mjs            # --dry-run shows what would change; merge codex/config.toml by hand
+  ```
+
+  Or `npx @esoul-cz/skills agents codex`. After editing `agents/`, regenerate with `node tooling/scripts/build_codex_agents.mjs` and `node tooling/scripts/build_roles.mjs`.
+
+Usage report (where the weekly limit goes): `node tooling/scripts/usage-report.mjs --days 7`.
+
+## Upstream skills the eSoul workflow does not use by default
+
+The eSoul skills build on mattpocock's set and do not fight it. The tracker and setup skills (`to-spec`, `to-tickets`, `triage`, `wayfinder`, `implement-spec`, `setup-matt-pocock-skills`), `pr` and `git-guardrails-claude-code` replace an eSoul rule or tool (work is tracked in Freelo, `CONTEXT.md` holds eSoul conventions, `esoul-review` writes the PR), so they are not part of `upstream-core`: they are the on-request group `upstream-picks:matt-extra`, and `esoul-workflow` › `references/upstream.md` says when an agent leaves them alone.
+
+## Publishing the helper (owner)
+
+`@esoul-cz/skills` is not published yet. `npm pack` and `npm publish --dry-run` pass in this repository. To publish:
+
+1. Create the npm organisation `esoul-cz` (npmjs.com) and add the publishing account as owner.
+2. `npm login`, then `npm publish --access public` from the repository root (the package is scoped; `publishConfig.access` is already `public`).
+3. Later releases: bump `version` in `package.json` (semver: new layer or command = minor, breaking command change = major) and publish again. To publish from Jenkins instead, store an npm automation token as the credential `NPM_TOKEN` and run `npm publish --access public` in a tag-triggered stage.
+
+Until then run the helper from a checkout: `node bin/esoul-skills.mjs <command>`.
+
+## Checks
 
 ```bash
-npx skills add remotion-dev/skills                                   # video in React
-npx skills add https://github.com/coleam00/excalidraw-diagram-skill  # Excalidraw diagrams
-npx skills add https://github.com/browser-use/browser-use            # local Chrome control
-npx skills add https://github.com/valyuai/skills --skill valyu-best-practices  # paid search API
+tooling/scripts/test_skills                # every Node test (needs git and the network for the source check)
+ESOUL_SKIP_NETWORK=1 node --test tooling/scripts/test_skills.mjs tooling/scripts/test_layers.mjs tooling/scripts/test_layers_manifest.mjs
 ```
 
-## Install
-
-
-List the skills available from GitHub:
-
-```bash
-npx skills add eSoul-cz/skills --list
-```
-
-Choose skills interactively:
-
-```bash
-npx skills add eSoul-cz/skills
-```
-
-Install one skill globally for Codex:
-
-```bash
-npx skills add eSoul-cz/skills \
-  --skill <skill-name> \
-  --agent codex \
-  --global \
-  --yes
-```
-
-The Freelo task-authoring workflow requires both Freelo skills:
-
-```bash
-npx skills add eSoul-cz/skills --skill freelo --agent codex --global --yes
-npx skills add eSoul-cz/skills --skill esoul-freelo-task-authoring --agent codex --global --yes
-```
-
-For optional GitHub issue pairing and a repository-persisted tasking convention, install the complete dependency chain explicitly:
-
-```bash
-npx skills add eSoul-cz/skills \
-  --skill freelo esoul-freelo-task-authoring esoul-tasking \
-  --agent codex \
-  --global \
-  --yes
-```
-
-`esoul-tasking` directly requires `esoul-freelo-task-authoring`, which requires `freelo`. Do not assume dependencies are installed automatically. Replace `codex` with another supported agent, or omit `--agent` to choose interactively. Omit `--global` for a project-local installation.
-
-### Codex
-
-Codex gets the same worker agents and usage rules, generated from `agents/`:
-
-```bash
-git clone https://github.com/eSoul-cz/skills && cd skills
-node codex/install.mjs                 # agents -> ~/.codex/agents, rules -> ~/.codex/AGENTS.md
-# then merge codex/config.toml into ~/.codex/config.toml by hand
-npx skills add eSoul-cz/skills --skill esoul-workflow esoul-model-routing --agent codex --global --yes
-```
-
-Re-run both after each release (`git pull` first). `node codex/install.mjs --dry-run` shows what would change; the installer never touches `config.toml`. After editing `agents/`, regenerate with `node tooling/scripts/build_codex_agents.mjs`.
-
-To work from a local checkout, replace `eSoul-cz/skills` with `.`.
-
-### Keep one copy of each skill up to date
-
-`npx skills add` installs a snapshot; it does not follow later releases. After every release, re-run the same `add` command with `--agent` for each non-Claude agent, or the agent keeps reading the old rules and an older, larger file:
-
-```bash
-npx skills add eSoul-cz/skills --skill <skill-name>... --agent codex --global --yes
-```
-
-Avoid `npx skills update --global`: it links the updated skills into every detected agent, Claude Code included, so plugin users load each description twice (`esoul-skills:<name>` and `<name>`). If that happened, delete the symlinks it created in `~/.claude/skills`; they point to `~/.agents/skills`, which Codex keeps using. Copies an older installer placed in `~/.codex/skills/<name>` shadow the shared ones; move them out. Claude Code users who installed the `esoul-skills` plugin need no `npx` copies for Claude Code at all. Project-local skills that repeat an eSoul skill for one project (targets, label UUIDs) should become sections of that project's `CONTEXT.md` instead: `## Freelo` (project, tasklist IDs, label UUIDs) and `## Tasking convention`.
-
-Check the skills themselves (frontmatter, description budget, links, manifest, README) before a release:
-
-```bash
-node --test tooling/scripts/test_skills.mjs
-```
-
-## Skills
-
-### `gitmoji-commit`
-
-Splits work into focused commits by intention, stages and verifies each change, and writes one Gitmoji shortcode per normal agent-authored commit while respecting repository-specific conventions.
-
-Usage:
-
-```text
-$gitmoji-commit commit your work
-```
-
-### `esoul-review`
-
-One review skill with two paths. **Path A** reviews a branch, work in progress or a change with no PR against its real base before the PR: it resolves the exact diff (committed, staged, unstaged and untracked changes), applies `.coderabbit.yaml` path filters, path instructions and profile, scans every changed file for credentials, runs the repository's own linters and tests (reusing verification receipts), and reviews the change along two axes in parallel sub-agents on explicit models: **Standards** (the project's guidelines, `AGENTS.md`, `CONTEXT.md` and a code-smell baseline) and **Spec** (the issue or task acceptance criteria and `## UAT`). The review flow is the vendored, eSoul-adapted `code-review` of mattpocock/skills; the skill adds the guidelines' severities (Critical, Major, Minor, Nitpick), verification, deduplication and independent verification of blocking findings under a risk trigger. **Path B** finishes the PR: it creates or updates the PR (single or native stacked), then loops on CI and CodeRabbit with fixes for valid findings, evidence-backed replies to invalid ones, and repeated verification until the current revision is approved.
-
-When CodeRabbit is rate-limited or out of credits on an open PR, the skill reviews the published head and posts the findings the way CodeRabbit would: one review with event `COMMENT`, inline comments with one-click suggestions on lines in the diff, everything else in the review body, and no duplicates on later heads. Path B does this automatically and accepts that review in CodeRabbit's place once its findings are resolved, instead of waiting for CodeRabbit (`wait-pr.mjs --skip-reviewer` stops the poller from waiting for it). The approval is a `COMMENT` review, not a GitHub approval, and does not replace the human review. The code never leaves the agent's own model.
-
-The skill never merges, approves on GitHub or uses a ruleset bypass unless the owner explicitly authorises it for that PR or batch (recorded in the PR description), and never bypasses required human reviews. It uses `gitmoji-commit` for commits. Requires authenticated GitHub access and the repository's CodeRabbit integration; automatic CodeRabbit approval requires `reviews.request_changes_workflow` to be enabled.
-
-Usage:
-
-```text
-$esoul-review review my branch against origin/main before I open the PR
-$esoul-review create the PR, run local review before pushing, and iterate until CI passes and CodeRabbit approves
-$esoul-review CodeRabbit is rate-limited on https://github.com/OWNER/REPO/pull/123; post the review to the PR
-$esoul-review finish this GitHub stack bottom-up; skip local CodeRabbit review
-```
-
-Install from this checkout:
-
-```bash
-npx skills add . --skill esoul-review --agent codex --global --yes
-```
-
-Three bundled read-only scripts (Node.js 22+, no dependencies; the last two need authenticated `gh`) keep agents from writing their own git and polling code. Run them from the repository under review, with `SKILL_DIR` set to the installed skill's directory. Resolving the scope prints the reviewed and excluded files with reasons, the matching path instructions, redacted credential hits, and warnings about stale bases or large changes:
-
-```bash
-node "$SKILL_DIR/scripts/review-scope.mjs" --base origin/main
-```
-
-Waiting for CI and remote review works on one PR at a time and exits with a JSON snapshot when CI fails, discussion or review activity appears, the revision changes, or CI and review settle on the current head (`--help` lists all options and exit codes):
-
-```bash
-node "$SKILL_DIR/scripts/wait-pr.mjs" https://github.com/OWNER/REPO/pull/123 --expect-head HEAD_SHA --since LAST_INVENTORY_TIME
-```
-
-Detecting the CodeRabbit limit and posting the fallback review use the third script. `check` is read-only; `post` is a dry run that prints the exact payload unless `--post` is given. The findings format is in `references/pr-comments.md`:
-
-```bash
-node "$SKILL_DIR/scripts/post-review.mjs" check https://github.com/OWNER/REPO/pull/123
-node "$SKILL_DIR/scripts/post-review.mjs" post https://github.com/OWNER/REPO/pull/123 --findings findings.json [--post]
-```
-
-Their regression tests build throwaway git repositories or use a fake `gh` and need no network:
-
-```bash
-node --test tooling/scripts/test_review_scope.mjs tooling/scripts/test_wait_pr.mjs tooling/scripts/test_post_review.mjs
-```
-
-### `esoul-maintain-application-documentation`
-
-Creates, refreshes, verifies, reviews, and renders application user, developer, and operator documentation from repository evidence.
-
-Usage:
-
-```text
-$esoul-maintain-application-documentation verify the documentation in this repository
-```
-
-### `freelo`
-
-Operates Freelo projects, tasks, comments, time records, and related entities through the authenticated `freelo` CLI. Work reports record active work only, never waiting for tests, builds, CI or the test queue; `references/work-reports.md` computes the minutes from the session transcript.
-
-Usage:
-
-```text
-$freelo show the active tasks in my project
-```
-
-### `esoul-freelo-task-authoring`
-
-Prepares implementation-ready eSoul tasks, checks for duplicates once per batch, presents an exact preview, and writes to Freelo only after approval. Requires the `freelo` skill. Caches the project's tasklist IDs and task label UUIDs in the `## Freelo` section of the repository's `CONTEXT.md`, so later runs skip the slow lookups (Freelo allows about one request per 2.4 seconds).
-
-Usage:
-
-```text
-$esoul-freelo-task-authoring turn this feature request into an approved Freelo task
-```
-
-### `esoul-tasking`
-
-Authors work in either `freelo-only` mode (a self-contained Freelo task) or `github-freelo` mode (a detailed GitHub issue paired with a management-oriented Freelo task). Requires `esoul-freelo-task-authoring` and its `freelo` dependency.
-
-Resolves the tasking convention from applicable `AGENTS.md` instructions first, then root `CONTEXT.md`, then root `GLOSSARY.md` for repositories that renamed `CONTEXT.md` while migrating to glossaries. If none defines a mode, asks once and records the choice under `## Tasking convention` in `CONTEXT.md`. An authoritative `AGENTS.md` convention is synchronized into that section without overwriting unrelated context. Explicit one-off overrides do not change the stored policy. Neither choosing a mode nor recording it approves remote writes.
-
-Uses module or useful one-word context prefixes (`Context: Actionable result`) and existing labels in each system, not frontend/backend/data title prefixes. In split mode, titles match, GitHub owns the full specification and verification, and both entities link to each other. Every remote write requires an approved preview; creation is followed by read-back verification, with partial failures reported rather than blindly retried.
-
-Usage:
-
-```text
-$esoul-tasking turn this feature request into approved work using this repository's convention
-$esoul-tasking use github-freelo for this task only; keep the stored convention unchanged
-```
-
-Example stored policy (the other supported value is `github-freelo`):
-
-```md
-## Tasking convention
-
-Use the `esoul-tasking` skill for task authoring.
-
-- Mode: `freelo-only`
-```
-
-Requires authenticated Freelo access through the companion's supported tools. If using the CLI, install `freelo` separately and authenticate with `freelo auth login`. Split mode additionally requires authenticated GitHub access through an available integration or `gh` (`gh auth login`). Targets and labels are resolved from the consuming repository and accessible projects, never from bundled project IDs or workstation paths. Missing GitHub access blocks split mode rather than silently switching to Freelo-only.
-
-Install the full chain from this checkout:
-
-```bash
-npx skills add . \
-  --skill freelo esoul-freelo-task-authoring esoul-tasking \
-  --agent codex \
-  --global \
-  --yes
-```
-
-### `esoul-mockup-authoring`
-
-Authors self-contained static bundles for the eSoul mockups module, with desktop/mobile frames, directly addressable interaction states, and image-only designs. Includes an original, neutral five-frame Workshop Notes example and a loopback-only design preview.
-
-Requires Node.js 22+, an application checkout containing `App\Services\Mockups\BundleValidator` and `config/mockups/manifest.schema.json`, and that checkout's Composer dependencies and compatible PHP runtime. The skill does not bundle a second validator or a checkout-relative schema symlink. Local preview does not implement comments, pinning, or persistence; those must be verified in the actual application.
-
-Bundle JavaScript runs on a separate, automatically allocated loopback port. The UI pins that origin and validates measurement messages by sender, origin, per-load nonce, declared identity, and bounded height. Both ports close when the preview stops; the measurement probe is injected locally and is not part of published bundles.
-
-```bash
-npx skills add eSoul-cz/skills --skill esoul-mockup-authoring --agent codex --global --yes
-```
-
-Replace the repository with `.` to install from this checkout; choose another supported agent as needed.
-
-Usage:
-
-```text
-$esoul-mockup-authoring prepare and validate a desktop/mobile mockup bundle, then inspect every frame locally
-```
-
-Resolve `SKILL_DIR` to the installed skill's directory, then validate or preview the bundled example:
-
-```bash
-node "$SKILL_DIR/scripts/mockup.mjs" validate --app-root /path/to/application --php /path/to/compatible/php
-node "$SKILL_DIR/scripts/mockup.mjs" preview --app-root /path/to/application --php /path/to/compatible/php
-```
-
-An explicit bundle directory follows `validate` or `preview`. Application root defaults to `ESOUL_MOCKUP_APP_ROOT` or the current directory; PHP defaults to `PHP_BINARY` or `php`. Publishing requires a configured GitHub source and authorized staff UI access; do not infer a production destination from the sample.
-
-The browser security regression uses the real application validator and a disposable Chrome profile:
-
-```bash
-ESOUL_MOCKUP_APP_ROOT=/path/to/application \
-PHP_BINARY=/path/to/compatible/php \
-CHROME_BINARY=/path/to/chrome \
-node --test tooling/scripts/test_mockup_preview.mjs
-```
-
-It checks that bundle JavaScript still executes, cannot modify the control UI, and cannot override layout with invalid measurement messages. The test is explicitly skipped when the application or Chrome location is not supplied; Jenkins's documentation-tooling checks do not replace this application-dependent browser test.
-
-### `esoul-uat`
-
-Plans, verifies, runs, and reports user acceptance testing of eSoul applications, e-shops, and websites as an end user. The scenario catalogue is Markdown in `docs/testing/uat/` of the project, built from the product type in the project profile (`esoul-project-lifecycle`). Runs use Claude in Chrome in a dedicated Chrome profile for functional scenarios and Playwright with the installed Google Chrome for device emulation, screenshots, and a layout audit (overflow, overlaps, clipped text, tap targets, broken images, font fallback). When a `.pen`, Figma, or mockup design exists, screens are compared with it. Failed scenarios become approved work through the repository's tasking skill (GitHub issue + Freelo pairs, or Freelo tasks only in `freelo-only` projects), with URL, screenshot, reproduction, and proposed fix. Credentials stay in `~/.config/esoul-uat/`, never in the repository.
-
-Optionally, a bridge (`scripts/gdoc.mjs` and `assets/gdoc/Code.gs`, Node.js 22+) keeps the scenarios and their results in a living Google Doc and writes Playwright results (`[ABC-01] …` test titles) into an `Automatický test` column; setup in `references/gdoc.md`.
-
-Requires Node.js 22+. The sweep needs `playwright` (`npm install --prefix ~/.cache/esoul-uat playwright@1`) and Google Chrome; the catalogue and run tool has no dependencies.
-
-```bash
-npx skills add eSoul-cz/skills --skill esoul-uat --agent codex --global --yes
-node --test skills/esoul-uat/scripts/uat.test.mjs skills/esoul-uat/scripts/gdoc.test.mjs
-```
-
-Usage:
-
-```text
-$esoul-uat verify whether the UAT scenarios match the current code
-$esoul-uat run chapters AUT and NAV on the UAT instance, desktop and mobile, with design checks
-```
-
-### `esoul-workflow`
-
-Default entry point for eSoul work on web applications, WordPress sites, and data analyses. Loads repository context, sizes the task (S, M, L, bug, analysis), and routes each step to the owning skill instead of repeating it: `esoul-tasking` for tracked work (every change starts from an issue or task), `esoul-mockup-authoring` and `frontend-design` for UI, `gitmoji-commit` for commits, `esoul-review` for review and PRs. Carries adapted references for grilling, test-driven development, bug diagnosis, prototypes, handoffs and design principles (deep modules, real seams, fake drivers for integrations), and uses CodeGraph when installed. Includes short references for the eSoul web stack, the WP-template WordPress deployment model, and reproducible data analysis.
-
-Every check runs once per state of the code: after a check the agent records a verification receipt keyed on the worktree's Git tree, which stays the same when the verified files are committed, and `gitmoji-commit` and `esoul-review` reuse it instead of running the suite again. A revision gets one local review (inside `esoul-review`), not an extra `code-review` on top, and subagents are always started with an explicit, cheaper model.
-
-Usage:
-
-```text
-$esoul-workflow add a newsletter signup to the WooCommerce checkout
-$esoul-workflow analyse last quarter's orders by acquisition channel
-```
-
-### `esoul-model-routing`
-
-Choose the model, effort and delegation for a task so the weekly usage limit buys the most good output. The main session orchestrates on Opus at `medium` effort (raised per session for planning, L or security work); the plugin agents do search and verification on Haiku and implementation, reviews and UAT runs on Sonnet; `critical-reviewer` keeps Opus for risky changes. Explains why context size, not output, drives usage, and sets the context budget (one task per session, early auto-compact, no dumps in context). Covers the current lineup (Fable 5.1, Opus 5.5, Sonnet 5.5, Haiku 5.5), recommended `settings.json`, Zeron chat defaults and child chats, and a usage report (`scripts/usage-report.mjs`) that also flags subagents that did not run on their configured model. Advises and sets the model; it does not silently swap the running turn.
-
-Usage:
-
-```text
-$esoul-model-routing which model should I use to refactor the checkout?
-$esoul-model-routing make this quick and cheap
-```
-
-### `esoul-project-lifecycle`
-
-The eSoul project process from first client materials to agent-ready work. Bootstraps or retrofits a repository: the engineering rules come from the `esoul-guidelines` installer (the skill checks that the command is available, runs `init` and `sync`, reviews the detected layers and adds `esoul-guidelines check` to CI), the root files that are not lifecycle-specific (`AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`, `GLOSSARY.md`, the PR template, `.coderabbit.yaml`, `renovate.json5`) are read at run time from the `common` layer of the published `eSoul-cz/template-<variant>` repository and only missing ones are added, and the skill itself ships the issue forms with UAT fields, the `CONTEXT.md` tracker, tasking and Freelo text, the project part of `AGENTS.md` and the `docs/` tree. There is no `CONTRIBUTING.md` and no `CODEOWNERS`. It keeps client podklady and legacy evidence, ADRs, the design brief and the plan with slices; client questions are issues labelled `question`, and the client questionnaire is generated from the open ones. It prepares the codebase for agents (quality gates, reference module, parity tests), turns slices into GitHub issue + Freelo pairs through `esoul-tasking`, folds every client session back into the docs in one PR, and audits conformance and completeness (`esoul-guidelines check` plus a read-only `scripts/conformance.mjs`). A retrofit migrates an existing `docs/project_guidelines/` from the old bundle (readable at the tag `plugin-0.24.0`) instead of overwriting it.
-
-Ships stack profiles for Laravel, Lunar (shops), LSR and Astro that point to the guideline layers and the app templates and keep only bootstrap specifics, handover checklists and pitfalls, a checklist for any other stack, and two process tiers: `full` for applications and `light` for websites (light projects use the same guideline layers; `docs/rozhodnuti.md` is their decision register). Includes starter templates for the lifecycle documents, a read-only `scripts/conformance.mjs` checker, `scripts/snapshot.mjs`, which captures screenshots and mobile Lighthouse of a client's original site ("před") and of the launched one ("po") for case studies, and `scripts/ai-readiness.mjs`, which checks a website's AI readiness (robots and bot access, sitemap, server HTML, JSON-LD, `llms.txt`, Markdown, feeds) and gates launch. Implementation is handed to `esoul-workflow`.
-
-Usage:
-
-```text
-$esoul-project-lifecycle bootstrap this repository for the new client project
-$esoul-project-lifecycle client-update from today's meeting notes
-$esoul-project-lifecycle audit this project against the eSoul standard
-```
-
-It writes issues and Freelo tasks only through `esoul-tasking`, so install the chain together:
-
-```bash
-npx skills@1.7.2 add eSoul-cz/skills \
-  --skill esoul-project-lifecycle esoul-tasking esoul-freelo-task-authoring freelo \
-  --agent codex \
-  --global \
-  --yes
-```
-
-Check a project without changing anything (Node 22 or newer; `--github` also reads issues and repository settings through `gh`). Resolve `SKILL_DIR` to the installed skill's directory, for example `skills/esoul-project-lifecycle` in this checkout:
-
-```bash
-node "$SKILL_DIR/scripts/conformance.mjs" /path/to/project --github eSoul-cz/example-repo
-```
-
-Replace `/path/to/project` and `eSoul-cz/example-repo` with the project checkout and its repository.
-
-### `esoul-project-update`
-
-Updates a project that was created from an eSoul template (`eSoul-cz/template-<variant>`) to the latest template. It reads the `commit` recorded in `.esoul/template.json`, takes the entries of the `app-templates` `CHANGELOG.md` added since then that affect the project's variant or layers, applies each as one commit (`:arrow_up: [template] <entry title>`) with a 3-way merge of that entry's template delta and its migration notes (project customisations win every conflict and are reported), and opens one PR `chore/update-template-<variant>` that lists applied, skipped and conflicting entries, the checks run and a Deploy notes line. The recorded commit advances only over fully applied entries, so skipped ones are offered again by the next run. A project without `.esoul/template.json` is adopted first (a retrofit action of `esoul-project-lifecycle`, done here only so the update can run). Template state is read at run time with `gh` and `git`; nothing is vendored. Requires `esoul-workflow`, `gitmoji-commit` and `esoul-review`; the agent never merges.
-
-Usage:
-
-```text
-$esoul-project-update update this project to the latest template
-$esoul-project-update adopt this project as laravel-inertia, then update it
-```
-
-The pure helpers (parse the changelog, select entries by variant and layers, compute the commit to record) run with Node 22 and have tests:
-
-```bash
-node "$SKILL_DIR/scripts/changelog.mjs" select --head CHANGELOG.md --base old-CHANGELOG.md --variant laravel-inertia --variant-file variants/laravel-inertia.json
-node --test "$SKILL_DIR/scripts/changelog.test.mjs"
-```
-
-### `esoul-data-task-guard`
-
-On data tasks (label `data-migration`, legacy imports, data fixes, reports, analyses) the agent does not change application code or the data model beyond what the issue specifies. It finishes the independent data work, writes the needed change down as a proposal (finding, cause, fix as an example diff or SQL, impact on existing data) and creates a new issue/task pair through `esoul-tasking`. An explicit instruction from the user overrides it.
-
-Usage:
-
-```text
-$esoul-data-task-guard the import found duplicate breeders; propose the fix
-```
-
-### `esoul-project-data`
-
-Source material without personal data (client files, photos, admin media, import files) and anonymised SQL dumps and backups go to the tracked `assets/` folder through Git LFS, and guides to `docs/`, never to `storage/`, `*.nosync`, `tmp/` or Downloads, where only one computer has them. Non-anonymised exports, backups with personal data and generated PDFs are never committed, not even to LFS; data is reviewed before it is committed, and a public-data exception is recorded in `CONTEXT.md` or an ADR. Secrets never go to Git; throwaway intermediates stay in the session scratchpad.
-
-Usage:
-
-```text
-$esoul-project-data back up the media before the import
-```
-
-### `esoul-office-documents`
-
-Branded client documents (offers, contracts, reports, price calculations, presentations) as DOCX, XLSX and PPTX, filled into the eSoul company templates with fonts, logo, header and footer. Markdown becomes a Word document, a JSON description becomes an Excel calculation with formulas and totals, and a JSON outline becomes a deck built from the template layouts. DOCX and XLSX need only `python3`; PPTX needs `python-pptx` in a venv in `~/.cache/esoul-office-documents`. Versioned application documentation PDFs stay with `esoul-maintain-application-documentation`.
-
-Usage:
-
-```text
-$esoul-office-documents write the offer from Sales/nabidka/nabidka-portal.md as a Word document
-$esoul-office-documents make a price calculation for these 6 work items as Excel
-$esoul-office-documents prepare a 6-slide client presentation of the offer
-```
-
-### `esoul-offer-authoring`
-
-Step-by-step authoring of a client offer: intake, parallel evidence research of the client's current site or specification, previous offers as the model, scope and packages, pricing, the offer text and the handover. Findings carry evidence, claims from the brief are checked against it, and a cheaper package is designed as the first stage of the larger one. Rendering into the company template stays with `esoul-office-documents`.
-
-Usage:
-
-```text
-$esoul-offer-authoring prepare an offer for a new e-shop for this client, a cheap and a full variant
-$esoul-offer-authoring revise the offer in Sales/nabidka after the client's feedback
-```
-
-### `test-queue`
-
-One shared queue for test runs across all agent sessions on a machine. Parallel sessions that each start a test suite, Playwright, Infection or a build push a laptop into swap and their tests time out. `testq` runs cheap checks at once, admits suites and builds in a limited number, runs E2E and mutation testing one at a time, and starts nothing new while memory is short. Limits are tuned to the machine's RAM and cores and can be changed at any time.
-
-A Claude Code PreToolUse hook prefixes test and build commands with `testq run` and caps their worker counts automatically. On macOS a menu bar widget shows CPU, memory, swap and load, lists running and waiting jobs with stop buttons, pauses the queue or changes its limits, and resizes the Colima VM with a restart that brings its containers back. `testq doctor` checks the setup and suggests what to tune, including Docker VM memory and idle stacks.
-
-Requires Python 3.8+. The widget needs macOS and Xcode Command Line Tools (`swiftc`). Installing changes `~/.claude/settings.json` (with a backup) and adds a login item, so run it on request. Resolve `SKILL_DIR` to the installed skill's directory:
-
-```bash
-sh "$SKILL_DIR/scripts/install.sh"              # CLI, hook and widget; re-run after updates
-sh "$SKILL_DIR/scripts/install.sh" --uninstall  # remove everything (add --purge to drop history)
-python3 -m unittest discover -s skills/test-queue/scripts -p 'test_*.py'
-```
-
-Usage:
-
-```text
-$test-queue install the test queue and the menu bar widget on this machine
-$test-queue why do my tests keep timing out, and what should I tune?
-```
+They cover: skill frontmatter and description budget, relative links, one layer per own skill and a valid `layers.json`, every source of `layers.json` resolving (`npx skills add <source> --list`, the pinned mattpocock tag included), generated Codex agents and `roles.md` in sync, no skill naming the optional agents, the review script tests and anonymised review eval cases, the lifecycle, UAT, update and Freelo work-report script tests, the gitmoji catalog and the usage report. Jenkins runs them all in the `Verify skills` stage.
 
 ## Tools
 
-- `docs/documentation` validates and renders application documentation. Install it in an application repository with:
+- `docs/documentation` validates and renders application documentation (the optional PDF part of `esoul-docs`). Install it in an application repository with:
 
   ```bash
   curl -fsSL https://github.com/eSoul-cz/skills/releases/latest/download/install.sh | sh
   ```
 
-- `freelo` is the authenticated CLI used by the Freelo skills. Authenticate it with `freelo auth login`.
+- `freelo` is the authenticated CLI behind the official Freelo skill (layer `upstream-core`). Authenticate it with `freelo auth login`.
 
 Tooling source and release automation live under `tooling/`, `install.sh`, and `Jenkinsfile`.
