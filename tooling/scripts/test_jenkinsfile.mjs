@@ -73,6 +73,21 @@ test('the scheduled build checks upstream releases and the tag build reads the c
     assert.ok(!/UPGRADE_NOTES: '/.test(jenkinsfile), 'the release notes are not a string in the Jenkinsfile');
 });
 
+test('the release notes and the upstream status come back from runCommandInTest, not through files in the workspace', () => {
+    const stage = (name) => stages.find((candidate) => candidate.name === name)?.body ?? assert.fail(`no stage "${name}"`);
+    const notes = stage('Read release notes');
+    assert.match(notes, /env\.UPGRADE_NOTES = runCommandInTest\(/);
+    assert.match(notes, /returnStdout: true/);
+    assert.ok(!/returnStatus/.test(notes));
+    const upstream = stage('Check upstream releases');
+    assert.match(upstream, /def status = runCommandInTest\(/);
+    assert.match(upstream, /returnStatus: true/);
+    assert.ok(!/returnStdout/.test(upstream));
+    for (const body of [notes, upstream]) {
+        assert.ok(!/readFile|release-notes\.txt|upstream-status|echo \\\\\$\?|> build\//.test(body), 'no file workaround for the result of the command');
+    }
+});
+
 test('the scripts the Jenkinsfile runs exist and are executable', () => {
     for (const [, script] of jenkinsfile.matchAll(/(?:sh '|command: '|node )tooling\/scripts\/([\w.]+)/g)) {
         const path = join(root, 'tooling/scripts', script);
