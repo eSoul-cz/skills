@@ -24,5 +24,5 @@ Applies to eSoul web applications and their frontends. Repository `AGENTS.md` / 
 ## Verifying
 
 - While iterating, run the affected tests; stop at L1 and let the orchestrator run the full suite once (`esoul-testing` when installed, otherwise `docs/project_guidelines/testing.md` › Testing workflow).
-- For UI changes, open the page in a browser at 1440px and 390px, check the console and network tab for errors, and compare against the mockup when one exists.
+- For UI changes, open the page in a browser at 1440px and 390px, check the console and network tab for errors, and compare against the mockup when one exists. The browser is the one of the UAT rule (`esoul-uat` › `references/chrome.md`): Claude in Chrome in a dedicated Chrome profile, or a CDP session of a dedicated Chrome (own `--user-data-dir`, `--remote-debugging-port` on localhost); never the person's personal profile. Those cannot emulate a device or narrow the window below Chrome's minimum width, so take the 390px view with device emulation in Playwright (the project's own setup, or `esoul-uat` › `scripts/sweep.mjs`). With no such browser, say the visual check was not run.
 - For API changes, exercise the endpoint with a real request (curl or a test) and check status codes and error shapes, not only the happy path.
