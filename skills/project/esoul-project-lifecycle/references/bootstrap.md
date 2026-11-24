@@ -80,6 +80,51 @@ Deliver the bootstrap as the project's workflow guideline says (a PR in client r
 split by intention into commits. The description lists the profile, what was skipped and why,
 and the B0 gate approver.
 
+A new project follows the guidelines closely: a deviation is a recorded exception with the owner's
+approval and an ADR, never a silent local rule (skill `esoul-guidelines` › Project exceptions).
+
+## New project infrastructure
+
+The checklist for everything a new project needs outside its own repository. Each item names who
+does it; every write outside the repository needs the person's approval after showing the exact
+call. Order matters: the repository before the first push, the Jenkins job before the ruleset
+(a required check that never reports blocks every merge), the manifest before the `Jenkinsfile`
+deploy rule.
+
+**Agent, with approval**
+
+1. **GitHub repository** in `eSoul-cz` (`gh repo create eSoul-cz/<name> --private`; show the
+   command first). The first push of the scaffold commit to the empty default branch is the one
+   direct push the person approves; everything after goes through PRs.
+2. **Freelo project** with its tasklists and labels: from the standard project template
+   (Freelo `create_project_from_template`, or the CLI), or `create_project` plus the tasklists of
+   `esoul-task-create`. Then `esoul-task-create` writes `## Freelo` in `CONTEXT.md`.
+3. **Repository settings** (step 12): squash-only merge and labels now; the ruleset with the
+   required `Jenkins` check only after the Jenkins job below reports on a PR.
+4. **Manifest PR to `eSoul-cz/esoul-infrastructure`:** `apps/<client>/<name>.yaml` (shape per
+   stack: `laravel-fpm`, `lsr-roadrunner`, `static-release`; `domains`, `image`, `mariadb`, `env`,
+   `secrets`), `make render`, review `build/`; see `apps/README.md` › "A new app, step by step".
+   The agent opens the PR and never runs `make apply`.
+5. **Stack name in the `Jenkinsfile`** (the deploy rule of the pipeline call), a project PR after
+   the manifest is merged.
+
+**A person must do (the agent lists these in the bootstrap PR and asks)**
+
+6. **Jenkins job** for the repository, unless the organisation folder discovers it by itself:
+   check whether the `Jenkins` check reports on the first PR; if not, ask devops to add a
+   multibranch job. Pipeline credentials (registry, GitHub, Komodo) are global; a project-specific
+   one (for example the export token of a CMS frontend) is added by devops.
+7. **Secrets:** the values behind the manifest's `secrets` go into the app's item in 1Password
+   (a check-mode run of `apps-apply.yml` lists the missing ones); never into the repository, a PR
+   or the chat (`security-and-data.md` › Secrets).
+8. **DNS and buckets** for every domain of the manifest (pointing at the load balancer), then
+   devops runs `make check` and `make apply`, deploys through Jenkins, and applies once more to
+   install the site.
+9. **Gate B0** approval and the merge of the bootstrap PR.
+
+Done when the repository, the Freelo project, the Jenkins check and the manifest exist, and the
+PR names each item a person still owes.
+
 ## Placeholders
 
 Templates use `{{UPPER_SNAKE_CASE}}`. Common ones:
