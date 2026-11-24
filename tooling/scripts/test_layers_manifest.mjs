@@ -73,11 +73,21 @@ test('every source of layers.json resolves and lists its skills', { skip: proces
     // Concurrent first runs of `npx -y skills` race on the shared npx cache (ENOTEMPTY); install it once before the parallel listing.
     const warm = spawnSync('npx', ['-y', 'skills', '--help'], { encoding: 'utf8', timeout: 240000 });
     assert.equal(warm.status, 0, `npx -y skills --help failed: ${warm.stderr}`);
-    const listed = await Promise.all(entries.map(({ source }) => listSkills(source)));
+    // A private source (marked "private": true) is checked when the machine can clone it and skipped with a note otherwise
+    // (Jenkins has no clone credentials for the shell); ESOUL_REQUIRE_PRIVATE=1 makes it mandatory.
+    const listed = await Promise.all(entries.map(({ source }) =>
+        listSkills(source).catch((error) => {
+            if (source.private && process.env.ESOUL_REQUIRE_PRIVATE !== '1') {
+                console.log(`# skipped private source ${source.repo}: not reachable from this machine`);
+                return null;
+            }
+            throw error;
+        }),
+    ));
     const missing = [];
     entries.forEach(({ source, skills, layers }, index) => {
         for (const name of skills) {
-            if (!listed[index].has(name)) {
+            if (listed[index] && !listed[index].has(name)) {
                 missing.push(`${source.repo}${source.ref ? `@${source.ref}` : ''}: ${name} (${[...layers].join(', ')})`);
             }
         }

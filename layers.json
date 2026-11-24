@@ -301,10 +301,11 @@
         "jenkins": {
           "sources": [
             {
-              "repo": "eSoul-cz/jenkins-libraries",
+              "repo": "git@github.com:eSoul-cz/jenkins-libraries.git",
               "skills": [
                 "esoul-jenkins-libraries"
-              ]
+              ],
+              "private": true
             }
           ]
         },
