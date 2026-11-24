@@ -35,11 +35,17 @@ Done when you know the mode, the Freelo project and tasklist IDs and the assigne
 1. Find the issue or task. When the user names none, list the `To Do` tasks of the project that
    have no worker or already have the assignee as worker and let the user choose; an unassigned
    `To Do` task is ready for anyone. When no task exists, the change first needs one
-   (`docs/project_guidelines/workflow.md` › Tasking): create it through `esoul-task-create`; for
-   small administrative work the user decides whether it goes without one, and you ask.
+   (`docs/project_guidelines/workflow.md` › Tasking): create it through `esoul-task-create`. Small
+   administrative work may go without one when `## Tasking convention` records that standing
+   decision for its kind (for example dependency updates, `Jenkinsfile` changes); otherwise the
+   user decides and you ask.
 2. The task is ready: acceptance criteria, an estimate (Freelo), no open blocker, where an open
    `question` issue counts as a blocker ([references/freelo.md](references/freelo.md) › States
-   and estimates). Otherwise tell the user.
+   and estimates). A task in `To Do` is ready by definition. A task the user names from `Backlog`
+   may lack an estimate (`Backlog` allows it, `To Do` requires it): check the rest, ask the person
+   for the estimate (their time, 15-minute steps) and set it through `esoul-task-create` before
+   `In progress`; the person may say it follows after pick-up, which the final summary records.
+   Anything else missing: tell the user.
 3. **Assigned-task guard.** When the Freelo worker or the GitHub assignee is someone other than
    the assignee from step 0, stop, tell the user and leave the assignment alone. A task with no
    worker or assignee is not a conflict: step 4 assigns it.

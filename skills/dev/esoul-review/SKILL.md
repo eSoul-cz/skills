@@ -157,7 +157,7 @@ Done when the tree to be pushed has a receipt for every check and the local revi
 
 Create focused commits (`gitmoji-commit` when installed, otherwise the project's or developer's convention, `workflow.md` › Commits); push only authorized branches; reuse an existing PR, otherwise create one with explicit repository, head and base ([GitHub operations](references/github-operations.md)). The PR rules are `workflow.md` › Pull requests: title, template, assignee and reviewer, the decisions made on one's own. The risk and what was not done go in the template section "Risks and what I did not do". What the agent adds:
 
-- **Issue first:** the PR links its issue or task (`Closes #<issue>`). Without one, ask the user whether the small-admin exception applies (dependency updates, a `Jenkinsfile` change and similar); never assume it.
+- **Issue first:** the PR links its issue or task (`Closes #<issue>`). Without one, ask the user whether the small-admin exception applies (dependency updates, a `Jenkinsfile` change and similar), unless `CONTEXT.md › ## Tasking convention` records that standing decision for this kind of work; never assume it.
 - **People:** record every contributor as assignee and ask for at least one other person as reviewer.
 - **Body:** fill the repository template with the checks run and their results; keep human-written content; list stack dependencies and the docs, glossary, changelog and ADR updates the change requires.
 - Move the Freelo task to `Code review` when the PR is first opened (`esoul-task-work`).

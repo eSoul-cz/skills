@@ -22,3 +22,13 @@ Invocation authorizes synchronization of an existing authoritative convention. T
 An explicit request may override the stored mode for the current run without modifying `CONTEXT.md` or `GLOSSARY.md`. Show the stored mode, the effective mode, and the reason in the preview. Ask if it is unclear whether the user intends a one-off override or a permanent change; persist only what the user states. Honor a repository rule that explicitly prohibits overrides.
 
 Persist a different mode only when the user explicitly requests a project-policy change. If `AGENTS.md` defines the old mode, explain the conflict and resolve the authoritative policy with the user before synchronizing it; the rule lives in `AGENTS.md`, so `CONTEXT.md` follows it.
+
+### Standing decisions
+
+The owner may record in `## Tasking convention` that a kind of small administrative work needs no issue, so agents stop asking each time:
+
+```md
+- Small admin work without an issue: allowed for dependency updates, Jenkinsfile changes
+```
+
+`esoul-workflow`, `esoul-task-work`, `esoul-review` and `esoul-project-update` read the line and apply it as written, to the kinds of work it names and no others (`docs/project_guidelines/workflow.md` › Tasking: the user decides; the line is that decision made ahead). A line that says `none`, or no line, keeps the default: ask each time. Only the owner's words create or change the line; an agent never adds it, and a change to it follows the policy-change rule above. A new stage or check in the push build is never small administrative work, whatever the line says: `docs/project_guidelines/deployment.md` of a Laravel or LSR project requires an accepted ADR for it.

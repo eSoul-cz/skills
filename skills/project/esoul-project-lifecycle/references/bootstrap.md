@@ -102,6 +102,7 @@ Templates use `{{UPPER_SNAKE_CASE}}`. Common ones:
 | `{{BUSINESS_TIME_ZONE}}` | IANA zone for dates a person sees, e.g. `Europe/Prague` |
 | `{{PR_LANGUAGE}}` | Language of pull request descriptions: Czech or English |
 | `{{COMMIT_SCOPES}}` | Allowed commit scopes, each in backticks |
+| `{{SMALL_ADMIN_KINDS}}` | Only when the owner decided it: the kinds of small administrative work that need no issue (the whole bullet is dropped otherwise) |
 | `{{DATE}}` | ISO date of the change |
 | `{{LEGACY_SYSTEM}}`, `{{LEGACY_SNAPSHOT_DATE}}` | Name and snapshot date of the previous system |
 

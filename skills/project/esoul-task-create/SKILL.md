@@ -13,8 +13,10 @@ Author work in one of two modes, the repository's `## Tasking convention` decide
 
 Every change has an issue and/or task (`docs/project_guidelines/workflow.md` › Tasking), so
 this skill also serves S work through the minimal path below. The small-administrative-work
-exception (dependency updates, `Jenkinsfile` changes and similar) is the user's decision, which
-you ask for and never assume.
+exception (dependency updates, `Jenkinsfile` changes and similar) is the user's decision: a
+standing decision recorded in `## Tasking convention` applies as written
+([references/convention.md](references/convention.md) › Standing decisions); otherwise you ask
+and never assume.
 
 Work over exactly one confirmed Freelo project (and one GitHub repository) per run. Read a
 reference only when its step needs it.
@@ -124,7 +126,8 @@ and estimate answered, or listed as an unverified assumption in the preview.
 
 Resolve the tasklist by name from the cache. `To Do` only with a complete description, an
 approved estimate and no blockers (no assignee needed: an unassigned `To Do` task is ready for
-anyone); otherwise `Backlog`; `LTT` (or `Project Management`) only after the user confirms
+anyone); otherwise `Backlog`, which may lack an estimate (whoever picks the task up gets it
+estimated first, `esoul-task-work` › Pick up the task); `LTT` (or `Project Management`) only after the user confirms
 recurring work. New work starts in those lists. The estimate, due date and an assignee, if one
 is wanted, come from the user. Each task and each issue gets at least one label that already
 exists, by UUID in Freelo and by exact name on GitHub (a question needs none). A

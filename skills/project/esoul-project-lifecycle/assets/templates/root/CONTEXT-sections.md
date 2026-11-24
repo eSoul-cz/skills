@@ -64,6 +64,9 @@ Project specifics (titles, estimates, `## UAT`, dependencies and Freelo states f
   values. Technical work states `**Role:** vývojář eSoul` or „Bez uživatelsky viditelného dopadu“
   with a technical check.
 - Work depending on a `proposed` ADR or an open `question` issue says so explicitly and links it.
+<!-- Only when the owner has decided it (esoul-task-create › references/convention.md › Standing
+     decisions); never write it unasked. Otherwise omit the line: agents ask each time. -->
+- Small admin work without an issue: allowed for {{SMALL_ADMIN_KINDS}} (for example dependency updates, Jenkinsfile changes).
 
 ## Commit convention
 
