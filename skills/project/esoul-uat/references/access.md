@@ -24,11 +24,16 @@ propose an issue for the missing access (through the tasking skill).
 
 ## Secrets file
 
-One file per repository and environment, outside every repository:
+All UAT secrets live in one directory outside every repository, `~/.config/esoul-uat/`
+(`chmod 700`), one file per purpose (`chmod 600`):
 
 ```text
-~/.config/esoul-uat/<repository>.<environment>.env      # chmod 600
+~/.config/esoul-uat/<repository>.<environment>.env      # accounts and URLs of one environment
+~/.config/esoul-uat/<projectKey>.gdoc.env               # Google Doc bridge URL and token, see gdoc.md
 ```
+
+A credential never goes into the repository, chat, results, issues, Freelo or a screenshot
+(`docs/project_guidelines/security-and-data.md` › Secrets).
 
 ```dotenv
 UAT_BASE_URL=https://uat.example.cz
@@ -45,12 +50,22 @@ UAT_TOTP_A=
 ```
 
 Role codes are the ones defined in `environment.md`. In `setup` mode, create the file from
-`assets/templates/secrets.env` with `chmod 600` and empty values, then ask the user to fill
-it in themselves. Never ask for the values in chat. Check that the file exists, has mode
-600, and contains every key the selected chapters need, without printing the values.
+`assets/templates/secrets.env` with `chmod 600` and empty values, then tell the user which file
+and keys to fill in themselves. Never ask for the values in chat. Check that the file exists,
+has mode 600, and contains every key the selected chapters need, without printing the values
+(for example `grep -q '^UAT_ROLE_B_PASSWORD=.' <file>`).
 
+UAT accounts are test accounts created for UAT, never real users or production accounts.
 Seed accounts whose passwords are already public in the repository (for example a
 development seeder) may stay in the secrets file too; it keeps one mechanism.
+
+Who reads the passwords:
+
+- `scripts/sweep.mjs` reads the file in its own process; the password never reaches the model.
+- A run in the browser tool types the password itself, so the model reads it: read only the one
+  key of the role you log in as (`grep '^UAT_ROLE_B_PASSWORD=' <file>`), never print the whole
+  file, and never type a password where a screenshot would show it. This exposure is why
+  accounts are test-only; change a password whose transcript is shared.
 
 ## `environment.md`
 

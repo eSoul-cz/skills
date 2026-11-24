@@ -77,8 +77,9 @@ Project-specific dimensions from the profile (for example `Prodejní kanál`, `J
 4. No class, file, or column names in steps; they belong in `Zdroj`.
 5. Every chapter has at least two `opravneni` scenarios and at least one `validace` or
    `negativni` scenario, when the product has roles or forms.
-6. Concrete values: real account e-mails from `environment.md`, concrete ear tags, prices,
-   dates.
+6. Concrete values: the test-account e-mails from `environment.md`, and invented or anonymised
+   identifiers, prices and dates (`docs/project_guidelines/security-and-data.md` › Personal and
+   client data); never real client data.
 7. New scenarios go to the end of the chapter. Removed scenarios keep their ID with
    `- **Zrušeno:** důvod` and no steps, so references in bugs stay valid.
 8. Do not describe screens you have not verified. Prefer leaving a gap reported by `verify`.

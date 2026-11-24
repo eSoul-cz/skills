@@ -78,24 +78,28 @@ Never mark `pass` from reading code, from a similar earlier scenario, or because
 "looks fine". Never change data outside what the scenario requires. When a step would do
 something irreversible that the scenario does not describe, stop and ask.
 
+The run is done when `uat.mjs next <run-dir>` says nothing is left and `uat.mjs stats <run-dir>`
+shows no `not-run`.
+
 ### Keeping context small
 
 Browser snapshots and screenshots are the largest thing a UAT run puts into context, so the
 orchestrating session does not click through chapters itself. When the harness offers
-subagents, run each chapter in a subagent with the uat-runner brief from `esoul-model-routing`
-(`references/roles.md`, optional helpers layer; a fresh context on a mid-tier model with
-medium effort, not a fork of this conversation), or
-in a Zeron child chat when chapters should run in parallel and stay visible. Pass
-it the chapter file, the run directory, and the role accounts (by role code, not passwords).
-The parent only reads `uat.mjs stats <run-dir>` and the runner's summary between chapters,
-and keeps the analysis of failures and the bug triage. Without subagents or the helpers layer,
-run the chapters yourself, one at a time, and keep the screenshots out of the conversation.
+subagents, run each chapter in a fresh-context subagent given the UAT runner brief of
+`esoul-model-routing` (`references/roles.md`, optional helpers layer; never a fork of this
+conversation), or in a Zeron child chat when chapters should run in parallel and stay visible.
+Pass it the chapter file, the run directory and the role codes; it reads the password of the
+role it logs in as from the secrets file ([access.md](access.md)). The parent only reads
+`uat.mjs stats <run-dir>` and the runner's summary between chapters, and keeps the analysis of
+failures and the bug triage. Without subagents or the helpers layer, run the chapters yourself,
+one at a time, and keep the screenshots out of the conversation.
 
 ### Responsive sweep and design
 
 After the functional chapters (or in parallel, since it only reads), run the sweep through
-a test runner subagent (when the harness offers one) so its output stays out of context; then review the
-findings on their screenshots in the UAT runner or here, not in the sweep runner:
+a fresh subagent when the harness offers one, so its output stays out of context (otherwise run
+it yourself); then review the findings on their screenshots in the UAT run or here, not in the
+sweep run:
 
 ```bash
 node <skill>/scripts/sweep.mjs --config docs/testing/uat/uat.config.json \
@@ -109,8 +113,8 @@ rows (`design.md`).
 
 ## Report
 
-Rendering runs through a test runner subagent when the harness offers one (otherwise run it yourself); it returns only the verdict and
-the output paths (the brief asks it to list the produced artifact paths):
+Rendering is a build job: hand it to a fresh subagent when the harness offers one (otherwise run
+it yourself); it returns only the verdict and the output paths:
 
 ```bash
 node <skill>/scripts/uat.mjs report <run-dir>     # writes <run-dir>/report.md
@@ -123,14 +127,16 @@ bugs are created so links appear.
 
 PDF: when the project has the documentation tooling (`docs/documentation`), add a guide
 entry for the run report in `docs/documentation.toml` (or reuse a `uat-report` entry whose
-sources point at the latest run) and run `docs/documentation build` (also through the test runner subagent). Without the tooling,
-offer to install it through the `esoul-docs` skill (dev layer); the Markdown report
-remains the deliverable meanwhile.
+sources point at the latest run) and run `docs/documentation build`, again as a build job.
+Without the tooling, offer to install it through the `esoul-docs` skill (dev layer); the
+Markdown report remains the deliverable meanwhile. The rendered PDF is a build artifact and is
+not committed (`docs/project_guidelines/documentation.md` › Generated documentation).
 
 Commit the run folder through a PR (`docs/testing/uat/runs/…`). Store screenshots the way
 the repository stores images (plain Git objects render in issues; use Git LFS only when the
-repository requires it). On environments with real client data, `runs/` stays local unless
-redacted.
+repository requires it). Screenshots and results are exports: on environments with real
+client data `runs/` stays local unless redacted (`docs/project_guidelines/security-and-data.md`
+› Personal and client data).
 
 ## Handing over to a human tester
 

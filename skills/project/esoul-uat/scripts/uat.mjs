@@ -140,14 +140,14 @@ export function parseChapter(text, file = 'chapter') {
         if (field) chapter.meta[field[1] === 'Kapitola' ? 'id' : 'part'] = field[2].trim().replace(/^`|`$/g, '');
     }
     Object.assign(chapter, chapterPreamble(lines.slice(0, i)));
-    if (!chapter.meta.id) chapter.errors.push(`${file}: chybí „- **Kapitola:** ID“ pod nadpisem`);
+    if (!chapter.meta.id) chapter.errors.push(`${file}: missing "- **Kapitola:** ID" under the chapter title`);
     let current = null;
     let headerSeen = false;
     for (; i < lines.length; i++) {
         const line = lines[i];
         const heading = line.match(new RegExp(`^##\\s+(${ID_PREFIX}-\\d{2,3})\\s+(.+?)\\s*$`));
         if (!heading && /^##\s+[A-Za-z]{1,6}-?\d/.test(line)) {
-            chapter.errors.push(`${file}:${i + 1}: nadpis „${line.trim()}“ vypadá jako scénář, ale neodpovídá tvaru „## ABC-01 Název“`);
+            chapter.errors.push(`${file}:${i + 1}: heading "${line.trim()}" looks like a scenario but does not match "## ABC-01 Title"`);
             current = null;
             continue;
         }
@@ -202,7 +202,7 @@ function normalise(scenario) {
 }
 
 export function loadCatalogue(dir) {
-    if (!existsSync(dir)) fail(`Adresář ${dir} neexistuje.`);
+    if (!existsSync(dir)) fail(`Directory ${dir} does not exist.`);
     const files = readdirSync(dir).filter((f) => f.endsWith('.md') && !f.startsWith('_')).sort();
     return files.map((file) => {
         const chapter = parseChapter(readFileSync(join(dir, file), 'utf8'), file);
@@ -218,42 +218,42 @@ export function validate(chapters, devices = DEVICES) {
     for (const chapter of chapters) {
         const { file, meta } = chapter;
         errors.push(...chapter.errors);
-        if (meta.id && !new RegExp(`^${ID_PREFIX}$`).test(meta.id)) errors.push(`${file}: Kapitola musí být 2–4 velká písmena nebo číslice`);
-        if (!meta.title) errors.push(`${file}: chybí nadpis kapitoly „# …“`);
-        if (!['A', 'B'].includes(meta.part)) errors.push(`${file}: Část musí být A nebo B`);
-        if (chapter.scenarios.length === 0) errors.push(`${file}: kapitola nemá žádný scénář`);
+        if (meta.id && !new RegExp(`^${ID_PREFIX}$`).test(meta.id)) errors.push(`${file}: Kapitola must be 2-4 capital letters or digits`);
+        if (!meta.title) errors.push(`${file}: missing chapter title "# …"`);
+        if (!['A', 'B'].includes(meta.part)) errors.push(`${file}: Část must be A or B`);
+        if (chapter.scenarios.length === 0) errors.push(`${file}: the chapter has no scenario`);
         let expected = 1;
         const types = [];
         for (const s of chapter.scenarios) {
             const where = `${file}:${s.line} ${s.id}`;
-            if (seenIds.has(s.id)) errors.push(`${where}: duplicitní ID`);
+            if (seenIds.has(s.id)) errors.push(`${where}: duplicate ID`);
             seenIds.add(s.id);
             const [prefix, num] = s.id.split('-');
-            if (prefix !== meta.id) errors.push(`${where}: prefix neodpovídá kapitole ${meta.id}`);
-            if (Number(num) !== expected) errors.push(`${where}: očekáváno číslo ${String(expected).padStart(2, '0')}`);
+            if (prefix !== meta.id) errors.push(`${where}: prefix does not match chapter ${meta.id}`);
+            if (Number(num) !== expected) errors.push(`${where}: expected number ${String(expected).padStart(2, '0')}`);
             expected = Number(num) + 1;
             if (s.cancelled) continue;
             types.push(s.type);
-            if (!s.role) errors.push(`${where}: chybí Role`);
-            if (!TYPES.includes(s.type)) errors.push(`${where}: Typ „${s.type}“ není z ${TYPES.join(', ')}`);
-            if (!BASES.includes(s.basis)) errors.push(`${where}: Základ „${s.basis}“ není kod nebo zadani`);
-            if (!PRIORITIES.includes(s.priority)) errors.push(`${where}: Priorita „${s.priority}“ není P1–P3`);
-            if (s.data && !DATA.includes(s.data)) errors.push(`${where}: Data „${s.data}“ není z ${DATA.join(', ')}`);
-            for (const d of s.devices) if (d !== 'all' && !devices.includes(d)) errors.push(`${where}: neznámé zařízení „${d}“`);
-            if (s.steps.length < 2 && s.type !== 'priprava') errors.push(`${where}: méně než 2 kroky`);
-            if (s.steps.length > 8) warnings.push(`${where}: více než 8 kroků, zvaž rozdělení`);
+            if (!s.role) errors.push(`${where}: missing Role`);
+            if (!TYPES.includes(s.type)) errors.push(`${where}: Typ "${s.type}" is not one of ${TYPES.join(', ')}`);
+            if (!BASES.includes(s.basis)) errors.push(`${where}: Základ "${s.basis}" is not kod or zadani`);
+            if (!PRIORITIES.includes(s.priority)) errors.push(`${where}: Priorita "${s.priority}" is not P1-P3`);
+            if (s.data && !DATA.includes(s.data)) errors.push(`${where}: Data "${s.data}" is not one of ${DATA.join(', ')}`);
+            for (const d of s.devices) if (d !== 'all' && !devices.includes(d)) errors.push(`${where}: unknown device "${d}"`);
+            if (s.steps.length < 2 && s.type !== 'priprava') errors.push(`${where}: fewer than 2 steps`);
+            if (s.steps.length > 8) warnings.push(`${where}: more than 8 steps, consider splitting`);
             s.steps.forEach((step, index) => {
-                if (step.n !== index + 1) errors.push(`${where}: krok ${index + 1} má číslo ${step.n}`);
-                if (!step.action) errors.push(`${where}: krok ${index + 1} nemá akci`);
-                if (!step.expected) errors.push(`${where}: krok ${index + 1} nemá očekávaný výsledek`);
+                if (step.n !== index + 1) errors.push(`${where}: step ${index + 1} is numbered ${step.n}`);
+                if (!step.action) errors.push(`${where}: step ${index + 1} has no action`);
+                if (!step.expected) errors.push(`${where}: step ${index + 1} has no expected result`);
             });
             const hasByCode = s.steps.some((step) => step.expectedByCode);
-            if (hasByCode && !s.deviation) errors.push(`${where}: krok má „Dle kódu dnes“, ale chybí Odchylka`);
-            if (s.deviation && !hasByCode) warnings.push(`${where}: Odchylka bez sloupce „Dle kódu dnes“`);
+            if (hasByCode && !s.deviation) errors.push(`${where}: a step has "Dle kódu dnes" but Odchylka is missing`);
+            if (s.deviation && !hasByCode) warnings.push(`${where}: Odchylka without a "Dle kódu dnes" column`);
         }
         if (meta.part === 'A' && chapter.scenarios.length > 0 && meta.id !== 'PRE') {
-            if (types.filter((t) => t === 'opravneni').length < 2) warnings.push(`${file}: méně než 2 scénáře typu opravneni`);
-            if (!types.some((t) => t === 'validace' || t === 'negativni')) warnings.push(`${file}: chybí scénář validace nebo negativni`);
+            if (types.filter((t) => t === 'opravneni').length < 2) warnings.push(`${file}: fewer than 2 scenarios of type opravneni`);
+            if (!types.some((t) => t === 'validace' || t === 'negativni')) warnings.push(`${file}: no scenario of type validace or negativni`);
         }
     }
     return { errors, warnings };
@@ -272,7 +272,7 @@ function catalogueStats(chapters) {
 
 function readRun(runDir) {
     const file = join(runDir, 'results.json');
-    if (!existsSync(file)) fail(`${file} neexistuje, nejdřív spusť init.`);
+    if (!existsSync(file)) fail(`${file} does not exist, run init first.`);
     return JSON.parse(readFileSync(file, 'utf8'));
 }
 
@@ -299,7 +299,7 @@ export function withRunLock(runDir, action) {
         } catch (error) {
             if (error.code !== 'EEXIST') throw error;
             if (existsSync(lock) && Date.now() - statSync(lock).mtimeMs > 60000) rmSync(lock, { force: true });
-            if (Date.now() > deadline) fail(`Zámek ${lock} je obsazený déle než 30 s.`);
+            if (Date.now() > deadline) fail(`Lock ${lock} has been held for more than 30 s.`);
             sleep(50);
         }
     }
@@ -318,7 +318,7 @@ export function updateRun(runDir, change, expectedUuid = null) {
     return withRunLock(runDir, () => {
         const run = readRun(runDir);
         if (expectedUuid && run.run.uuid !== expectedUuid) {
-            throw new Error(`Běh v ${runDir} byl mezitím znovu založen, zápis odmítnut.`);
+            throw new Error(`The run in ${runDir} was re-created in the meantime, write refused.`);
         }
         const result = change(run);
         writeRun(runDir, run);
@@ -333,11 +333,11 @@ function runCounts(items) {
 }
 
 function cmdInit(scenariosDir, runDir, options) {
-    if (!options.env || !options['base-url']) fail('init vyžaduje --env a --base-url');
+    if (!options.env || !options['base-url']) fail('init requires --env and --base-url');
     const chapters = loadCatalogue(scenariosDir);
     const devices = list(options.devices).length ? list(options.devices) : ['desktop'];
     const { errors } = validate(chapters, [...new Set([...DEVICES, ...devices])]);
-    if (errors.length) fail(`Katalog má ${errors.length} chyb, spusť validate.`);
+    if (errors.length) fail(`The catalogue has ${errors.length} errors, run validate.`);
     const chapterFilter = list(options.chapters);
     const priorities = list(options.priority);
     const items = [];
@@ -391,15 +391,15 @@ function cmdInit(scenariosDir, runDir, options) {
         writeRun(runDir, run);
         return true;
     });
-    if (!written) fail(`${join(runDir, 'results.json')} už existuje. Pokračuj v běhu, nebo zvol nový adresář; přepsání jen s --force.`);
-    console.log(`✓ ${join(runDir, 'results.json')}: ${items.length} položek (${devices.join(', ')})`);
+    if (!written) fail(`${join(runDir, 'results.json')} already exists. Resume that run or choose a new directory; overwrite only with --force.`);
+    console.log(`✓ ${join(runDir, 'results.json')}: ${items.length} items (${devices.join(', ')})`);
 }
 
 function cmdRecord(runDir, id, options) {
-    if (!options.device || !options.status) fail('record vyžaduje --device a --status');
-    if (!STATUSES.includes(options.status)) fail(`--status musí být z ${STATUSES.join(', ')}`);
+    if (!options.device || !options.status) fail('record requires --device and --status');
+    if (!STATUSES.includes(options.status)) fail(`--status must be one of ${STATUSES.join(', ')}`);
     if (!readRun(runDir).results.some((r) => r.scenario === id && r.device === options.device)) {
-        fail(`${id}@${options.device} není v rozsahu běhu.`);
+        fail(`${id}@${options.device} is not in the scope of the run.`);
     }
     const item = updateRun(runDir, (run) => {
         const found = run.results.find((r) => r.scenario === id && r.device === options.device);
@@ -419,9 +419,9 @@ function cmdRecord(runDir, id, options) {
 function cmdNext(runDir) {
     const run = readRun(runDir);
     const next = run.results.find((r) => r.status === 'not-run');
-    if (!next) return console.log('Hotovo, nic dalšího k provedení.');
+    if (!next) return console.log('Done, nothing left to run.');
     const left = run.results.filter((r) => r.status === 'not-run').length;
-    console.log(`${next.scenario}@${next.device} (role ${next.role}) – ${next.title} · zbývá ${left}`);
+    console.log(`${next.scenario}@${next.device} (role ${next.role}) – ${next.title} · ${left} left`);
 }
 
 function cmdStats(path) {
@@ -429,10 +429,10 @@ function cmdStats(path) {
         const run = readRun(path);
         const byChapter = {};
         for (const r of run.results) (byChapter[r.chapter] ??= []).push(r);
-        console.log(`Běh ${run.run.id} · ${run.run.environment} · ${run.run.commit}`);
-        console.log(`Celkem ${JSON.stringify(runCounts(run.results))}`);
+        console.log(`Run ${run.run.id} · ${run.run.environment} · ${run.run.commit}`);
+        console.log(`Total ${JSON.stringify(runCounts(run.results))}`);
         for (const [chapter, items] of Object.entries(byChapter)) console.log(`  ${chapter}: ${JSON.stringify(runCounts(items))}`);
-        console.log(`Rozložení: ${run.layout.reduce((n, l) => n + l.findings.length, 0)} nálezů · Design: ${run.design.length} položek`);
+        console.log(`Layout: ${run.layout.reduce((n, l) => n + l.findings.length, 0)} findings · Design: ${run.design.length} items`);
         return;
     }
     const chapters = loadCatalogue(path);
@@ -510,28 +510,28 @@ if (isMain) {
     const { positional, options } = parseArgs(rest);
     switch (command) {
         case 'validate': {
-            const chapters = loadCatalogue(positional[0] ?? fail('Chybí adresář se scénáři.'));
+            const chapters = loadCatalogue(positional[0] ?? fail('Missing scenarios directory.'));
             const { errors, warnings } = validate(chapters, list(options.devices).length ? list(options.devices) : DEVICES);
             for (const w of warnings) console.warn(`! ${w}`);
             for (const e of errors) console.error(`✗ ${e}`);
             const s = catalogueStats(chapters);
-            console.log(`${errors.length ? '✗' : '✓'} kapitol ${s.chapters} · scénářů ${s.scenarios} · kroků ${s.steps} · odchylek ${s.deviations} · chyb ${errors.length} · varování ${warnings.length}`);
+            console.log(`${errors.length ? '✗' : '✓'} chapters ${s.chapters} · scenarios ${s.scenarios} · steps ${s.steps} · deviations ${s.deviations} · errors ${errors.length} · warnings ${warnings.length}`);
             process.exit(errors.length ? 1 : 0);
         }
         case 'stats':
-            cmdStats(positional[0] ?? fail('Chybí cesta.'));
+            cmdStats(positional[0] ?? fail('Missing path.'));
             break;
         case 'init':
-            cmdInit(positional[0], positional[1] ?? fail('Chybí adresář běhu.'), options);
+            cmdInit(positional[0], positional[1] ?? fail('Missing run directory.'), options);
             break;
         case 'next':
-            cmdNext(positional[0] ?? fail('Chybí adresář běhu.'));
+            cmdNext(positional[0] ?? fail('Missing run directory.'));
             break;
         case 'record':
-            cmdRecord(positional[0] ?? fail('Chybí adresář běhu.'), positional[1] ?? fail('Chybí ID scénáře.'), options);
+            cmdRecord(positional[0] ?? fail('Missing run directory.'), positional[1] ?? fail('Missing scenario ID.'), options);
             break;
         case 'report':
-            cmdReport(positional[0] ?? fail('Chybí adresář běhu.'));
+            cmdReport(positional[0] ?? fail('Missing run directory.'));
             break;
         default:
             console.log(readFileSync(new URL(import.meta.url), 'utf8').split('\n').slice(1, 13).join('\n'));

@@ -5,15 +5,11 @@ source exists.
 
 ## Device matrix
 
-Default, overridable in `uat.config.json`:
-
-| ID | Viewport | Emulation | Driver |
-|---|---|---|---|
-| `desktop` | 1440×900 | — | Chrome extension |
-| `laptop` | 1280×800 | — | Chrome extension |
-| `tablet` | 768×1024 | touch, DPR 2 | Playwright (or extension when the screen allows) |
-| `mobile` | 390×844 | touch, DPR 3, iPhone UA | Playwright |
-| `mobile-s` | 360×800 | touch, DPR 3, Android UA | Playwright |
+Device IDs: `desktop`, `laptop`, `tablet`, `mobile`, `mobile-s`. Viewports, emulation and user
+agents are defined in `scripts/sweep.mjs` (`DEVICES`) and are overridable in `uat.config.json`
+(`devices`); this file does not copy them. `desktop` and `laptop` run in the browser tool;
+`tablet`, `mobile` and `mobile-s` run in the Playwright sweep (`tablet` also in the browser tool
+when the screen allows).
 
 Which scenarios run where:
 
@@ -27,7 +23,7 @@ Which scenarios run where:
 ## Layer 1: layout audit
 
 `scripts/layout-audit.js` is a read-only script evaluated in the page (through
-`sweep.mjs`, or pasted into the extension's JavaScript tool). It returns JSON findings:
+`sweep.mjs`, or pasted into the browser tool's JavaScript tool). It returns JSON findings:
 
 | Check | Finding |
 |---|---|
@@ -36,10 +32,10 @@ Which scenarios run where:
 | Clipped text | text cut by `overflow: hidden` or `text-overflow: ellipsis` with no tooltip or title |
 | Overlap | the centre point of a visible button, link, or input is covered by another element |
 | Off-screen | an interactive element positioned outside the viewport horizontally |
-| Tap target | interactive element smaller than 44×44 px on touch devices (24×24 px elsewhere) |
+| Tap target | interactive element smaller than the minimum tap size on touch devices (sizes in `layout-audit.js`) |
 | Broken image | `img` completed with zero natural width |
 | Font fallback | a declared web font that did not load |
-| Fixed overlays | fixed or sticky elements covering more than 30 % of a mobile viewport |
+| Fixed overlays | fixed or sticky elements covering too much of a mobile viewport (share in `layout-audit.js`) |
 
 The audit reports candidates. Before turning a finding into a bug, look at the screenshot and
 confirm it is visible to a user. Intended overflow (scroll containers, carousels) is not a bug.
@@ -49,15 +45,16 @@ grids, inconsistent spacing between sibling cards, cut-off modals, sticky header
 anchors, dropdowns rendered under other elements.
 
 Accessibility depth (axe-core) runs when the project or user asks for it, or for `website`
-and `eshop` product types; use the accessibility skill when installed.
+and `eshop` product types; the check itself belongs to `esoul-quality-gates`.
 
 ## Layer 2: comparison with the design
 
 Sources, in order of preference:
 
-1. `.pen` file in the repository: read frames and screenshots through the Pencil MCP tools.
+1. `.pen` file in the repository: read frames and screenshots through the Pencil MCP tools
+   when they are available.
 2. Figma: link in `CONTEXT.md › ## Project profile` (`- Design: <url>`) or `design-map.md`;
-   read frames with the Figma MCP (`get_screenshot`, `get_variable_defs`,
+   when the Figma MCP is available, read frames with it (`get_screenshot`, `get_variable_defs`,
    `get_design_context`) after its session setup.
 3. eSoul mockup bundle (`esoul-mockup-authoring`): pages and states by address.
 4. Exported PNGs in the repository: visual reference only, no tokens.
@@ -67,7 +64,7 @@ Sources, in order of preference:
 ```md
 | Obrazovka | Stav | Zařízení | URL | Rámec návrhu |
 |---|---|---|---|---|
-| Seznam zvířat | výchozí | desktop | /animals/sheep | SCHOK.pen › Zvířata / Seznam |
+| Seznam zvířat | výchozí | desktop | /animals/sheep | app.pen › Zvířata / Seznam |
 | Detail zvířete | záložka Užitkovost | mobile | /animals/sheep/{id}?tab=utility | Figma 12:345 |
 ```
 
@@ -88,9 +85,9 @@ and compare it side by side with the frame:
 
 Data differs between design and app; compare structure and styling, not content. Do not
 pixel-diff. Report a finding only when a user or the designer would see it as different, and
-give each a severity: `blocker` (unusable, overlapping controls, hidden actions), `major`
-(wrong component, broken layout on a device), `minor` (spacing, colour off the token). They
-map to the review scale Critical, Major, Minor, so a finding and a defect read the same.
+give each the severity of the Impact table in [bugs.md](bugs.md): unusable or hidden actions
+and overlapping controls are Critical, a wrong component or a layout broken on a device is
+Major, spacing or colour off the token is Minor.
 
 Without a design source, compare against the project's design-system rules when they exist
 (component contracts, tokens) and report only clear inconsistencies.

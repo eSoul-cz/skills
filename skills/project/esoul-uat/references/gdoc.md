@@ -9,8 +9,8 @@ works exactly as before; nothing here is required.
 - `scripts/gdoc.mjs`: local client, no dependencies, Node 22+. It parses the Markdown with the
   same code as `uat.mjs` and sends it to the Web App.
 
-`<skill>` below is the directory of this skill's `SKILL.md` (installed in a project, for example
-`.agents/skills/esoul-uat`; in the plugin, `~/.claude/plugins/…/skills/project/esoul-uat`). Run every command from the project repository root.
+`<skill>` below is the directory of this skill's `SKILL.md`. Run every command from the project
+repository root.
 
 ## What is written where
 
@@ -28,7 +28,14 @@ A step that disappears from the Markdown is never deleted: it stays as `[zrušen
 checkbox state cannot be read by any Google API, so testers tick it and also write `OK` into the
 result column. Do not rename tabs, move or delete rows, or add columns by hand.
 
-## Setup, step by step (once per project)
+**No client data in the Doc.** Scenarios use invented or anonymised values, and result texts
+written into the Doc are redacted like any export (`docs/project_guidelines/security-and-data.md`
+› Personal and client data).
+
+## Human setup (once per project)
+
+A person does all of this: it is Google editor work and an OAuth consent, which an agent cannot
+do. The agent starts at "Agent use" below, once the user confirms the environment file exists.
 
 1. Create the Google Doc natively (a `.docx` upload must first be converted: File → Save as Google Docs).
    Try everything on a **copy** first; `init` erases the Doc content.
@@ -47,33 +54,41 @@ result column. Do not rename tabs, move or delete rows, or add columns by hand.
 5. **Deploy → New deployment** → gear → **Web app**. **Execute as: Me**, **Who has access: Anyone**.
    Deploy and go through the authorization (Google warns "app not verified": **Advanced → Go to … (unsafe)**;
    it is your own script). Copy the **Web app URL** (`https://script.google.com/macros/s/…/exec`).
-6. On your machine create `~/.config/esoul/<projectKey>-uat-gdoc.env` (outside the repository, never commit it):
+6. On your machine create `~/.config/esoul-uat/<projectKey>.gdoc.env` (`chmod 600`, outside the repository,
+   never commit it; the same directory as the other UAT secrets, see [access.md](access.md)):
 
    ```
    UAT_GDOC_URL=https://script.google.com/macros/s/…/exec
    UAT_GDOC_TOKEN=<the token from step 4>
    ```
 
-   `<projectKey>` is `projectKey` in `docs/testing/uat/uat.config.json` (for example `indcom`, `vono`,
-   `doglead`). Instead of the file you can export `UAT_GDOC_URL` and `UAT_GDOC_TOKEN`; the environment wins.
-   The URL together with the token gives write access to the Doc: do not share it, do not paste it into chat,
-   issues, or Freelo. The client never prints the token or the URL.
+   `<projectKey>` is `projectKey` in `docs/testing/uat/uat.config.json`. Instead of the file you can
+   export `UAT_GDOC_URL` and `UAT_GDOC_TOKEN`; the environment wins. The URL together with the token gives
+   write access to the Doc: do not share it, do not paste it into chat, issues, or Freelo. The client never
+   prints the token or the URL.
 7. Decide about the automated-test column now, before the first `init`: set `"automatedColumn": true` in
    `uat.config.json` (default `false`). Turning it on later needs the tables rebuilt (`init`, which refuses
    chapters with tester entries unless `--including-tester-data`), because existing tables keep their five columns;
    `e2e` then reports such scenarios as missing.
-8. First run:
 
-   ```bash
-   node <skill>/scripts/gdoc.mjs ping                # URL, token and access to the Doc
-   node <skill>/scripts/gdoc.mjs sync --dry-run      # request sizes only
-   node <skill>/scripts/gdoc.mjs init --confirm      # ONCE: builds Úvod and the chapter tabs
-   ```
+After every change of `Code.gs`: paste the new content into Apps Script, then **Deploy → Manage deployments →
+pencil → Version: New version ==→ Deploy**. Saving the code alone is not enough; the URL stays the same.
 
-   `init` takes minutes (one call and one tab per chapter; Apps Script has a 6 minute limit per call). After
-   the first `init` never run `init` on a Doc testers work in; use `sync`.
+## Agent use
 
-## Everyday use
+First run, after the human setup:
+
+```bash
+node <skill>/scripts/gdoc.mjs ping                # URL, token and access to the Doc
+node <skill>/scripts/gdoc.mjs sync --dry-run      # request sizes only
+node <skill>/scripts/gdoc.mjs init --confirm      # ONCE: builds Úvod and the chapter tabs
+```
+
+`init` takes minutes (one call and one tab per chapter; Apps Script has a 6 minute limit per call) and
+erases the Doc content: run it only on the user's explicit go-ahead. After the first `init` never run `init`
+on a Doc testers work in; use `sync`.
+
+Everyday use:
 
 ```bash
 node <skill>/scripts/gdoc.mjs sync                       # all chapters; tester entries stay
@@ -90,20 +105,17 @@ node <skill>/scripts/gdoc.mjs result --id ABC-01 --step 2 --result="--- OK ---" 
 `--scenarios DIR` and `--repo DIR` override the catalogue location and the repository root; `--dry-run`
 calls nothing. `gdoc.mjs configured` exits 0 when the bridge is configured and 1 otherwise, silently.
 
-After a change of `Code.gs`: paste the new content into Apps Script, then **Deploy → Manage deployments →
-pencil → Version: New version → Deploy**. Saving the code alone is not enough; the URL stays the same.
-
 If a call ends with a warning such as "finalizace záložky přeskočena", the text is written and only the
 checkboxes or the merged headers are missing: repeat `sync --chapter …`. A call over about 5 minutes can
 time out in the client; repeating it is safe.
 
-## UAT agent writes results
+### The run writes results
 
-When the project has the bridge configured, `uat-runner` writes every recorded step result into the Doc
-(see [execution.md](execution.md)): `gdoc.mjs result … --if-configured`. Without a configuration that flag
-makes the call a silent no-op, so the same command works in every project.
+When the project has the bridge configured, the run (the UAT runner or you) writes every recorded step
+result into the Doc (see [execution.md](execution.md)): `gdoc.mjs result … --if-configured`. Without a
+configuration that flag makes the call a silent no-op, so the same command works in every project.
 
-## Playwright results into the Doc
+### Playwright results into the Doc
 
 Name the end-to-end tests after the scenario they cover, with the ID at the very start of the title:
 
@@ -134,15 +146,17 @@ the checkout.
 
 ## Security
 
-- The Web App runs as the deploying account and can edit only the Doc named by `DOC_ID`.
-- Rotate the token by changing the script property `TOKEN` and your local file; the old token stops working
-  immediately and no new deployment is needed.
+- The Web App is public (`Anyone`) and protected only by the shared bearer token; it runs as the deploying
+  account and can edit only the Doc named by `DOC_ID`.
+- Rotate the token whenever someone who knew it leaves or it may have leaked (chat, issue, CI log), and
+  remind the user of this after every setup: change the script property `TOKEN` and your local file; the
+  old token stops working immediately and no new deployment is needed.
 - `init` needs `--confirm`; erasing tester entries needs `--confirm --including-tester-data` as well.
 
-## Known limits
+## First run on a copy
 
-The Apps Script was proven against a live Doc for `ping` and `read`. On the first run on a copy check page size
-and margins per tab (`setPageSetup_`), the tab title limit (50 characters, `TAB_TITLE_MAX`), and that the DOCX/PDF
+Before the first run on the real Doc, run everything once on a copy and check the page size and margins
+per tab (`setPageSetup_`), the tab title limit (50 characters, `TAB_TITLE_MAX`), and that the DOCX/PDF
 export contains all tabs. Details of the Docs API shapes are isolated in the small functions of `Code.gs`
 (`createChapterTab_`, `deleteTabs_`, `renameTab_`, `clearTabBodyViaDocs_`). Moved steps (a real reorder) copy the
 row and warn per row: check the checkbox state, because it cannot be read.

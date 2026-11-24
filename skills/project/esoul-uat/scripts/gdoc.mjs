@@ -15,7 +15,7 @@
  * Common options: --repo DIR (default: cwd), --scenarios DIR (default: <repo>/docs/testing/uat/scenarios),
  * --dry-run (prints sizes or the planned writes, calls nothing).
  *
- * Configuration: env UAT_GDOC_URL and UAT_GDOC_TOKEN, otherwise ~/.config/esoul/<projectKey>-uat-gdoc.env
+ * Configuration: env UAT_GDOC_URL and UAT_GDOC_TOKEN, otherwise ~/.config/esoul-uat/<projectKey>.gdoc.env
  * (lines KEY=VALUE), where <projectKey> comes from docs/testing/uat/uat.config.json. The token is never printed.
  * The optional sixth column "Automatický test" is switched on by "automatedColumn": true in uat.config.json.
  */
@@ -29,7 +29,7 @@ import { ID_PREFIX, loadCatalogue, validate } from './uat.mjs';
 
 const COMMANDS = ['ping', 'init', 'intro', 'sync', 'read', 'result', 'e2e', 'configured'];
 const USAGE =
-    'Použití: gdoc.mjs ping | init --confirm [--from ID] [--chapter ID[,ID]] | intro --confirm | sync [--chapter ID[,ID]] [--from ID] [--force] [--keep-going] | read [--chapter ID] [--out f.json] | result --id ID --step N --result "…" [--fix "…"] [--append] [--if-configured] | e2e --report test-results/e2e.json | configured';
+    'Usage: gdoc.mjs ping | init --confirm [--from ID] [--chapter ID[,ID]] | intro --confirm | sync [--chapter ID[,ID]] [--from ID] [--force] [--keep-going] | read [--chapter ID] [--out f.json] | result --id ID --step N --result "…" [--fix "…"] [--append] [--if-configured] | e2e --report test-results/e2e.json | configured';
 
 const TYPE_LABELS = {
     happy: 'Hlavní tok',
@@ -64,7 +64,7 @@ export function parseArgs(argv) {
     const flags = {};
     for (let i = 0; i < rest.length; i++) {
         if (!rest[i].startsWith('--')) {
-            throw new Error(`Neočekávaný argument: ${rest[i]}`);
+            throw new Error(`Unexpected argument: ${rest[i]}`);
         }
         const equals = rest[i].indexOf('=');
         if (equals > 2) {
@@ -93,7 +93,7 @@ export function loadProjectConfig(repo) {
     try {
         json = JSON.parse(readFileSync(file, 'utf8'));
     } catch (error) {
-        throw new Error(`${file} není platný JSON: ${error.message}`);
+        throw new Error(`${file} is not valid JSON: ${error.message}`);
     }
     const usable = (value) => (typeof value === 'string' && value.trim() && !value.includes('{{') ? value.trim() : null);
     const key = usable(json.projectKey) ?? slug(usable(json.project));
@@ -110,7 +110,7 @@ export function loadProjectConfig(repo) {
 
 const slug = (value) => (value ? value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || null : null);
 
-export const envFilePath = (key, home = homedir()) => (key ? join(home, '.config', 'esoul', `${key}-uat-gdoc.env`) : null);
+export const envFilePath = (key, home = homedir()) => (key ? join(home, '.config', 'esoul-uat', `${key}.gdoc.env`) : null);
 
 /** { url, token, file }: environment first, then the project's env file. `url`/`token` are undefined when missing. */
 export function loadConfig({ env = process.env, key = null, home = homedir() } = {}) {
@@ -144,7 +144,7 @@ export async function call(config, body, { fetchImpl = globalThis.fetch } = {}) 
     try {
         new URL(config.url);
     } catch {
-        throw new Error('UAT_GDOC_URL není platná URL (hodnota se z bezpečnostních důvodů nevypisuje).');
+        throw new Error('UAT_GDOC_URL is not a valid URL (the value is not printed for security reasons).');
     }
     const redact = (text) =>
         [config.url, config.token].filter(Boolean).reduce((acc, secret) => acc.split(secret).join('…'), String(text ?? ''));
@@ -164,7 +164,7 @@ export async function call(config, body, { fetchImpl = globalThis.fetch } = {}) 
             response = await fetchImpl(location, { method: 'GET', redirect: 'manual', signal });
         }
     } catch (error) {
-        throw new Error(`Web App neodpověděl (${error.name === 'TimeoutError' ? `limit ${REQUEST_TIMEOUT_MS / 1000} s` : redact(error.message)}).`);
+        throw new Error(`The Web App did not respond (${error.name === 'TimeoutError' ? `limit ${REQUEST_TIMEOUT_MS / 1000} s` : redact(error.message)}).`);
     }
     const text = await response.text();
     let data;
@@ -183,11 +183,11 @@ export async function call(config, body, { fetchImpl = globalThis.fetch } = {}) 
             .trim();
         const hint = [title, bodyText.slice(0, 400)].filter(Boolean).join(' – ');
         throw new Error(
-            `Web App nevrátil JSON (HTTP ${response.status}, „${hint}“). Zkontroluj URL nasazení, přístup „Kdokoli“ a že je nasazená aktuální verze skriptu.`,
+            `The Web App did not return JSON (HTTP ${response.status}, "${hint}"). Check the deployment URL, the "Anyone" access and that the current script version is deployed.`,
         );
     }
     if (!data.ok) {
-        throw new Error(`Chyba z Apps Scriptu: ${data.error ?? 'neznámá'}`);
+        throw new Error(`Apps Script error: ${data.error ?? 'unknown'}`);
     }
     return data;
 }
@@ -264,13 +264,13 @@ export function selectChapters(payload, flags) {
         const wanted = flags.chapter.split(',').map((id) => id.trim()).filter(Boolean);
         const unknown = wanted.filter((id) => !order.includes(id));
         if (unknown.length) {
-            throw new Error(`Neznámá kapitola ${unknown.join(', ')}. Dostupné: ${order.join(', ')}`);
+            throw new Error(`Unknown chapter ${unknown.join(', ')}. Available: ${order.join(', ')}`);
         }
         ids = ids.filter((id) => wanted.includes(id));
     }
     if (typeof flags.from === 'string') {
         if (!order.includes(flags.from)) {
-            throw new Error(`Neznámá kapitola ${flags.from} v --from. Dostupné: ${order.join(', ')}`);
+            throw new Error(`Unknown chapter ${flags.from} in --from. Available: ${order.join(', ')}`);
         }
         ids = ids.filter((id) => order.indexOf(id) >= order.indexOf(flags.from));
     }
@@ -359,11 +359,11 @@ const kb = (value) => `${(Buffer.byteLength(JSON.stringify(value)) / 1024).toFix
 
 function formatReport(report) {
     const { added, updated, removedRows, keptCancelledRows, flagged, addedRows } = report;
-    return `přidáno scénářů ${added}, nových kroků ${addedRows ?? 0}, upraveno ${updated}, smazáno řádků ${removedRows}, ponecháno zrušených ${keptCancelledRows}, označeno ke ztestování ${flagged}`;
+    return `scenarios added ${added}, new steps ${addedRows ?? 0}, updated ${updated}, rows removed ${removedRows}, cancelled kept ${keptCancelledRows}, flagged for retest ${flagged}`;
 }
 
 const formatTimings = (ms) =>
-    ms ? `DocumentApp ${((ms.documentApp ?? 0) / 1000).toFixed(1)} s, finalizace ${((ms.finalize ?? 0) / 1000).toFixed(1)} s` : '';
+    ms ? `DocumentApp ${((ms.documentApp ?? 0) / 1000).toFixed(1)} s, finalize ${((ms.finalize ?? 0) / 1000).toFixed(1)} s` : '';
 
 function addReport(total, report) {
     for (const key of ['added', 'addedRows', 'updated', 'removedRows', 'keptCancelledRows', 'flagged']) {
@@ -408,7 +408,7 @@ export async function run(argv, io = {}) {
     if (command === 'result' && flags['if-configured'] === true && !configured) return 0; // project without a bridge: skip silently
     if (!dryRun && !configured) {
         err(
-            `Chybí UAT_GDOC_URL nebo UAT_GDOC_TOKEN (proměnné prostředí${config.file ? ` nebo ${config.file}` : `; klíč projektu chybí v ${project.file}, doplň „projectKey“`}).`,
+            `UAT_GDOC_URL or UAT_GDOC_TOKEN is missing (environment variables${config.file ? ` or ${config.file}` : `; the project key is missing in ${project.file}, add "projectKey"`}).`,
         );
         return 2;
     }
@@ -417,10 +417,10 @@ export async function run(argv, io = {}) {
         const auto = project.automatedColumn ? { automatedColumn: true } : {};
         const scenariosDir = resolve(repo, typeof flags.scenarios === 'string' ? flags.scenarios : join('docs', 'testing', 'uat', 'scenarios'));
         const catalogue = () => {
-            if (!existsSync(scenariosDir)) throw new Error(`Adresář scénářů ${scenariosDir} neexistuje (spouštěj z kořene projektu nebo zadej --repo).`);
+            if (!existsSync(scenariosDir)) throw new Error(`Scenarios directory ${scenariosDir} does not exist (run from the project root or pass --repo).`);
             const chapters = loadCatalogue(scenariosDir);
             const { errors } = validate(chapters);
-            if (errors.length) throw new Error(`Katalog má ${errors.length} chyb, spusť uat.mjs validate.`);
+            if (errors.length) throw new Error(`The catalogue has ${errors.length} errors, run uat.mjs validate.`);
             return chapters;
         };
 
@@ -431,12 +431,12 @@ export async function run(argv, io = {}) {
 
         if (command === 'init' || command === 'sync') {
             if (command === 'init' && !flags.confirm && !dryRun) {
-                err('init SMAŽE obsah dokumentu včetně zápisů testerů. Přidej --confirm, pokud to opravdu chceš.');
+                err('init DELETES the document content including tester entries. Add --confirm if you really mean it.');
                 return 2;
             }
             const includingTesterData = flags['including-tester-data'] === true;
             if (includingTesterData && !flags.confirm) {
-                err('--including-tester-data se používá jen spolu s --confirm.');
+                err('--including-tester-data is only valid together with --confirm.');
                 return 2;
             }
             const payload = buildPayload(catalogue(), { project, repo, now: io.now });
@@ -451,13 +451,13 @@ export async function run(argv, io = {}) {
 
             if (command === 'init' && !partial) {
                 const body = { action: 'init', confirm, meta: payload.meta, order: payload.order, ...auto };
-                out(`init Úvod (smaže všechny záložky), ${kb(body)}`);
+                out(`init Úvod (deletes all tabs), ${kb(body)}`);
                 if (!dryRun) {
                     const started = Date.now();
                     const report = await call_(config, body);
-                    out(`  ${((Date.now() - started) / 1000).toFixed(1)} s, smazáno záložek ${report.tabsDeleted ?? 0}, ${formatTimings(report.ms)}`);
+                    out(`  ${((Date.now() - started) / 1000).toFixed(1)} s, tabs deleted ${report.tabsDeleted ?? 0}, ${formatTimings(report.ms)}`);
                     for (const warning of report.warnings ?? []) {
-                        out(`  VAROVÁNÍ [Úvod]: ${warning}`);
+                        out(`  WARNING [Úvod]: ${warning}`);
                         warnings.push(`Úvod: ${warning}`);
                     }
                 }
@@ -467,7 +467,7 @@ export async function run(argv, io = {}) {
                     command === 'init'
                         ? { action: 'init', confirm, order: payload.order, chapters: [chapter], ...auto }
                         : { action: 'sync', order: payload.order, chapter, force, ...auto };
-                const label = `${chapter.id} (${chapter.scenarios.length} scénářů)`;
+                const label = `${chapter.id} (${chapter.scenarios.length} scenarios)`;
                 if (dryRun) {
                     out(`[dry-run] ${command} ${label}, ${kb(body)}`);
                     continue;
@@ -486,7 +486,7 @@ export async function run(argv, io = {}) {
                     addReport(total, report);
                     out(`${command} ${label} … ${((Date.now() - started) / 1000).toFixed(1)} s, ${formatReport(report)} [${formatTimings(report.ms)}]`);
                     for (const warning of report.warnings ?? []) {
-                        out(`  VAROVÁNÍ [${chapter.id}]: ${warning}`);
+                        out(`  WARNING [${chapter.id}]: ${warning}`);
                         warnings.push(`${chapter.id}: ${warning}`);
                     }
                 } catch (error) {
@@ -494,22 +494,22 @@ export async function run(argv, io = {}) {
                     failed.push(chapter.id);
                     if (!keepGoing) {
                         const resume = command === 'init' ? ` --confirm${includingTesterData ? ' --including-tester-data' : ''}` : '';
-                        err(`Zastaveno. Pokračování: gdoc.mjs ${command}${resume} --from ${chapter.id}`);
+                        err(`Stopped. Resume with: gdoc.mjs ${command}${resume} --from ${chapter.id}`);
                         if (command === 'init') {
-                            err('POZOR: init kapitolu přepíše a smaže její obsah. Pokud kapitola obsahuje zápisy testerů, použij raději sync.');
+                            err('WARNING: init overwrites the chapter and deletes its content. If the chapter holds tester entries, use sync instead.');
                         }
                         return 1;
                     }
                 }
             }
             if (!dryRun) {
-                out(`Hotovo: ${formatReport(total)}`);
+                out(`Done: ${formatReport(total)}`);
                 if (warnings.length) {
-                    out(`\nVAROVÁNÍ (${warnings.length}): text je zapsaný, ale něco se nepodařilo dokončit. Opakování sync pro dotčené kapitoly to opraví:`);
+                    out(`\nWARNING (${warnings.length}): the text is written but something could not be finished. Repeating sync for the affected chapters fixes it:`);
                     warnings.forEach((warning) => out(`  - ${warning}`));
                 }
                 if (failed.length) {
-                    err(`\nSelhaly kapitoly: ${failed.join(', ')}`);
+                    err(`\nFailed chapters: ${failed.join(', ')}`);
                     return 1;
                 }
             }
@@ -518,7 +518,7 @@ export async function run(argv, io = {}) {
 
         if (command === 'intro') {
             if (!flags.confirm && !dryRun) {
-                err('intro přepíše záložku Úvod (hodnoty v tabulce Informace o dokumentu zachová). Přidej --confirm.');
+                err('intro rewrites the Úvod tab (it keeps the values of the "Informace o dokumentu" table). Add --confirm.');
                 return 2;
             }
             const payload = buildPayload(catalogue(), { project, repo, now: io.now });
@@ -528,8 +528,8 @@ export async function run(argv, io = {}) {
                 return 0;
             }
             const report = await call_(config, body);
-            out(`Úvod přestavěn, vyplněných hodnot v původní tabulce ${report.previousValues ?? 0}, ${formatTimings(report.ms)}`);
-            for (const warning of report.warnings ?? []) out(`  VAROVÁNÍ [Úvod]: ${warning}`);
+            out(`Úvod rebuilt, values kept from the previous table: ${report.previousValues ?? 0}, ${formatTimings(report.ms)}`);
+            for (const warning of report.warnings ?? []) out(`  WARNING [Úvod]: ${warning}`);
             return 0;
         }
 
@@ -543,7 +543,7 @@ export async function run(argv, io = {}) {
             const json = JSON.stringify(data, null, 2);
             if (typeof flags.out === 'string') {
                 writeFileSync(flags.out, `${json}\n`);
-                out(`Zapsáno ${data.scenarios.length} scénářů do ${flags.out}`);
+                out(`Wrote ${data.scenarios.length} scenarios to ${flags.out}`);
             } else {
                 out(json);
             }
@@ -552,23 +552,23 @@ export async function run(argv, io = {}) {
 
         if (command === 'e2e') {
             if (typeof flags.report !== 'string') {
-                err('e2e vyžaduje --report <cesta k Playwright JSON reportu>.');
+                err('e2e requires --report <path to the Playwright JSON report>.');
                 return 2;
             }
             if (!project.automatedColumn) {
-                err(`e2e zapisuje do sloupce „Automatický test“: zapni ho přes "automatedColumn": true v ${project.file} a znovu postav tabulky (viz references/gdoc.md).`);
+                err(`e2e writes to the "Automatický test" column: enable it with "automatedColumn": true in ${project.file} and rebuild the tables (see references/gdoc.md).`);
                 return 2;
             }
             const reportFile = resolve(io.cwd ?? process.cwd(), flags.report);
             if (!existsSync(reportFile)) {
-                err(`Report ${reportFile} neexistuje.`);
+                err(`Report ${reportFile} does not exist.`);
                 return 2;
             }
             let report;
             try {
                 report = JSON.parse(readFileSync(reportFile, 'utf8'));
             } catch (error) {
-                err(`✗ ${reportFile} není platný JSON: ${error.message}`);
+                err(`✗ ${reportFile} is not valid JSON: ${error.message}`);
                 return 2;
             }
             const known = new Set(catalogue().flatMap((chapter) => chapter.scenarios.filter((s) => !s.cancelled).map((s) => s.id)));
@@ -577,47 +577,47 @@ export async function run(argv, io = {}) {
             const results = [];
             for (const [id, entry] of Object.entries(aggregated)) {
                 if (!known.has(id)) {
-                    err(`! ${id}: scénář není v katalogu, přeskakuji.`);
+                    err(`! ${id}: the scenario is not in the catalogue, skipped.`);
                     continue;
                 }
                 results.push({ id, text: formatE2eCell(entry, date), status: entry.status });
             }
             const counts = { pass: 0, fail: 0, skip: 0 };
             results.forEach((r) => (counts[r.status] += 1));
-            const summary = `scénářů ${results.length}: prošlo ${counts.pass}, selhalo ${counts.fail}, přeskočeno ${counts.skip}`;
+            const summary = `scenarios ${results.length}: passed ${counts.pass}, failed ${counts.fail}, skipped ${counts.skip}`;
             if (dryRun) {
                 results.forEach((r) => out(`[dry-run] ${r.id}: ${r.text}`));
                 out(`[dry-run] ${summary}`);
                 return 0;
             }
             if (results.length === 0) {
-                out('V reportu není žádný test s ID scénáře z katalogu, nic se nezapisuje.');
+                out('The report has no test with a catalogue scenario ID, nothing is written.');
                 return 0;
             }
             const data = await call_(config, { action: 'e2e', automatedColumn: true, results: results.map(({ id, text }) => ({ id, text })) });
-            for (const id of data.missing ?? []) err(`! ${id}: scénář nebo sloupec „Automatický test“ v dokumentu není (spusť sync).`);
-            out(`Zapsáno ${data.written ?? 0} z ${results.length}, ${summary}.`);
+            for (const id of data.missing ?? []) err(`! ${id}: the scenario or the "Automatický test" column is missing in the document (run sync).`);
+            out(`Wrote ${data.written ?? 0} of ${results.length}, ${summary}.`);
             return 0;
         }
 
         // result
         if (typeof flags.id !== 'string' || flags.step === undefined || flags.step === true) {
-            err('result vyžaduje --id ABC-01 --step N a aspoň jedno z --result, --fix.');
+            err('result requires --id ABC-01 --step N and at least one of --result, --fix.');
             return 2;
         }
         const body = { action: 'result', id: flags.id, step: Number(flags.step), mode: flags.append === true ? 'append' : 'replace', ...auto };
         if (typeof flags.result === 'string') body.result = flags.result;
         if (typeof flags.fix === 'string') body.fix = flags.fix;
         if (body.result === undefined && body.fix === undefined) {
-            err('result vyžaduje aspoň jedno z --result, --fix.');
+            err('result requires at least one of --result, --fix.');
             return 2;
         }
         if (dryRun) {
-            out(`[dry-run] result ${body.id} krok ${body.step}, ${kb(body)}`);
+            out(`[dry-run] result ${body.id} step ${body.step}, ${kb(body)}`);
             return 0;
         }
         await call_(config, body);
-        out(`Zapsáno: ${body.id} krok ${body.step} (${body.mode}).`);
+        out(`Wrote: ${body.id} step ${body.step} (${body.mode}).`);
         return 0;
     } catch (error) {
         err(`✗ ${error.message}`);

@@ -10,6 +10,9 @@ Hesla, tokeny ani TOTP sem nepatří. Jsou v lokálním souboru
 | `uat` | samostatná UAT instance | {{UAT_URL}} | povoleno | {{RESET_PROCEDURE}} | {{VERSION_SOURCE}} |
 | `production` | ostrý provoz | {{PRODUCTION_URL}} | **zakázáno**, jen čtení se souhlasem | — | — |
 
+Zápis a mazání dat se smí provádět jen na prostředí, které je tady označeno jako povolené
+(testovací, staging, preview nebo UAT instance), nikdy na produkci.
+
 ## Role a účty
 
 | Kód | Role | Účet (e-mail) | Poznámka |
@@ -17,7 +20,7 @@ Hesla, tokeny ani TOTP sem nepatří. Jsou v lokálním souboru
 | `A` | Administrátor | {{ADMIN_EMAIL}} | |
 | `N` | Nepřihlášený | — | anonymní okno |
 
-Účty, které seed nezakládá, vytváří kapitola 0 (`PRE`) přes aplikaci jako admin.
+Účty jsou jen testovací, nikdy skuteční uživatelé. Účty, které seed nezakládá, vytváří kapitola 0 (`PRE`) přes aplikaci jako admin.
 
 ## Pošta
 

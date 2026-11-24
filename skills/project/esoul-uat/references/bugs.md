@@ -20,44 +20,60 @@ closed, Czech and English keywords) for duplicates; extend an existing open item
 creating a second one.
 
 Security findings (authorization, privilege escalation, data leaks) are always their own
-bug, marked important, and are reported to the user immediately, not only at the end.
+bug, Impact "Exposes personal or foreign data", and are reported to the user immediately, not only at the end.
 
 ## Bug content
 
-Use `assets/templates/bug-issue.md`. Title as `esoul-task-create` defines it (`Context: Action result`
-in the project's title language, no category prefix). The category is a label and follows where
-the fix belongs, not the fact that testing found it.
+Use `assets/templates/bug-issue.md`: the Czech rendering of the `bug.yml` issue form, with the
+same fields in the same order (observed, expected, steps, impact, environment, role, affected
+areas, UAT, Freelo). Title, category label and the rest of the task content as
+`esoul-task-create` defines them. The category is a label and follows where the fix belongs, not
+the fact that testing found it. Remove the template's HTML comments before creating the issue.
 
-The issue contains:
+What a UAT run puts into the fields:
 
-- scenario ID and link to the run report; environment, build, date;
-- role, device and viewport, browser;
-- **URL** where it happens;
-- steps to reproduce (from the scenario, with concrete data);
-- expected result (scenario) and actual result (observed);
-- **screenshot** (and the design frame for design bugs);
-- console errors and failed requests, trimmed to what matters;
-- likely cause with `file:line`;
-- proposed fix;
-- severity: `kritická` (data loss, security, blocks a main flow), `vysoká` (main flow
-  wrong, no workaround), `střední` (workaround exists), `nízká` (cosmetic). They map to
-  the review scale Critical, Major, Minor, Nitpick in that order, so a defect and a code
-  review finding read the same;
+- observed: scenario ID and link to the run report, environment, build, date, device and
+  viewport, browser, the **URL**, the actual result, the **screenshot** (and the design frame for
+  design bugs), console errors and failed requests trimmed to what matters;
+- expected: the scenario's expected result;
+- steps: from the scenario, with concrete data;
+- affected areas: the likely cause with `file:line` and the proposed fix;
 - `## UAT`: the failing scenario's steps as the acceptance check.
+
+## Impact and severity
+
+One table maps the `bug.yml` Impact options onto the review scale of
+`docs/project_guidelines/code-review.md` › Severity. Design findings use the same table
+(unusable or hidden actions = "Blocks a key flow", a layout broken on one device = "Functional
+limitation", spacing or colour off the token = "Cosmetic"), so a defect, a design finding and a
+review finding read the same.
+
+| `bug.yml` Impact | Severity |
+|---|---|
+| Blocks a key flow (the user cannot finish the main action) | Critical |
+| Distorted data, amounts or documents | Critical |
+| Exposes personal or foreign data | Critical |
+| Functional limitation (a workaround exists) | Major when it affects a main flow, otherwise Minor |
+| Cosmetic | Nitpick |
+
+The Impact option goes into the issue; the severity orders the bugs in the preview and the
+fix. `results.json` records no severity.
 
 ## Screenshots in issues and tasks
 
-GitHub cannot attach images to an issue through `gh`. Use the run branch:
+GitHub cannot attach images to an issue through `gh`. Use an evidence branch:
 
-1. Push the run folder on a branch `uat/<run-id>` before creating bugs.
-2. Embed `![popis](https://github.com/<owner>/<repo>/blob/uat/<run-id>/docs/testing/uat/runs/<run-id>/screenshots/<file>.png?raw=true)`.
+1. Push the run folder on a short-lived branch `test/uat-<run-id>` before creating bugs.
+2. Embed `![popis](https://github.com/<owner>/<repo>/blob/test/uat-<run-id>/docs/testing/uat/runs/<run-id>/screenshots/<file>.png?raw=true)`.
    It renders for people with access to the repository. Verify one image renders before
    creating the batch. Prefer plain Git objects for screenshots: LFS-tracked images often do
    not render in issues. Follow the repository's `.gitattributes` convention for images.
+   Delete the branch only after the bugs that embed its images are closed.
 3. In Freelo, upload the screenshot (`freelo files upload`) and attach it to the task
    description (`freelo tasks description <id> --file <uuid>`), or link the GitHub image.
 
-When the run folder must stay local (real client data), redact the screenshot first
+Screenshots are exports (`docs/project_guidelines/security-and-data.md` › Personal and client
+data). When the run folder must stay local (real client data), redact the screenshot first
 (blur personal data) or describe the state in text and say that the screenshot is local.
 
 ## Writing
@@ -71,9 +87,10 @@ sets a mode, ask the user to choose `freelo-only` or `github-freelo` before the 
 - `freelo-only`: each bug is one self-contained Freelo task with the same content and the
   screenshot attached. Record it as `--bug "freelo:<task-id>"`; never invent an issue number.
 
-Hand the approved list to the tasking skill. Show **one preview for the whole run**,
-numbered, so the user can approve all or some. After writing, add the issue and task links
-to `results.json` with the `--bug` format above and regenerate the report.
+Hand the approved list to `esoul-task-create`. Show **one preview for the whole run**,
+numbered, so the user can approve all or some; every GitHub, Freelo or label write waits for
+that approval. After writing, add the issue and task links to `results.json` with the `--bug`
+format above and regenerate the report.
 
 The bug's fix later goes through `esoul-workflow`. When it is merged and deployed, re-run the
 failing scenario and record the new result in a new run or a re-test section of the report.

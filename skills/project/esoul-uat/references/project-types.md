@@ -70,12 +70,12 @@ Use only sandbox payment methods. Never complete a real payment.
 
 Everything from `website`, plus: edit each content type in the admin, publish, unpublish,
 schedule; the change appears on the web after the documented delay; media upload and
-alt text; the `Média` tab (upload, alt text, search, where an item is used, delete refused while
-in use) and the picker in an editor (choose from the library, upload new from the picker and
-find it in the library afterwards); the `Dokumentace` tab (both guides open, every content type
-of the admin has a chapter, the instructions for the client's Claude can be copied, and a change
-made by following them passes the same validation as a manual edit); preview of drafts; roles in
-the admin.
+alt text; the media library, when the admin has one (upload, alt text, search, where an item is
+used, delete refused while in use) and the picker in an editor (choose from the library, upload
+new from the picker and find it in the library afterwards); the admin's built-in guides, when it
+has them (the guides open, every content type of the admin has a chapter, the instructions for
+the client can be copied, and a change made by following them passes the same validation as a
+manual edit); preview of drafts; roles in the admin.
 
 ## `website`
 
@@ -85,12 +85,12 @@ the admin.
 | Content parity | content matches `docs/obsah-novy-web.md` |
 | Redirects | old URLs from `docs/obsah-stary-web.md` redirect with 301 |
 | Forms | contact and lead forms deliver (needs mail access), spam protection, GDPR consent |
-| SEO | title, description, canonical, OG image, `hreflang`, `robots`, sitemap.xml; the automated part (robots, bots, sitemap, JSON-LD, `llms.txt`, Markdown, feeds) is `esoul-project-lifecycle` › `scripts/ai-readiness.mjs` |
+| SEO | title, description, canonical, OG image, `hreflang`, `robots`, sitemap.xml; the automated part (robots, bots, sitemap, JSON-LD, `llms.txt`, Markdown, feeds) is the AI-readiness checker of `esoul-quality-gates` |
 | Tracking | cookie consent blocks tracking until accepted |
-| Performance | Lighthouse budgets from the project profile, when defined |
+| Performance | Lighthouse budgets from the project profile, when defined (`esoul-quality-gates`) |
 
 For light-tier projects this pack doubles as the acceptance on the preview; link the
-launch checklist in `docs/nasazeni.md` instead of duplicating it.
+launch checklist in `docs/nasazeni.md` (`esoul-website-launch`) instead of duplicating it.
 
 ## Building the catalogue in `plan` mode
 
@@ -105,3 +105,5 @@ launch checklist in `docs/nasazeni.md` instead of duplicating it.
 4. Write chapters in [scenario-format.md](scenario-format.md), main flow first, then
    validation, permissions, negative, edge cases.
 5. Run `node <skill>/scripts/uat.mjs validate docs/testing/uat/scenarios` and fix every error.
+
+Done when `validate` reports no errors and every surface item has a scenario or a reported gap.

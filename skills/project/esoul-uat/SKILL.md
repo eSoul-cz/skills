@@ -1,7 +1,7 @@
 ---
 name: esoul-uat
-description: Plan, verify, run and report UAT of eSoul apps, e-shops and websites as an end user in an isolated Chrome (functionality and design). Use for UAT, test scenarios, acceptance runs, "click through the app", responsive or design QA, or turning findings into bugs via esoul-task-create.
-compatibility: Node.js 22+ for the helper scripts; a browser (dedicated Chrome profile) for runs.
+description: Use for UAT of eSoul apps, e-shops and websites - plan or verify the scenario catalogue, run it as an end user in a real browser (functional, responsive, design), report the run, and turn failures into bugs via esoul-task-create. Not for automated unit or feature tests, nor for Lighthouse, accessibility or SEO gates (esoul-quality-gates).
+compatibility: Node.js 22+ for the helper scripts; a browser tool that can use a dedicated profile (Claude in Chrome by default, or a CDP session of a dedicated Chrome) for runs; Playwright with Google Chrome for the device sweep.
 ---
 
 # eSoul UAT
@@ -10,17 +10,15 @@ Test the product the way its users will use it, record what happened with eviden
 turn failures into well-specified work. Functionality and design are tested in the same run.
 The scenario catalogue lives in the project repository; credentials never do. Where the project
 has the `package/test-evidence` layer, its PHPUnit acceptance report is the automated
-counterpart of these browser scenarios.
+counterpart of these browser scenarios. The UAT rules (scenario format, priorities, devices,
+evidence) are owned by this skill; the guidelines hold no UAT section.
 
 ## 1. Load context
 
-1. Use repository instructions already in context (`CLAUDE.md`, `AGENTS.md`, earlier reads);
-   do not read them again. Read by section: `## Project profile` and `## Tasking convention`
-   from root `CONTEXT.md`, falling back to `GLOSSARY.md`
-   (`for f in CONTEXT.md GLOSSARY.md; do awk -v h='## Project profile' '$0==h{p=1;s=$0 ORS;next} /^## /{p=0} p{s=s $0 ORS; if(NF)n=1} END{if(n)printf "%s",s; exit !n}' "$f" 2>/dev/null && break; done`), plus
-   `docs/testing/uat/README.md` and `environment.md`. ADRs, the plan, and glossary terms are
-   read only in `plan` and `verify` modes, and only for the area in scope. Repository rules
-   override this skill.
+1. Read from root `CONTEXT.md` (falling back to `GLOSSARY.md`) the sections `## Project profile`
+   and `## Tasking convention`, plus `docs/testing/uat/README.md` and `environment.md`. In `plan`
+   and `verify` modes also read the ADRs, the plan and the glossary terms of the area in scope.
+   Repository rules override this skill.
 2. Resolve the **product type** from `CONTEXT.md › ## Project profile`
    ([project-types.md](references/project-types.md)). When the profile is missing, stop and
    route to `esoul-project-lifecycle` (`retrofit`) to write it. Do not classify the project
@@ -31,18 +29,20 @@ counterpart of these browser scenarios.
    `## Tasking convention` (mode, category labels, prefixes if the project defines any).
 5. Find facts yourself. Ask the user only for access, decisions, and approvals.
 
+Done when the profile, the product type, the design source and the tasking mode are known.
+
 ## 2. Pick the mode
 
 Say which mode in one line and read only the references it names.
 
-| Mode | When | References |
-|---|---|---|
-| `plan` | No catalogue yet, a new module, or a new product type | [project-types](references/project-types.md), [scenario-format](references/scenario-format.md), [design](references/design.md) |
-| `verify` | Read-only: is the catalogue current against code, docs, and design? | [scenario-format](references/scenario-format.md), [verify](references/verify.md) |
-| `setup` | First run on an environment, new accounts, new machine | [access](references/access.md), [chrome](references/chrome.md) |
-| `run` | Execute scenarios in the browser and record results | [execution](references/execution.md), [chrome](references/chrome.md), [design](references/design.md) |
-| `report` | Results to Markdown and PDF | [execution](references/execution.md) § Report |
-| `bugs` | Turn failed results into work per the repository's tasking convention (issue + Freelo task pairs, or Freelo tasks only in `freelo-only` projects) | [bugs](references/bugs.md) |
+| Mode | When | References | Done when |
+|---|---|---|---|
+| `plan` | No catalogue yet, a new module, or a new product type | [project-types](references/project-types.md), [scenario-format](references/scenario-format.md), [design](references/design.md) | `uat.mjs validate` reports no errors and every surface item has a scenario or a reported gap |
+| `verify` | Read-only: is the catalogue current against code, docs, and design? | [scenario-format](references/scenario-format.md), [verify](references/verify.md) | every chapter has a stale/missing/deviation verdict and the gap scan is attached |
+| `setup` | First run on an environment, new accounts, new machine | [access](references/access.md), [chrome](references/chrome.md) | `sweep.mjs --check`, the browser profile check and the secrets-file key check pass |
+| `run` | Execute scenarios in the browser and record results | [execution](references/execution.md), [chrome](references/chrome.md), [design](references/design.md) | `uat.mjs next` says nothing is left and `uat.mjs stats` shows no `not-run` |
+| `report` | Results to Markdown and PDF | [execution](references/execution.md) § Report | `report.md` exists and links the bugs |
+| `bugs` | Turn failed results into work per the repository's tasking convention (issue + Freelo task pairs, or Freelo tasks only in `freelo-only` projects) | [bugs](references/bugs.md) | the approved bugs exist, their links are in `results.json`, the report is regenerated |
 
 A full cycle is `verify` → `run` → `report` → `bugs`. Run `verify` before every `run` that
 follows code changes: running stale scenarios produces false failures.
@@ -64,37 +64,33 @@ repository already uses another location (then keep it and record it in `README.
 Optional: a living Google Doc for clients and testers, fed from the same Markdown, with agent and
 Playwright results written back, is described in [gdoc](references/gdoc.md).
 
-A project may generate `scenarios/*.md` from another source (SCHOK generates them from
-`content/*.mjs`). The Markdown is then a build output that is committed, and the generator
-remains the place to edit.
+A project that generates `scenarios/*.md` from another source commits the Markdown as a build
+output and edits the generator, not the output.
 
 Templates are in `assets/templates/`, resolved relative to this `SKILL.md`. Copy them only
 into missing files; never overwrite project files.
 
 ## 4. Rules
 
-- **Environments.** Writing or deleting scenarios run only on a test, staging, preview, or
-  dedicated UAT instance. Production is read-only and needs explicit approval for each run.
-  When the target URL is not in `environment.md`, stop and ask.
-- **Credentials.** Read them only from the local secrets file described in
-  [access](references/access.md). Never write them into the repository, chat, results,
-  issues, Freelo, or screenshots. Never ask for them in chat; tell the user which file and
-  keys to fill in.
-- **Browser.** Use only the dedicated UAT Chrome profile ([chrome](references/chrome.md)),
-  never the user's personal profile with personal sessions.
-- **Client data.** On environments with real client data, screenshots and results stay local
-  (`runs/` is ignored) unless redacted; seed data may be committed.
-- **Honesty.** A scenario passes only when every expected result was observed. Anything not
-  executed is `blocked` or `skipped` with a reason, never `pass`. Report the counts as they are.
-- **Approval.** Every GitHub, Freelo, or label write goes through the tasking skill with an
-  approved preview. Batch all bugs from one run into one preview. The repository's
-  `Tasking convention` decides the form: `github-freelo` pairs, or self-contained Freelo
-  tasks in `freelo-only` projects (then attach screenshots to the task).
-- **Abort.** A chapter stops after 3 consecutive blocked steps and is reported
-  ([execution](references/execution.md)). Report and PDF rendering run through a test runner
-  subagent when the harness offers one (`esoul-model-routing`, optional helpers layer),
-  otherwise yourself.
-- **Stable IDs.** Scenario IDs (`ZV-11`) are never renumbered or reused.
+Each rule is stated once, in the reference named here.
+
+- **Environments.** Scenarios that write or delete run only on a test, staging, preview or UAT
+  instance that `environment.md` marks as writable, through the application UI. This is the one
+  exception to "agents SHOULD NOT write to staging data" in
+  `docs/project_guidelines/security-and-data.md` › Production access, and it holds on staging
+  only. Production stays read-only, per that guideline and with approval for each run. A target
+  URL that is not in `environment.md`: stop and ask.
+- **Credentials.** UAT accounts are test accounts, never real users; the secrets file and what
+  the model may read from it: [access](references/access.md).
+- **Browser.** A dedicated profile, never the user's personal one: [chrome](references/chrome.md).
+- **Client data.** Screenshots and results are exports: `docs/project_guidelines/security-and-data.md`
+  › Personal and client data. Scenarios use invented or anonymised values.
+- **Honesty.** A scenario passes only when every expected result was observed; statuses and the
+  stop rule: [execution](references/execution.md).
+- **Approval.** Every GitHub, Freelo or label write goes through `esoul-task-create` with one
+  approved preview per run: [bugs](references/bugs.md).
+- **Stable IDs.** Scenario IDs are never renumbered or reused:
+  [scenario-format](references/scenario-format.md).
 
 ## 5. Companion skills
 
@@ -105,7 +101,7 @@ into missing files; never overwrite project files.
 | PDF rendering | `esoul-docs` (`docs/documentation build`) |
 | Fix of a found bug | `esoul-workflow` (Bug flow) |
 | Mockup bundles as design source | `esoul-mockup-authoring` |
-| Accessibility depth, Lighthouse, SEO | `accessibility-compliance-accessibility-audit`, `frontend-lighthouse`, `seo-audit` when installed; automated SEO and AI-readiness checks: `esoul-project-lifecycle` › `scripts/ai-readiness.mjs` |
+| Accessibility depth, Lighthouse, SEO, AI readiness | `esoul-quality-gates` |
 
 If a required companion is missing, stop and give the install command for the whole chain.
 

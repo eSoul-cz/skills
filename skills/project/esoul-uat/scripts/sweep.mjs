@@ -15,7 +15,7 @@ import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync }
 import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { updateRun } from './uat.mjs';
 
@@ -58,10 +58,11 @@ async function loadPlaywright() {
     }
 }
 
-function readSecrets(file) {
-    if (!existsSync(file)) die(`Soubor s přístupy ${file} neexistuje (viz references/access.md).`);
+/** Reads the secrets file; throws when it is missing or readable by other users (must be chmod 600). */
+export function readSecrets(file) {
+    if (!existsSync(file)) throw new Error(`Secrets file ${file} does not exist (see references/access.md).`);
     const mode = statSync(file).mode & 0o777;
-    if (mode & 0o077) die(`${file} má práva ${mode.toString(8)}, nastav chmod 600.`);
+    if (mode & 0o077) throw new Error(`${file} has mode ${mode.toString(8)}, run chmod 600.`);
     const env = {};
     for (const line of readFileSync(file, 'utf8').split('\n')) {
         const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
@@ -72,28 +73,41 @@ function readSecrets(file) {
 
 const slug = (s) => s.replace(/^https?:\/\/[^/]+/, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '') || 'root';
 
+/** The run and the secrets must point at the same origin, so one environment's credentials never log in to another. */
+export function assertSameOrigin(run, base) {
+    if (new URL(run.base_url).origin !== new URL(base).origin) {
+        throw new Error(`UAT_BASE_URL ${base} does not match the run ${run.id} (${run.base_url}). Use the secrets of the same environment.`);
+    }
+}
+
+const orDie = (fn) => {
+    try {
+        return fn();
+    } catch (error) {
+        return die(error.message);
+    }
+};
+
 async function main() {
     const o = args(process.argv.slice(2));
     const pw = await loadPlaywright();
     if (o.check) {
-        console.log(pw ? '✓ playwright dostupný' : `✗ playwright chybí: npm install --prefix ${cacheRoot} playwright@1`);
+        console.log(pw ? '✓ playwright available' : `✗ playwright missing: npm install --prefix ${cacheRoot} playwright@1`);
         const chrome = ['/Applications/Google Chrome.app', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable'].some(existsSync);
-        console.log(chrome ? '✓ Google Chrome nainstalovaný' : '✗ Google Chrome nenalezen');
+        console.log(chrome ? '✓ Google Chrome installed' : '✗ Google Chrome not found');
         process.exit(pw && chrome ? 0 : 1);
     }
-    if (!pw) die(`playwright chybí: npm install --prefix ${cacheRoot} playwright@1`);
-    if (!o.config || !o.secrets || !o.run) die('Chybí --config, --secrets nebo --run.');
+    if (!pw) die(`playwright missing: npm install --prefix ${cacheRoot} playwright@1`);
+    if (!o.config || !o.secrets || !o.run) die('Missing --config, --secrets or --run.');
 
     const config = JSON.parse(readFileSync(o.config, 'utf8'));
-    const secrets = readSecrets(o.secrets.replace(/^~/, homedir()));
-    const base = secrets.UAT_BASE_URL || die('V přístupech chybí UAT_BASE_URL.');
+    const secrets = orDie(() => readSecrets(o.secrets.replace(/^~/, homedir())));
+    const base = secrets.UAT_BASE_URL || die('UAT_BASE_URL is missing in the secrets file.');
     const runDir = resolve(o.run);
     const resultsFile = join(runDir, 'results.json');
-    if (!existsSync(resultsFile)) die(`${resultsFile} neexistuje, spusť uat.mjs init.`);
+    if (!existsSync(resultsFile)) die(`${resultsFile} does not exist, run uat.mjs init.`);
     const results = JSON.parse(readFileSync(resultsFile, 'utf8'));
-    if (new URL(results.run.base_url).origin !== new URL(base).origin) {
-        die(`UAT_BASE_URL ${base} neodpovídá běhu ${results.run.id} (${results.run.base_url}). Použij přístupy ke stejnému prostředí.`);
-    }
+    orDie(() => assertSameOrigin(results.run, base));
     const shotsDir = join(runDir, 'screenshots');
     mkdirSync(shotsDir, { recursive: true });
     const project = config.project || 'project';
@@ -108,7 +122,7 @@ async function main() {
     const login = config.login ?? {};
 
     const single = Boolean(o.url);
-    const roleCodes = single ? [o.role || die('--url vyžaduje --role')] : list(o.roles).length ? list(o.roles) : Object.keys(config.roles ?? {});
+    const roleCodes = single ? [o.role || die('--url requires --role')] : list(o.roles).length ? list(o.roles) : Object.keys(config.roles ?? {});
     const deviceIds = single ? [o.device || 'desktop'] : list(o.devices).length ? list(o.devices) : ['tablet', 'mobile'];
 
     const browser = await pw.chromium.launch({ channel: 'chrome', headless: o.headed ? false : true });
@@ -116,7 +130,7 @@ async function main() {
         for (const role of roleCodes) {
             const routes = single ? [o.url] : config.roles?.[role]?.routes ?? [];
             for (const deviceId of deviceIds) {
-                const device = devices[deviceId] || die(`Neznámé zařízení ${deviceId}.`);
+                const device = devices[deviceId] || die(`Unknown device ${deviceId}.`);
                 const statePath = join(sessionDir, `${role}.json`);
                 const httpCredentials = secrets.UAT_BASIC_AUTH_USER ? { username: secrets.UAT_BASIC_AUTH_USER, password: secrets.UAT_BASIC_AUTH_PASSWORD } : undefined;
                 const context = await browser.newContext({
@@ -132,13 +146,13 @@ async function main() {
                     if (page.url().includes(login.path ?? '/login')) {
                         const email = secrets[`UAT_ROLE_${role}_EMAIL`];
                         const password = secrets[`UAT_ROLE_${role}_PASSWORD`];
-                        if (!email || !password) die(`V přístupech chybí UAT_ROLE_${role}_EMAIL nebo _PASSWORD.`);
+                        if (!email || !password) die(`UAT_ROLE_${role}_EMAIL or UAT_ROLE_${role}_PASSWORD is missing in the secrets file.`);
                         await page.goto(new URL(login.path ?? '/login', base).href);
                         await page.fill(login.email ?? 'input[type=email]', email);
                         await page.fill(login.password ?? 'input[type=password]', password);
                         await Promise.all([page.waitForLoadState('networkidle').catch(() => {}), page.click(login.submit ?? 'button[type=submit]')]);
                         await page.waitForTimeout(500);
-                        if (page.url().includes(login.path ?? '/login')) die(`Přihlášení role ${role} selhalo.`);
+                        if (page.url().includes(login.path ?? '/login')) die(`Login of role ${role} failed.`);
                         await context.storageState({ path: statePath });
                         chmodSync(statePath, 0o600);
                     }
@@ -189,7 +203,7 @@ async function main() {
                         current.layout = current.layout.filter((l) => !same(l));
                         current.layout.push(entry);
                     }, runUuid);
-                    console.log(`${role} ${deviceId} ${route}: ${(audit.findings ?? []).length} nálezů, ${consoleErrors.length} chyb konzole, ${failed.length} chybných požadavků${error ? `, ${error}` : ''}`);
+                    console.log(`${role} ${deviceId} ${route}: ${(audit.findings ?? []).length} findings, ${consoleErrors.length} console errors, ${failed.length} failed requests${error ? `, ${error}` : ''}`);
                 }
                 await context.close();
             }
@@ -200,6 +214,8 @@ async function main() {
     }
 }
 
-main()
-    .then(() => process.exit(0))
-    .catch((e) => die(e.stack || e.message));
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+    main()
+        .then(() => process.exit(0))
+        .catch((e) => die(e.stack || e.message));
+}

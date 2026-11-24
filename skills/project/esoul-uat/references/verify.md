@@ -12,14 +12,16 @@ changes and whenever the user asks whether the scenarios are current.
    branch head (`origin/main` or the repository default), not a feature branch; use a
    detached worktree when the main checkout is on another branch.
 2. Split chapters into groups of 5–8 and audit the groups in parallel with read-only,
-   fresh-context reviewer subagents when the harness offers them (`esoul-model-routing`,
-   optional helpers layer, holds the reviewer brief); otherwise audit group by group yourself.
+   fresh-context subagents when the harness offers them (`esoul-model-routing`, optional
+   helpers layer, holds the reviewer brief); otherwise audit group by group yourself.
    Never fork the current conversation for this: a fork inherits the whole context and
-   multiplies the cost. Chapter updates go to an implementer subagent or to you. Give each the chapter files, the format rules, the code areas (routes, pages,
-   navigation, policies, form requests, language files, seeders, tests), and the docs
-   (GLOSSARY, ADRs, plan). Ask for evidence with `file:line` for every claim.
+   multiplies the cost. Chapter updates go to a fresh subagent that builds the change, or to you.
+   Give each the chapter files, the format rules, the code areas (routes, pages, navigation,
+   policies, form requests, language files, seeders, tests), and the docs (GLOSSARY, ADRs,
+   plan). Ask for evidence with `file:line` for every claim.
 3. Add one global gap scan: every route group and page directory against the chapter list.
-   It is mechanical, so give it to a cheap read-only explorer subagent when the harness offers one.
+   It is mechanical, so give it to a fresh read-only subagent when the harness offers one,
+   otherwise do it yourself.
 4. Re-check every security-relevant claim yourself in code before reporting it.
 
 ## Output per chapter
@@ -35,3 +37,5 @@ missing authorization). Product bugs go to the `bugs` mode; they are not catalog
 
 Summarise counts first (chapters, scenarios, commits since baseline), then the findings,
 most severe first. Updating the catalogue is a separate, reviewed change through a PR.
+
+Done when every chapter has a stale/missing/deviation verdict and the global gap scan is attached.

@@ -62,12 +62,12 @@ test('validation reports broken scenarios', () => {
     assert.equal(chapter.scenarios[0].steps[0].action, 'Otevři `a | b`.');
     const { errors } = validate([chapter]);
     const text = errors.join('\n');
-    assert.match(text, /očekáváno číslo 01/);
-    assert.match(text, /Typ „neznamy“/);
-    assert.match(text, /neznámé zařízení „watch“/);
-    assert.match(text, /méně než 2 kroky/);
-    assert.match(text, /nemá očekávaný výsledek/);
-    assert.match(text, /chybí Odchylka/);
+    assert.match(text, /expected number 01/);
+    assert.match(text, /Typ "neznamy"/);
+    assert.match(text, /unknown device "watch"/);
+    assert.match(text, /fewer than 2 steps/);
+    assert.match(text, /has no expected result/);
+    assert.match(text, /Odchylka is missing/);
 });
 
 test('init, record, next and report form a resumable run', () => {
@@ -113,7 +113,7 @@ test('init refuses to overwrite an existing run unless forced', () => {
 test('a malformed scenario heading is an error, not a silent skip', () => {
     const chapter = parseChapter(['# Zvířata', '', '- **Kapitola:** ZV', '- **Část:** A', '', '## ZV-1 Chybné číslo'].join('\n'), 'zv.md');
     assert.equal(chapter.scenarios.length, 0);
-    assert.match(chapter.errors.join('\n'), /zv\.md:6: nadpis „## ZV-1 Chybné číslo“ vypadá jako scénář/);
+    assert.match(chapter.errors.join('\n'), /zv\.md:6: heading "## ZV-1 Chybné číslo" looks like a scenario/);
     assert.equal(parseChapter('# T\n\n- **Kapitola:** ZV\n\n## Poznámky k testu\n', 'x.md').errors.length, 0);
 });
 
@@ -147,7 +147,7 @@ test('a writer bound to a run refuses to write after init --force replaced it', 
     assert.ok(original);
     updateRun(run, (current) => current.layout.push({ url: 'a', findings: [] }), original);
     cli('init', sample, run, '--env', 'uat', '--base-url', 'https://x.cz', '--force');
-    assert.throws(() => updateRun(run, (current) => current.layout.push({ url: 'b', findings: [] }), original), /znovu založen/);
+    assert.throws(() => updateRun(run, (current) => current.layout.push({ url: 'b', findings: [] }), original), /re-created/);
     assert.equal(JSON.parse(readFileSync(join(run, 'results.json'), 'utf8')).layout.length, 0);
     assert.equal(existsSync(join(run, 'results.json.lock')), false);
 });
