@@ -1,7 +1,7 @@
 ---
 name: esoul-mockup-authoring
 description: "Static mockup bundle for the eSoul mockups module: adapt a Pencil design or built HTML into a bundle, validate, preview locally, publish for client review, iterate on revision-bound feedback. Excludes design work in Pencil itself and throwaway prototypes."
-compatibility: Node.js 22+ and the application's supported PHP runtime with Composer dependencies; an eSoul application checkout supplies the authoritative bundle validator. Browser access is required for visual verification; the Pencil MCP server for building from a .pen design.
+compatibility: Node.js 22+. The application's supported PHP runtime with Composer dependencies and an eSoul application checkout supply the authoritative bundle validator; both are optional for a local preview (standalone, unvalidated) and required for validation and publishing. Browser access is required for visual verification; the Pencil MCP server for building from a .pen design.
 ---
 
 # eSoul mockup authoring
@@ -12,7 +12,7 @@ Produce a committed, self-contained static bundle. The application snapshots a c
 
 Resolve `SKILL_DIR` to the directory containing this file, not the caller's working directory. All internal helper/template paths below are relative to that directory. `example/` is a complete starting bundle, not a build scaffold: copy it, then replace every Workshop Notes string (title, screen and frame titles, labels, alt text) and delete `assets/schedule-board.svg` when unused, before validating.
 
-The only authoritative format schema is the application's `config/mockups/manifest.schema.json`; this skill holds no copy of it. Validation runs the application's own validator from a trusted application checkout (`--app-root /path/to/esoul-internal` or `ESOUL_MOCKUP_APP_ROOT`, never taken from a bundle or exported feedback): [references/security.md](references/security.md). This skills repository alone does not supply the application runtime.
+The only authoritative format schema is the application's `config/mockups/manifest.schema.json`; this skill holds no copy of it. Validation runs the application's own validator from a trusted application checkout (`--app-root /path/to/esoul-internal` or `ESOUL_MOCKUP_APP_ROOT`, never taken from a bundle or exported feedback): [references/security.md](references/security.md). This skills repository alone does not supply the application runtime. The in-app checkout is optional for looking at a bundle: without one, `preview` runs standalone and says UNVALIDATED; it is never validation, and `validate` and every publish step still need the checkout.
 
 ```sh
 # From an application root, with SKILL_DIR resolved to the installed esoul-mockup-authoring directory:

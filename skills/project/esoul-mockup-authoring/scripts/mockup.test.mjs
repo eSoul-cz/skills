@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { spawn, spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
@@ -53,4 +54,34 @@ test('every frame of the example manifest has its entry, a marked root and a des
         }
     }
     assert.ok(manifest.screens.some((screen) => screen.id === manifest.start.screen), 'the start screen exists');
+});
+
+test('without an application checkout, validate fails and preview runs standalone, announced as unvalidated', async () => {
+    const noApp = mkdtempSync(join(tmpdir(), 'mockup-noapp-'));
+    const validate = run('validate', example, '--app-root', noApp);
+    assert.equal(validate.status, 1);
+    assert.match(validate.stderr, /--app-root/);
+
+    const broken = run('preview', noApp, '--app-root', noApp, '--port', '18731');
+    assert.equal(broken.status, 1);
+    assert.match(broken.stderr, /Cannot read mockup\.json/);
+
+    const child = spawn('node', [cli, 'preview', example, '--app-root', noApp, '--port', '18732'], { stdio: ['ignore', 'pipe', 'pipe'] });
+    try {
+        const line = await new Promise((resolve, reject) => {
+            let out = '';
+            const timer = setTimeout(() => reject(new Error(`no output: ${out}`)), 10000);
+            child.stdout.on('data', (chunk) => {
+                out += chunk;
+                if (out.includes('Local design preview')) {
+                    clearTimeout(timer);
+                    resolve(out);
+                }
+            });
+            child.on('exit', () => reject(new Error(`exited early: ${out}`)));
+        });
+        assert.match(line, /Standalone preview: .*UNVALIDATED/);
+    } finally {
+        child.kill('SIGTERM');
+    }
 });
