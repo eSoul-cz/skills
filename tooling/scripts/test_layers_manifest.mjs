@@ -105,3 +105,27 @@ test('the helper package ships what its bin needs', async () => {
         assert.ok(existsSync(join(root, file)), `${file} is missing`);
     }
 });
+
+// The picks manifest was pruned to the picks whose advice does not conflict with the project guidelines (review
+// decisions AP-D1/AP-D4). A dropped pick returns only with a new decision, so the test pins both lists.
+test('upstream-picks lists only the reviewed picks and none of the dropped ones', () => {
+    const groups = manifest.layers['upstream-picks'].groups;
+    const skillsOf = (group) => groups[group].sources.flatMap((source) => source.skills);
+    assert.deepEqual(Object.keys(groups), ['wordpress', 'web', 'frontend', 'data', 'jenkins', 'matt-extra']);
+    assert.deepEqual(skillsOf('wordpress'), ['wordpress']);
+    assert.deepEqual(skillsOf('web'), ['accessibility-compliance-accessibility-audit', 'seo-schema', 'seo-technical']);
+    assert.deepEqual(skillsOf('frontend'), ['frontend-design', 'frontend-lighthouse']);
+    assert.deepEqual(skillsOf('data'), ['sql-optimization-patterns']);
+    assert.deepEqual(skillsOf('jenkins'), ['esoul-jenkins-libraries']);
+    const dropped = [
+        'laravel-expert', 'laravel-security-audit', 'php-pro', 'docker-expert', 'mysql', 'jenkins', 'e2e-testing', 'e2e-testing-patterns',
+        'seo-audit', 'web-performance-optimization', 'data-storytelling', 'frontend-architecture', 'gdpr-compliance',
+        'wordpress-plugin-development', 'wordpress-theme-development', 'wordpress-woocommerce-development',
+    ];
+    const listed = new Set(Object.values(manifest.layers).flatMap((layer) => Object.keys(layer.groups ?? {}).flatMap((group) => layerSkillsOf(layer, group))));
+    assert.deepEqual(dropped.filter((name) => listed.has(name)), []);
+});
+
+function layerSkillsOf(layer, group) {
+    return layer.groups[group].sources?.flatMap((source) => source.skills) ?? [];
+}

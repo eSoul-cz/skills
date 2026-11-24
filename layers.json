@@ -40,7 +40,9 @@
         "esoul-uat",
         "esoul-task-create",
         "esoul-data",
-        "esoul-mockup-authoring"
+        "esoul-mockup-authoring",
+        "esoul-quality-gates",
+        "esoul-website-launch"
       ]
     },
     "helpers": {
@@ -196,30 +198,16 @@
     },
     "upstream-picks": {
       "title": "Recommended third-party skills",
-      "description": "Manifest of community skills eSoul found useful, split by tool, plus the optional rest of mattpocock's set. The project guidelines take precedence over their advice. Install a group with upstream-picks:<group>.",
+      "description": "Manifest of community skills eSoul found useful, split by tool, plus the optional rest of mattpocock's set. Only skills whose advice does not conflict with the project guidelines are listed. The project guidelines take precedence over their advice. Install a group with upstream-picks:<group>.",
       "scope": "user",
       "requires": [],
       "groups": {
-        "laravel": {
-          "sources": [
-            {
-              "repo": "sickn33/agentic-awesome-skills",
-              "skills": [
-                "php-pro",
-                "laravel-expert",
-                "laravel-security-audit"
-              ]
-            }
-          ]
-        },
         "wordpress": {
           "sources": [
             {
               "repo": "sickn33/agentic-awesome-skills",
               "skills": [
-                "wordpress-plugin-development",
-                "wordpress-theme-development",
-                "wordpress-woocommerce-development"
+                "wordpress"
               ]
             }
           ]
@@ -229,8 +217,6 @@
             {
               "repo": "sickn33/agentic-awesome-skills",
               "skills": [
-                "seo-audit",
-                "web-performance-optimization",
                 "accessibility-compliance-accessibility-audit"
               ]
             },
@@ -254,35 +240,7 @@
             {
               "repo": "stareezy-1/frontend-architecture-skill",
               "skills": [
-                "frontend-architecture",
                 "frontend-lighthouse"
-              ]
-            }
-          ]
-        },
-        "devops": {
-          "sources": [
-            {
-              "repo": "sickn33/agentic-awesome-skills",
-              "skills": [
-                "docker-expert"
-              ]
-            },
-            {
-              "repo": "BagelHole/DevOps-Security-Agent-Skills",
-              "skills": [
-                "mysql"
-              ]
-            }
-          ]
-        },
-        "testing": {
-          "sources": [
-            {
-              "repo": "sickn33/agentic-awesome-skills",
-              "skills": [
-                "e2e-testing",
-                "e2e-testing-patterns"
               ]
             }
           ]
@@ -292,8 +250,7 @@
             {
               "repo": "sickn33/agentic-awesome-skills",
               "skills": [
-                "sql-optimization-patterns",
-                "data-storytelling"
+                "sql-optimization-patterns"
               ]
             }
           ]
