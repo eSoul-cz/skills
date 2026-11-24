@@ -33,7 +33,8 @@ confirm-before-destructive) does not know. Look commands up with `freelo skill s
 ## States and estimates
 
 - Tasklists, in order: `Backlog`, `To Do`, `In progress`, `Code review`, `Testing`, `Done`, plus
-  `LTT` for recurring work. A project may omit `Testing`. New work starts in `Backlog`.
+  `LTT` for recurring work. A project may omit `Testing`. New work starts in `Backlog`; a hotfix
+  (`docs/project_guidelines/workflow.md` › Hotfix) may skip it and the estimate.
 - `To Do` means ready to pick up: a complete description with acceptance criteria, an approved
   estimate and no open blocker (an open `question` issue counts as one). It needs no assignee: an
   unassigned task in `To Do` is ready for anyone, and whoever picks it up assigns themselves

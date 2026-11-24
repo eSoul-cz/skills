@@ -46,6 +46,10 @@ Done when you know the mode, the Freelo project and tasklist IDs and the assigne
    for the estimate (their time, 15-minute steps) and set it through `esoul-task-create` before
    `In progress`; the person may say it follows after pick-up, which the final summary records.
    Anything else missing: tell the user.
+   A hotfix (`docs/project_guidelines/workflow.md` › Hotfix) is the exception: the task may go
+   straight to `In progress` from `Backlog` or from nothing, without an estimate, and may be
+   created after the fix is pushed (before the PR merges) through `esoul-task-create`. Set the
+   estimate and the work report once the fix is out and record both in the final summary.
 3. **Assigned-task guard.** When the Freelo worker or the GitHub assignee is someone other than
    the assignee from step 0, stop, tell the user and leave the assignment alone. A task with no
    worker or assignee is not a conflict: step 4 assigns it.

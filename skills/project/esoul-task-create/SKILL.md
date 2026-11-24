@@ -135,6 +135,11 @@ exists, by UUID in Freelo and by exact name on GitHub (a question needs none). A
 says. Relations, and refining existing tasks by state:
 [references/duplicates.md](references/duplicates.md).
 
+**Hotfix.** A hotfix (`docs/project_guidelines/workflow.md` › Hotfix) may be written after the
+fix is pushed and may skip `Backlog` and the estimate: it goes straight to `In progress`, and
+the estimate is added afterwards (the person's time, as in step 3). A workaround hotfix gets a
+follow-up issue (task) for the root cause, created the normal way with a preview.
+
 ## 5. Preview and approve
 
 Before any write show one preview, grouped by task or pair: project and tasklist with

@@ -23,6 +23,7 @@ The review ran as parallel slices, one per group of skills. Where a line says an
 | agents, hooks, Codex, Jenkins, tooling scripts, README, **every dropped third-party pick** (table in Part 8 under "layers.json") | Part 8 |
 | guidelines change, cross-skill fixes, record and changelog | Part 9 |
 | scenario gaps 2, 5, 6: setup update, `retired` map, `issue` and standards-only modes, standing small-admin decision, defects | Part 11 |
+| hotfix: no `Backlog`, no estimate, task after the fix in the task skills | Part 13 |
 | `esoul-workflow`, `esoul-guidelines`, `esoul-review`, `esoul-testing`, `esoul-model-routing`, `gitmoji-commit` | applied by the group A review (earlier commits); this round only checked their purpose ([skill-purposes.md](../skill-purposes.md)) |
 
 ## Part 1: Task skills: `esoul-task-work`, `esoul-task-create` (group B)
@@ -667,7 +668,16 @@ Source: `esoul-infrastructure/docs/scenarios/` (SC-n is the scenario file, `g<n>
 ### Not applied
 
 - SC-07 g1, g2, g4, g5 (onboarding block in the helper README, commit-versus-restore, lock migration beyond retrofit R1, access checklist file): need an owner decision or are covered by the setup update.
-- SC-06 g1 wider form (an incident may start without an estimate): the guideline `Hotfix` section (3e, `eSoul-cz/guidelines` Unreleased) now says the task may skip `Backlog` and the estimate; `esoul-task-work` and `esoul-task-create` still ask for the estimate and follow the guideline after its release (the answer to the open question of Part 11). SC-06 g2 (incident case in the reviewer) and g3 (audit `warnOnly`, a pipeline key) stay outside this part.
+- SC-06 g1 wider form (an incident may start without an estimate): the guideline `Hotfix` section (3e, `eSoul-cz/guidelines` Unreleased) says the task may skip `Backlog` and the estimate; the task skills follow it in Part 13. SC-06 g2 (incident case in the reviewer) stays outside this part; SC-06 g3 (audit `warnOnly`, a pipeline key) is the `audit` key of the Laravel and LSR pipelines (`eSoul-cz/jenkins-libraries` Unreleased).
+
+## Part 13: Hotfix follow-ups (task skills)
+
+Source: the owner's Hotfix decision, now `docs/project_guidelines/workflow.md` › Hotfix (`eSoul-cz/guidelines`, Unreleased). The owner's rule that formalities are shortened and never skipped decides the wording; the guideline owns the rule, so the skills only point at it.
+
+- **`esoul-task-work`**: pick-up step 2 (readiness) names the hotfix as the exception to "an estimate before `In progress`": the task may go straight to `In progress` from `Backlog` or from nothing, may be created after the fix is pushed (before the PR merges) through `esoul-task-create`, and the estimate and work report follow once the fix is out, both recorded in the final summary. `references/freelo.md` › States says new work starts in `Backlog` except a hotfix. Before this the skill said an estimate is always asked first, which contradicts the guideline.
+- **`esoul-task-create`**: §4 gets a `Hotfix` paragraph: the task may be written after the fix, may skip `Backlog` and the estimate (it goes to `In progress`, the estimate is added afterwards), and a workaround hotfix gets a follow-up issue (task) for the root cause created the normal way with a preview. The preview and the approval still apply: shortened formalities do not skip the owner's content approval.
+- **`esoul-workflow`**: the `Diagnose (Bug)` step says a defect that harms production now is a hotfix, the Task step is shortened as the guideline says, and review and the green `Jenkins` check still apply. No second copy of the guideline's list (audit, rollback) was added.
+- The skills' own installed copy of the guidelines (`docs/project_guidelines/`) is the earlier release and has no `Hotfix` section until the guidelines release is installed here; the pointer is by section name, like every other pointer in the skills.
 
 ## Appendix: owner decisions as received
 
