@@ -94,15 +94,13 @@ Usage report (where the weekly limit goes): `node tooling/scripts/usage-report.m
 
 The eSoul skills build on mattpocock's set and do not fight it. The tracker and setup skills (`to-spec`, `to-tickets`, `triage`, `wayfinder`, `implement-spec`, `setup-matt-pocock-skills`), `pr` and `git-guardrails-claude-code` replace an eSoul rule or tool (work is tracked in Freelo, `CONTEXT.md` holds eSoul conventions, `esoul-review` writes the PR), so they are not part of `upstream-core`: they are the on-request group `upstream-picks:matt-extra`, and `esoul-workflow` › `references/upstream.md` says when an agent leaves them alone.
 
-## Publishing the helper (owner)
+## Publishing the helper
 
-`@esoul-cz/skills` is not published yet. `npm pack` and `npm publish --dry-run` pass in this repository. To publish:
+`@esoul-cz/skills` is published on npm by the `esoul-cz` organisation (first release 0.1.0, 2026-11-24): `npx @esoul-cz/skills <command>`.
 
-1. Create the npm organisation `esoul-cz` (npmjs.com) and add the publishing account as owner.
-2. `npm login`, then `npm publish --access public` from the repository root (the package is scoped; `publishConfig.access` is already `public`).
-3. Later releases: bump `version` in `package.json` (semver: new layer or command = minor, breaking command change = major) and publish again. To publish from Jenkins instead, store an npm automation token as the credential `NPM_TOKEN` and run `npm publish --access public` in a tag-triggered stage.
+A release is published by hand, because it is rare and needs no build: bump `version` in `package.json` (semver: a new layer or command is minor, a breaking command change is major), commit, then `npm publish --access public` from the repository root (`publishConfig.access` is already `public`). Jenkins does not publish to npm and needs no npm token.
 
-Until then run the helper from a checkout: `node bin/esoul-skills.mjs <command>`.
+From a checkout without npm access, run `node bin/esoul-skills.mjs <command>`.
 
 ## Checks
 
