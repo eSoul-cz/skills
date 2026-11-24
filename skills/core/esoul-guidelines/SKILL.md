@@ -21,7 +21,10 @@ install routes, drift); read it there and do not copy it.
    into the repository, no layer folder (`docs/project_guidelines/workflow.md` › Commits).
 4. A heading a skill cites that the project's files lack means the project's guidelines are older
    than the skill: compare `package_version` in `esoul-guidelines.lock` with the latest release
-   and offer the update (step 3) instead of guessing the rule.
+   and offer the update (step 3) instead of guessing the rule. Compatibility: the skills cite
+   sections that exist only from guidelines 0.5.0 (`Hotfix`, the standing small-admin record in
+   `workflow.md`, and project exceptions with the installer's `exceptions` key, step 6); a
+   project on 0.4.x or older needs guidelines ≥ 0.5.0 for them.
 
 Done when you can name the file and heading for each rule the change depends on. A repository
 without `docs/project_guidelines/` needs the install below.
@@ -86,9 +89,9 @@ Commit `esoul-guidelines.json`, `esoul-guidelines.lock`, `docs/project_guideline
 move the edit below the block instead of using `--force`. A new guideline version arrives with
 `composer update esoul-cz/guidelines` (or the newer PHAR) followed by `sync`; another minor needs
 the constraint raised first, because on 0.x `^0.3` never reaches 0.4 (`composer require --dev
-esoul-cz/guidelines:^<new minor>`). A project several versions behind, or one whose skills lock and skill
+esoul-cz/guidelines:^<new minor> -W`). A project several versions behind, or one whose skills lock and skill
 names are old too, takes the setup update of `esoul-project-update`
-(`references/setup.md`: constraint, `sync`, reconcile, skills lock, retired names).
+(`references/setup.md`: skills lock, constraint, `sync`, reconcile, retired names).
 
 A changed guideline rule is a change to `esoul-cz/guidelines`, never to the project: its own PR
 there.
