@@ -10,7 +10,9 @@ documents.
 1. **Confirm inputs.** Client and project name, GitHub repository, Freelo project, stack,
    archetype, tier, repository kind (client or internal, asked, never assumed), staging and
    production URLs (or `TBD`), original site URL (or `—`), the template variant closest to the
-   stack ([root-files.md](root-files.md)). Resolve the Freelo project through
+   stack (the chooser table "Choosing a variant" in the
+   [app-templates README](https://github.com/eSoul-cz/app-templates#choosing-a-variant): kind of
+   project, LSR or Laravel, Astro static, SSR or CMS; [root-files.md](root-files.md)). Resolve the Freelo project through
    `esoul-task-create` so its `## Freelo` block is written in its standard form.
 2. **Skeleton.** For a covered stack, create the project from the published template variant
    closest to the stack: `composer create-project esoul-cz/template-<variant>:dev-main <dir>`
