@@ -80,6 +80,7 @@ async function main() {
         manifest = standaloneManifest(bundle);
         console.log(`Standalone preview: ${manifest.title} (${frameCount(manifest)} frames). UNVALIDATED: the application validator did not run (no application checkout at ${appRoot}); run \`validate\` with --app-root before any publish.`);
     } else {
+        if (!hasApplicationValidator(appRoot)) throw new Error('Use --app-root with an eSoul application checkout containing Composer dependencies and the authoritative mockup schema.');
         const validation = spawnSync(php, [resolve(skillRoot, 'scripts/validate.php'), appRoot, bundle], {
             encoding: 'utf8', maxBuffer: 4 * 1024 * 1024,
         });
