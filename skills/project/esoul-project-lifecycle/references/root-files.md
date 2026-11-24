@@ -15,7 +15,7 @@ The `common` layer is identical in every variant, so any variant yields the same
 | `.github/PULL_REQUEST_TEMPLATE.md` | One template for both tiers |
 | `AGENTS.md` | Intro only; the managed guideline block and [the project part](#3-what-this-skill-adds) are added to it |
 | `CLAUDE.md` | `@AGENTS.md` |
-| `CONTEXT.md` | Guideline headings with `TBD`; [filled by bootstrap](#3-what-this-skill-adds) |
+| `CONTEXT.md` | `## Getting started` (clone, skills, local environment, access), the commit convention and the guideline headings with `TBD`; [filled by bootstrap](#3-what-this-skill-adds), which keeps the first two as they are |
 | `GLOSSARY.md` | Header only, in both tiers: the managed guidelines link to it |
 | `LICENSE` | Only where the project is open source or internal and public; a client project is proprietary, so leave it out |
 | `renovate.json5` | Renovate replaces Dependabot |
@@ -68,5 +68,10 @@ Rules:
 `Tasking convention` and `Commit convention`). `## Freelo` stays the machine-read cache of
 tasklist IDs and label UUIDs owned by `esoul-task-create`; `## Tracker` names the
 tracker in prose and points to it. `GLOSSARY.md` holds domain language only.
+
+The template's `## Getting started` section (in `CONTEXT.md` and in the stack's `README.md`) stays in the
+project: bootstrap and retrofit keep it, fill in the project's own repository name and local setup, and
+never delete it as boilerplate. A retrofitted project that lacks it takes it from the template
+(`esoul-project-update` lists it as a template change).
 
 Replace every `{{PLACEHOLDER}}` of the copied assets; `audit` fails on leftovers.

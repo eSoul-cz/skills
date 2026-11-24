@@ -2,7 +2,7 @@
 Text that bootstrap writes into the project's `CONTEXT.md`. The file itself comes from the
 `common` layer of `eSoul-cz/template-<variant>` (references/root-files.md) with the guideline
 headings and `TBD`; replace each `TBD` section with the block below, keep the template's
-`## Commit convention`, and add `## Freelo` after `## Tracker`. Delete this comment, the
+`## Getting started` and `## Commit convention`, and add `## Freelo` after `## Tracker`. Delete this comment, the
 alternatives that do not apply and every placeholder before committing.
 -->
 
