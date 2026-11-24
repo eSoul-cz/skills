@@ -15,7 +15,8 @@ install routes, drift); read it there and do not copy it.
 
 1. Read `docs/project_guidelines/index.md` and the files that cover what you touch.
 2. Project-specific rules sit below the managed block of `AGENTS.md` and in the project's own
-   files next to the rendered ones (step 5); they add to the guidelines.
+   files next to the rendered ones (step 5); they add to the guidelines. A `Project exception`
+   paragraph under a heading is the one place a project overrides a rule (step 6).
 3. Cite a rule as `docs/project_guidelines/<file>.md` › Heading: the flat file name as rendered
    into the repository, no layer folder (`docs/project_guidelines/workflow.md` › Commits).
 4. A heading a skill cites that the project's files lack means the project's guidelines are older
@@ -98,8 +99,8 @@ committed.
 ## 4. Check in CI
 
 `esoul-guidelines check` is a read-only pipeline step: exit 1 means drift (a managed block was
-edited) or outdated content (run `sync`). It finds drift, not violations: whether a change
-follows the guidelines is `esoul-review` (its standards-only path).
+edited), outdated content (run `sync`) or an invalid project exception (step 6). It finds drift,
+not violations: whether a change follows the guidelines is `esoul-review` (its standards-only path).
 
 - PHP project: `esoul-guidelines check` joins the other read-only checks of `tools.md`.
 - Project without PHP: CI runs the version recorded in `esoul-guidelines.lock`
@@ -125,3 +126,35 @@ needs a recorded client decision, an updated guideline and an updated parity tes
 agent applies on every task.
 
 Done when each new rule is checkable and no rule restates a managed one.
+
+## 6. Project exceptions
+
+A project may deviate from a rule only with the **owner's approval** (the developer may obtain it
+and say so) and an **accepted ADR**. The agent proposes and prepares; it never decides an
+exception alone, and never records one without the person's confirmation. The mechanism and the
+format are in the guidelines README › Project exceptions; do not copy it.
+
+1. **Decide.** Name the rule (`docs/project_guidelines/<file>.md` › Heading), what the project does
+   instead, and why. A project rule that only adds to the guidelines is no exception (step 5). A
+   new project follows the rules closely and asks before deviating; a migration is lenient and
+   settles each conflict with the person (`esoul-project-lifecycle` › `references/retrofit.md` §4).
+2. **Refuse the hard rules.** The security and production-data rules (`security-and-data.md`:
+   secrets, personal and client data, anonymized dumps, production access, authorization,
+   sessions and accounts) cannot be excepted; `check` refuses them. Offer the guideline's way or a
+   guideline change instead.
+3. **Record it.** The ADR (accepted) says the rule, the alternative, the reason and the approval.
+   Then add the entry to `esoul-guidelines.json`:
+   `{"rule": "<layer>/<file>.md#<heading-anchor>", "instead": "<one sentence>", "adr": "docs/adr/<file>.md"}`.
+   The rule is the **source** file in the layer, not the rendered one (`package/lunar/architecture.md#money`;
+   `esoul-guidelines list` shows the layers and their files). The layer is the one whose text it is: a
+   `<!-- from: <layer> -->` comment precedes text from a later layer, text without one is from the first
+   layer that defines the file (usually `general`). The anchor is the GitHub slug of its heading. Run
+   `sync`: the managed file now carries `Project exception: …` with the ADR link under that heading.
+4. **Read it.** While reading the rules (above), a `Project exception` paragraph under a heading
+   means the text under the marker applies instead of the rule, and the ADR explains why.
+5. **Keep it valid.** `esoul-guidelines check` fails when the rule's heading is renamed or removed in
+   a new guideline version, the layer is no longer selected, or the ADR file is missing. Re-decide
+   with the person: update the anchor if the rule only moved, drop the exception if the guideline
+   now covers it, or fix the ADR path.
+
+Done when the exception is in the ADR and in `esoul-guidelines.json`, `sync` rendered the marker and `check` exits 0.
