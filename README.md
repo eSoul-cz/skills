@@ -107,18 +107,17 @@ npx @esoul-cz/skills agents claude|codex   # optional worker agents and hooks
 
 Useful options: `--dry-run` prints the `npx skills add` commands, `--yes` adds required layers without asking, `--agent <name>` and `--copy` go to `npx skills`, `--global` / `--project` override the scope of every layer. The helper refuses to install a layer whose required layers are missing and offers to add them. `--help` (or `-h`) of any command prints the usage and installs nothing.
 
-**New developer.** In a project that already has `skills-lock.json`:
+**New developer.** A project commits `skills-lock.json` and `.agents/skills/`, so after the clone its skills are already there:
 
 ```bash
 git lfs pull                                   # where the project keeps assets/ or .pen files in LFS
-npx skills experimental_install                # restores the project's skills from skills-lock.json
+npx skills experimental_install                # only to restore or refresh the project's skills from the lock
 npx @esoul-cz/skills install project helpers   # optional, once per person: your own layers (user scope)
-npx @esoul-cz/skills status                    # what is installed, project and user
 ```
 
-The project's skills come from the lock; the user layers are not part of the project. Update with `npx skills update -p` (project) and `npx skills update -g` (user).
+The user layers are not part of the project; `status` shows what is installed. Update with `npx skills update -p` (project) and `npx skills update -g` (user).
 
-**Compatibility.** Several skills cite guideline sections that exist only from `esoul-cz/guidelines` 0.5.0: `workflow.md` › Hotfix and the standing small-admin record, and project exceptions (`esoul-guidelines` step 6, which also needs the installer of 0.5.0). A project on guidelines 0.4.x or older needs guidelines ≥ 0.5.0 for them (`composer require --dev esoul-cz/guidelines:^0.5 -W`; `esoul-project-update` › `references/setup.md`); until then `esoul-guidelines` offers the update when a cited heading is missing.
+**Compatibility.** Several skills cite guideline sections that exist only from `esoul-cz/guidelines` 0.5.0 (`workflow.md` › Hotfix and the standing small-admin record, project exceptions). On an older project, raise the constraint (`composer require --dev esoul-cz/guidelines:^0.5 -W`, [`setup.md`](skills/project/esoul-project-update/references/setup.md)); until then `esoul-guidelines` offers the update when a cited heading is missing.
 
 **Updating a project from before 0.26.0.** Its `skills-lock.json` lists skills that were renamed, moved or removed, and its files may still name them. `status` lists them and prints the `npx skills remove` commands; `project init` then installs the current set and rewrites the lock. The retired names and what replaced them are the `retired` map of [`layers.json`](layers.json) (the one place; `retired` prints it). The whole procedure with the guidelines version and the names in project files is the setup update of `esoul-project-update` ([`references/setup.md`](skills/project/esoul-project-update/references/setup.md)).
 

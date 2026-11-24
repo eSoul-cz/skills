@@ -36,26 +36,24 @@ silently.
 ## Agent skills
 
 `esoul-workflow` is the entry point for non-trivial work: it sizes the task and routes to the
-others. `npx @esoul-cz/skills project init` installs these into the project, each with its own
-description in `.agents/skills/<name>/SKILL.md`, and pins them in `skills-lock.json` (the layers
-`core`, `dev` and `upstream-core`; `npx skills experimental_install` restores them):
+others. `npx @esoul-cz/skills project init` installs the layers `core`, `dev` and `upstream-core`
+into the project; they are committed with `skills-lock.json` in `.agents/skills/<name>/SKILL.md`:
 
 - work: `esoul-workflow`, `esoul-task-work` (pick up and move tasks), `esoul-review`,
   `esoul-testing`, `esoul-guidelines`;
 - documentation: `esoul-docs`.
 
-These come from the user layers `project` and `helpers`, which each developer installs once with
-`npx @esoul-cz/skills install project helpers`; they are not in the project's lock:
+The `project` layer (`npx @esoul-cz/skills install project`) is a user-global install for the
+people who set up and manage projects, and `project init` does not install it; the same holds for
+`helpers` (`gitmoji-commit`, commits under [CONTEXT.md](CONTEXT.md#commit-convention)):
 
 - task and project preparation: `esoul-task-create` (issue and Freelo pairs under
   [CONTEXT.md](CONTEXT.md#tasking-convention), after an approved preview),
   `esoul-project-lifecycle` (podklady, questions, glossary, ADRs, plan, conformance),
-  `esoul-project-update` (template updates);
-- commits under [CONTEXT.md](CONTEXT.md#commit-convention): `gitmoji-commit`.
+  `esoul-project-update` (template updates).
 
-When one of them is missing, ask the person to install the layer instead of doing its work by
-hand. Project and vendored skills live in `.agents/skills/`; read the relevant one before working
-in its domain. This file and the guidelines take precedence over them.
+When one is missing, say so instead of doing its work by hand. Read the relevant skill before
+working in its domain. This file and the guidelines take precedence over the skills.
 
 Ignore these upstream skills if they are installed: the tracker set (`to-spec`, `to-tickets`,
 `triage`, `wayfinder`, `implement-spec`), `setup-matt-pocock-skills`, `pr` and
