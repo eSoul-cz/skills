@@ -144,7 +144,7 @@ deploy rule.
 3. **Repository settings** (step 12): squash-only merge and labels now; the ruleset with the
    required `Jenkins` check only after the Jenkins job below reports on a PR.
 4. **Manifest PR to `eSoul-cz/esoul-infrastructure`:** `apps/<client>/<name>.yaml` (shape per
-   stack: `laravel-fpm`, `lsr-roadrunner`, `static-release`; `domains`, `image`, `mariadb`, `env`,
+   stack: `laravel-fpm`, `lsr-roadrunner`, `static-release`, `static-image` for a CMS frontend's `FROM scratch` image; `domains`, `image`, `mariadb`, `env`,
    `secrets`), `make render`, review `build/`; see `apps/README.md` › "A new app, step by step".
    The agent opens the PR and never runs `make apply`.
 5. **Stack name in the `Jenkinsfile`** (the deploy rule of the pipeline call), a project PR after
@@ -155,7 +155,8 @@ deploy rule.
 6. **Jenkins job** for the repository, unless the organisation folder discovers it by itself:
    check whether the `Jenkins` check reports on the first PR; if not, ask devops to add a
    multibranch job. Pipeline credentials (registry, GitHub, Komodo) are global; a project-specific
-   one (for example the export token of a CMS frontend) is added by devops.
+   one (for example the export token of a CMS frontend) is added by devops. Runbook:
+   `docs/jenkins-new-repository.md` in `eSoul-cz/esoul-infrastructure`.
 7. **Secrets:** the values behind the manifest's `secrets` go into the app's item in 1Password
    (a check-mode run of `apps-apply.yml` lists the missing ones); never into the repository, a PR
    or the chat (`security-and-data.md` › Secrets).
