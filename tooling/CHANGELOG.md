@@ -4,17 +4,17 @@ Release notes of the documentation tool (`docs/documentation`, the renderer imag
 
 ## Unreleased
 
+## 0.6.8 - 2026-11-24
+
 ### Added
 
-- `language` on a `[[guides]]` block overrides `primary_language` for that guide (the PDF `lang` metadata and the Czech cover labels follow it); a Czech user guide and an English developer guide can share one configuration. A guide `language` must be a language tag such as `cs` or `en-GB`. Configuration schema remains 1.
-- `validate` checks math: a formula with a command outside the allow list, a `^^` escape or another control sequence is an error naming the source file, instead of a late `build` failure. The list is the one of the render filter (`render.lua`); a test keeps both identical.
-- Tests for the screenshot redaction output (solid and mosaic regions, refusal to overwrite, quarantine directories), for the `commit_pdf_outputs` wiring in `validate` and for the Git ignore check.
+- `language` on a `[[guides]]` block overrides `primary_language` for that guide (PDF `lang` metadata, Czech cover labels); it must be a language tag such as `cs` or `en-GB`. Configuration schema remains 1.
+- `validate` reports math with a command outside the render filter allow list, a `^^` escape or another control sequence as an error naming the source file, instead of a late `build` failure.
 
 ### Changed
 
-- `commit_pdf_outputs` defaults to `false`; `true` only prints a `NOTICE` (it still skips the "PDF output directory is not ignored" check; nothing else changes). The starter configuration keeps it `false`.
-- The installer's closing reminder says to keep the PDF output directory ignored by Git because generated PDFs are not committed, instead of allowing committed PDFs.
-- Installer flag help and the upgrade-plan error say "release-resolved" and "release" instead of the removed "catalog".
+- `commit_pdf_outputs` defaults to `false`; `true` only prints a `NOTICE` and still skips the "PDF output directory is not ignored" check.
+- The installer's closing reminder says to keep the PDF output directory ignored by Git; flag help and the upgrade-plan error say "release-resolved" and "release" instead of "catalog".
 
 ## 0.6.7 - 2026-10-20
 
