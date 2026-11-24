@@ -8,6 +8,13 @@ New projects follow the rules more closely ([bootstrap.md](bootstrap.md)).
 
 ## 1. Audit (read-only)
 
+Start from the current default branch: `git fetch`, then `git pull --ff-only` on it (a clean work
+tree is the precondition). When the checkout is behind and cannot fast-forward (local commits, a
+dirty tree, another branch), stop and tell the user: an audit of a stale checkout reports problems
+that are already fixed and misses new ones. Until the user resolves it, read the remote state
+instead (`gh api repos/<owner>/<repo>/contents/<path>`, `Jenkinsfile` and tree of the default
+branch) and say so in the report.
+
 Run `node <skill>/scripts/conformance.mjs <repo> --github <owner/repo>` and read
 [audit.md](audit.md). Also inventory, with evidence:
 
@@ -44,7 +51,8 @@ Create the retrofit work as issue + Freelo pairs up front, via `esoul-task-creat
    `esoul-jenkins-libraries`); the `Guidelines check` stage is built in while the lock exists.
 6. Root files and agent rules: the missing common files from the template
    ([root-files.md](root-files.md)), the issue forms (`task`, `bug`, `question`), `CONTEXT.md`,
-   the project part of `AGENTS.md`, LFS.
+   the project part of `AGENTS.md`, LFS, the `_reference/` ignore, and the old conventions retired
+   as §5 lists them.
 7. Linters, strict types, formatter, one local check command; mutation testing where the project's
    guideline layers include `package/mutation-testing`. Existing violations are mapped to
    gap issues, so the list only shrinks. PHPStan gets no baseline (`docs/project_guidelines/tools.md` ›
@@ -146,6 +154,29 @@ stays readable at the tag `plugin-0.24.0` of `eSoul-cz/skills`
   into `question` issues, one per open item, through `esoul-task-create` with an approved preview;
   the file is removed afterwards.
 - Retire project-local tasking skills once `CONTEXT.md` records the convention.
+- Move the Freelo data **before** retiring its old home: the tasklist IDs and label UUIDs kept in a
+  project-local tasking skill, in `AGENTS.md` or in `docs/agents/` go into `## Freelo` of
+  `CONTEXT.md` first (form and verification: `esoul-task-create` › `references/project-mapping.md`);
+  then the old source is deleted.
+- `docs/agents/` (`issue-tracker.md`, `triage-labels.md`, `domain.md`, written for the upstream
+  tracker skills that the project part of `AGENTS.md` tells agents to ignore): what is still true
+  moves into `CONTEXT.md` (`## Tracker`, `## Tasking convention`, `## Freelo`) or `GLOSSARY.md`;
+  then the folder, the links to it in `AGENTS.md` and its `.gitignore` entry go.
+- `CONTEXT-MAP.md` with a `CONTEXT.md` per context used as glossaries becomes `GLOSSARY-MAP.md`
+  with a `GLOSSARY.md` per context ([glossary.md](glossary.md)); the root `CONTEXT.md` keeps the
+  conventions.
+- A `CLAUDE.md` that `.gitignore` excludes (often with `/.claude`) is not a missing file: remove
+  the ignore lines in the same commit, commit `CLAUDE.md` as the one line `@AGENTS.md` and carry
+  its useful rules below the managed block of `AGENTS.md`. The ignore of `/.claude` also hides the
+  committed `.claude/skills/<name>` links of the project's skills.
+- `docs/documentation.toml` is project-owned and never replaced: its `[[guides]]` list of PDFs
+  stays. The tool install and the ignored `output_dir` and `work_dir` follow `esoul-docs` › PDF
+  output; PDFs that Git already tracks leave the index in their own commit
+  (`docs/project_guidelines/documentation.md` › Generated documentation).
+- `_reference/` (non-anonymised client material kept locally, `security-and-data.md`): add
+  `/_reference/` to `.gitignore`. When something under it is already committed, `git rm -r
+  --cached _reference` in its own commit and tell the project lead: history still holds it, and
+  what to do about that is their decision.
 
 Done when every step above is a merged pair or a named exception (R4 and R5 are optional and are
 recorded as skipped with the reason), `esoul-guidelines check` exits 0 and the conformance script

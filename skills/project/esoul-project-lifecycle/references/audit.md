@@ -4,6 +4,10 @@ Audit never writes. It produces a report the user can turn into pairs or a `clie
 
 ## 1. Automated checks
 
+Start from the current default branch: `git fetch` and fast-forward it (`git pull --ff-only`; this
+moves the checkout, it changes no project file). When the checkout is behind and cannot
+fast-forward, stop and tell the user, or audit the remote state and say so ([retrofit.md](retrofit.md) §1).
+
 Run both first, through a test runner subagent when the harness offers one (otherwise yourself), which returns only the verdict and the
 failures.
 
@@ -20,7 +24,7 @@ node <skill>/scripts/conformance.mjs <repo-root> [--tier full|light] [--github o
 
 It checks required files per tier (including the guideline config, lock and index),
 `CONTEXT.md` sections (Project profile, Tracker, Tasking convention, Commit convention),
-leftover `{{…}}` placeholders, ADR index ↔ frontmatter consistency and duplicate numbers, slice IDs
+leftover `{{…}}` placeholders and `replace-with-…` template values (`template-leftover`), ADR index ↔ frontmatter consistency and duplicate numbers, slice IDs
 and their issues, issue titles with category prefixes, AI-readiness inputs (`ai-readiness-doc`,
 `ai-readiness-slices` for website, website-admin and eshop), work items without a category label,
 UAT or Freelo link, `question` issues without the sections of `question.yml` (they are register

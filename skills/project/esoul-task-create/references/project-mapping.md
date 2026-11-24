@@ -37,6 +37,10 @@ to `GLOSSARY.md`. List the tasklists the project actually has, by their Freelo n
 - **Refresh** only when a cached ID or UUID is rejected, a label the task needs is missing from
   the table, or the user says the project changed. Update the affected lines and the
   verification date; never drop labels that are still valid.
+- **IDs kept elsewhere (a retrofit):** tasklist IDs and label UUIDs written in a project-local
+  tasking skill, in `AGENTS.md` or in `docs/agents/` are copied into the block first and checked
+  against Freelo once (a mismatch is reported, not guessed); only then the old source is retired
+  (`esoul-project-lifecycle` › `references/retrofit.md` § 5).
 
 The edit is a normal repository change. Commit it only when the user asks for a commit (creating a task or confirming the project does not authorise one), as its own commit mentioned in the pull request description (`docs/project_guidelines/workflow.md` › Repository rules, "No passing edits to shared sources"). When `CONTEXT.md` is protected, take it through the repository's usual documentation flow.
 
