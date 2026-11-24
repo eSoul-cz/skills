@@ -4,23 +4,23 @@ The owner's question for every skill (content review 2026-11-24): what is its ma
 
 Layers: core (every developer, every project), dev, project, helpers, business. Third-party skills are not part of this repository and are not listed.
 
-## Cross-skill findings that need the owner
+## Cross-skill findings and the owner's answers
 
-These came out of the purpose checks and are not decided by the ledger. Each names options and a recommendation; nothing was changed for them.
+These came out of the purpose checks. Each names the options and what the owner decided afterwards (2026-11-24); the reasons are in the decisions record, Part 10.
 
-1. **Split `esoul-project-lifecycle` by purpose?** Eleven modes fall into repository setup (`bootstrap`, `retrofit`, `handover`, `audit`) and documentation upkeep (`intake`, `client-update`, `glossary`, `adr`, `design`, `plan`, `tasking`). Recommendation: not now (a second description in every session for little gain); revisit if `design` or `plan` keep growing. `design` is thin and overlaps `esoul-mockup-authoring` only at publishing.
-2. **Stack profile pitfalls and ADR topics** (`esoul-project-lifecycle/references/stacks/*`) are stack knowledge, not lifecycle procedure. Recommendation: move the pitfalls into the guidelines (`framework/<stack>`, `tools.md` known pitfalls) in the next guidelines release; keep the ADR topics in the skill.
-3. **"Numbers only from podklady"** stays in the lifecycle skill and the AGENTS template for now (owner); `documentation.md` covers part of it. Candidate for one guideline sentence.
-4. **Skill-side budgets** in `esoul-quality-gates` (Lighthouse thresholds, axe threshold, link prefetch rule, `Permissions-Policy`) have no guideline home; the owner ruled they stay skill-side until a guideline carries them.
-5. **`snapshot.mjs` imports `web.mjs` from `esoul-quality-gates`** so `esoul-website-launch` needs it installed. Options: keep and declare it (done), duplicate ~170 lines, or move `snapshot.mjs` into quality-gates. Recommendation: keep while the project layer is installed as a unit.
-6. **Receipts procedure** lives in `esoul-workflow` (core) although `esoul-testing` (dev) uses it. Moving it would make the core depend on a dev skill. Recommendation: leave.
-7. **`esoul-review`** holds two jobs (local review, PR loop). Recommendation: keep one skill; the loop runs the local review once.
-8. **Question issues have no Freelo counterpart** (`esoul-task-create`, lifecycle conformance): the issue is the register. Options: issue only (applied) or a labelled Freelo task for the client board. Recommendation: issue only.
-9. **Language of light-tier documents**: `rozhodnuti.md` is now English, `nasazeni.md`, `plan.md`, `sitemap-a-meta.md`, `design-log.md`, `obsah-*.md` stay Czech (client-read). Confirm the line.
-10. **UAT evidence and Google Doc env file**: the Doc env file moved to `~/.config/esoul-uat/<projectKey>.gdoc.env` without a shim; existing projects need a one-time `mv`. Confirm.
-11. **Codex cannot enforce read-only or tool limits per agent** (agent files cannot set `sandbox_mode` or MCP servers, checked against the Codex subagent docs); the read-only agents have connectors off and instruction-only rules. Option: document a read-only profile for review sessions.
-12. **Offers repository**: the skill asks for the sales repository or folder; the real location is not named. The office-document template owner and the font licence (OFL) are `TBD` in `assets/templates/README.md`.
-13. **Mockup skill depends on the private application checkout** (MK-D3, no ledger decision); `references/from-pencil.md` could not be exercised against a live Pencil session.
+1. **Split `esoul-project-lifecycle` by purpose?** Eleven modes fall into repository setup (`bootstrap`, `retrofit`, `handover`, `audit`) and documentation upkeep (`intake`, `client-update`, `glossary`, `adr`, `design`, `plan`, `tasking`). **Decided: keep one skill.** The website material and the quality gates already moved out, and the remaining modes share the same project state (slice table, gates, ADRs, questions). Revisit when documentation upkeep grows or real use shows separate triggers. `design` is thin and overlaps `esoul-mockup-authoring` only at publishing.
+2. **Stack profile pitfalls** (`esoul-project-lifecycle/references/stacks/*`) are stack knowledge, not lifecycle procedure. **Decided and done:** the pitfalls no guideline carried moved into the guideline layers (`tools.md` known pitfalls in `framework/laravel`, bullets in `framework/lsr`, `framework/astro` and `package/laravel-inertia`; the rest were already rules); the profiles' pitfall sections are pointers plus the two or three that concern project preparation. The ADR topics stay in the skill.
+3. **"Numbers only from podklady"**: **decided and done**, one sentence in `general/domain.md` › Open points and conflicts; the lifecycle skill and the AGENTS template point to it.
+4. **Skill-side budgets** in `esoul-quality-gates` (Lighthouse thresholds, axe threshold, link prefetch rule, `Permissions-Policy`): **decided**, they stay skill-side.
+5. **`snapshot.mjs` imports `web.mjs` from `esoul-quality-gates`**: **decided**, keep the dependency. `esoul-website-launch` requires `esoul-quality-gates`: `layers.json` `skillRequires` (the helper installs the required skill when `--skill esoul-website-launch` is named) and the description.
+6. **Receipts procedure** lives in `esoul-workflow` (core) although `esoul-testing` (dev) uses it. Moving it would make the core depend on a dev skill. Left as is.
+7. **`esoul-review`** holds two jobs (local review, PR loop). Left as one skill; the loop runs the local review once.
+8. **Question issues have no Freelo counterpart**: **confirmed** (the issue is the register).
+9. **Language of light-tier documents**: **confirmed**, `rozhodnuti.md` English, the other light documents Czech (client-read).
+10. **UAT Google Doc env file** at `~/.config/esoul-uat/<projectKey>.gdoc.env`: **confirmed**, one-time `mv`, no shim.
+11. **Codex cannot enforce read-only or tool limits per agent** (agent files cannot set `sandbox_mode` or MCP servers, checked against the Codex subagent docs): **confirmed**, instruction-only rules with connectors off.
+12. **Offers repository**: **decided**, the private repository `eSoul-cz/sales`. The office templates are owned by Tomáš Drvota (primary) and Tomáš Vojík (secondary); the embedded fonts are Poppins and Syne (not Open Sans), both SIL OFL 1.1 according to the font files.
+13. **Mockup skill and the application checkout** (MK-D3): **decided**, the in-app checkout is optional for a local look; without it `preview` runs standalone and says UNVALIDATED. `references/from-pencil.md` still could not be exercised against a live Pencil session.
 
 The per-part "Owner decisions needed" in the decisions record lists the smaller items (for example the `declined[].reason` requirement, the `ops` Freelo server name, the session-title line, the weekly upstream-check schedule).
 

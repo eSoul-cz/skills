@@ -6,6 +6,10 @@ All notable changes to `eSoul-cz/skills` are recorded here. The format follows [
 
 ### Added
 
+- `layers.json` `skillRequires` (layer level): naming a skill with `--skill` also installs the skills it needs; `esoul-website-launch` requires `esoul-quality-gates`. The helper validates the map and a test covers it.
+- `esoul-mockup-authoring`: `preview` runs standalone (unvalidated, announced) when no application checkout is available; `validate` and publishing still need it.
+- `esoul-project-lifecycle`: the stack profiles' pitfalls and the "numbers only from podklady" rule point at the guidelines (new text in `eSoul-cz/guidelines` Unreleased: `general/domain.md`, `tools.md` known pitfalls of the Laravel, LSR, Astro and Laravel Inertia layers).
+- `esoul-offer-authoring` and `esoul-office-documents`: offers live in the private repository `eSoul-cz/sales`; the office template README names the owners (Tomáš Drvota, Tomáš Vojík) and the embedded fonts (Poppins and Syne, SIL OFL 1.1).
 - `esoul-task-create`: a minimal path for S work (outcome, one acceptance criterion, one category label, one duplicate search, a one-line preview).
 - `esoul-task-create`: `question` issues are known to the skill (not a task: no `## UAT`, no category label, no estimate; body per the `question` issue form; issue only in `github-freelo`).
 - `esoul-task-create`: the recipe table lists the Freelo MCP tool and the CLI command of every write step; the GitHub `blocked_by` recipe (moved from `docs/agents/issue-tracker.md`) is complete in `references/github-freelo.md`.
