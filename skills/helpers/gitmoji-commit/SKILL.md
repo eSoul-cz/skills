@@ -49,6 +49,8 @@ jq -r '.gitmojis[] | "\(.code)\t\(.description)"' references/gitmojis.json
 
 Open the JSON itself only for `semver` or `entity`. Store the shortcode, never the Unicode glyph. Add a body only when the subject cannot carry the reasoning; the body adds the why and trade-offs and does not repeat the subject.
 
+A hotfix (`docs/project_guidelines/workflow.md` › Hotfix) is the one case where the narrowest shortcode is not the type of the change: the commit that fixes the production defect takes `:ambulance:`, not `:bug:`, in a project that uses Gitmoji (the format is recommended, never required; another standard is followed as it is). Its regression test, documentation and the follow-up for the root cause are their own commits with their own shortcodes.
+
 ## Stage, verify, commit
 
 For each planned commit:
