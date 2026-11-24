@@ -13,12 +13,13 @@ Resolve `SKILL_DIR` to the directory that contains this file.
 
 ## Where offers live
 
-Offers live in the internal sales repository or folder, outside the project repositories: a client
+Offers live in the private repository `eSoul-cz/sales`, outside the project repositories: a client
 has no project repository yet, and an offer holds non-public prices and rates
-(`docs/project_guidelines/security-and-data.md` › Personal and client data). Ask the user where it
-is; never create an offer inside a project repository.
+(`docs/project_guidelines/security-and-data.md` › Personal and client data). Work in a checkout of
+it (ask the user for the path; clone it when asked to); never create an offer inside a project
+repository.
 
-- Source, committed: `<sales>/<client>/nabidka-<topic>.md`.
+- Source, committed: `<sales>/<client>/nabidka-<topic>.md`, where `<sales>` is the checkout of `eSoul-cz/sales`.
 - Output, a build artifact that is never committed: `<sales>/<client>/eSoul-nabidka-<Client>-<topic>.docx`.
 
 ## Workflow
@@ -53,7 +54,7 @@ be checked, and each claim of the request is confirmed or corrected.
 
 ### 3. Previous offers
 
-Read the most recent offer of the same kind in the sales location as the model for structure,
+Read the most recent offer of the same kind in `eSoul-cz/sales` as the model for structure,
 tone, rate, payment terms and the supplier block. Reuse wording for boilerplate chapters;
 client-specific facts stay with their offer. Done when you can state the model's structure, rate,
 payment terms and supplier block, or that no model exists.

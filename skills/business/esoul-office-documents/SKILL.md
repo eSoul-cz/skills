@@ -75,7 +75,7 @@ keys are in each script's docstring, the slide layouts in `references/presentati
 ## Where to save
 
 Sales documents (offers, price calculations for a prospect) go where `esoul-offer-authoring`
-says: the sales repository or folder outside the project repositories. For other documents the
+says: the private repository `eSoul-cz/sales`, outside the project repositories. For other documents the
 Markdown or JSON source is committed where the project keeps it; the generated DOCX, XLSX and PPTX
 are build artifacts (`docs/project_guidelines/workflow.md` › Repository rules). Where project data
 lives: `esoul-data`.

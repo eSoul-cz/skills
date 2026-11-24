@@ -17,13 +17,16 @@ in its sample body never reach an output.
 - Origin: eSoul brand templates. The layout names (`TITLE_AND_BODY`, ...) and the table style
   `Projekt-style 2` point to a Google Workspace export; the editable original is not kept in this
   repository. **TBD:** confirm the original and where it lives.
-- Owner: **TBD** (the person who approves changes to the company data and the look).
+- Owner: Tomáš Drvota (primary) and Tomáš Vojík (secondary); they approve changes to the company data
+  and the look.
 
 ## Fonts
 
-Poppins and Syne are embedded in the DOCX and PPTX. Both are published under the SIL Open Font
-License 1.1, which allows embedding and redistribution; confirm that on the upstream font pages
-before swapping a font (not verified in this repository). The XLSX refers to Roboto by name.
+The DOCX and the PPTX embed **Poppins** and **Syne** (Syne SemiBold in the DOCX). The name tables of
+the embedded font files carry the licence URL `https://scripts.sil.org/OFL`, so both are under the
+SIL Open Font License 1.1, which allows embedding and redistribution (checked on the files in
+this directory; Open Sans does not occur in any template). The XLSX refers to Roboto by name and
+embeds no font (Roboto is Apache-2.0 licensed and is not distributed here).
 
 ## Changing a template
 
