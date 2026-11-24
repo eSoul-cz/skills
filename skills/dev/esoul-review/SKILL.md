@@ -1,6 +1,6 @@
 ---
 name: esoul-review
-description: Review a change before its PR, post a fallback review when CodeRabbit is rate-limited or out of credits, or take an open PR through CI and CodeRabbit to a clean gate. Use for "review my branch/diff/WIP", "open the PR", "CI is red on my PR", "answer the CodeRabbit comments", "CodeRabbit is limited". Reviews the exact diff on two axes (Standards, Spec); findings stay in the PR; a clean review means no valid finding left, never an approval or a merge.
+description: Review a change before its PR, check it against the project guidelines, post a fallback review when CodeRabbit is rate-limited or out of credits, or take an open PR through CI and CodeRabbit to a clean gate. Use for "review my branch/diff/WIP", "does this follow our guidelines", "open the PR", "CI is red on my PR", "answer the CodeRabbit comments", "CodeRabbit is limited". Reviews the exact diff on two axes (Standards, Spec); findings stay in the PR; a clean review means no valid finding left, never an approval or a merge.
 ---
 
 # eSoul review
@@ -23,9 +23,22 @@ Severities, default Critical and Major findings, finding states and PR rules bel
 
 ## Path A: local review
 
+Full run: A1 to A8. A question that only asks whether a change follows the project's guidelines ("does this follow our guidelines?", "check this branch against our standards") takes the standards-only run below.
+
+### Standards-only run
+
+A conformance answer without a spec, CI or PR work; it is not a merge verdict and says so.
+
+1. **Scope:** A1 as written (base, fetch, `review-scope.mjs`, the credential scan).
+2. **Rules:** the guideline files only: `docs/project_guidelines/index.md`, `code-review.md` (severities, default Critical and Major findings), the files that cover the touched areas, and the project part of `AGENTS.md`. No spec, issue, ADR, CodeRabbit configuration or blast-radius search. A project without `docs/project_guidelines/`: A2 › No guidelines in the project.
+3. **No repository checks and no verifiers:** skip A3 and the verifiers of A5.
+4. **One Standards reviewer:** the session itself below 15 files and 400 changed lines (no subagent), above that one per file group as A4 says. The Spec axis does not run; the report says "Spec: not run (standards-only)".
+5. **Confirm and classify yourself** as A5 does without the verifier: the problem exists in the worktree, this diff touched it, severity from `code-review.md` › Severity, each finding citing its rule file and heading.
+6. **Report in the conversation** as A6, short: the result count, the scope header with "checks: not run", `## Standards`, outside the diff (Critical or Major only) and questions. Nothing is posted, written or fixed. End with one line: the full review (A1 to A8) adds the repository checks and the Spec axis.
+
 ### A1. Fix the scope
 
-1. Resolve the base in this order: a base the user named; the open PR's base (`gh pr view --json baseRefName,baseRefOid`); the immediate predecessor of a stacked layer; the default branch, only after checking it is the PR target. Do not assume `main` or `origin`.
+1. Resolve the base in this order: a base the user named; the open PR's base (`gh pr view --json number,baseRefName,baseRefOid,headRefOid`); the immediate predecessor of a stacked layer; the default branch, only after checking it is the PR target. Do not assume `main` or `origin`. With an open PR the scope is the PR head: when `HEAD` equals `headRefOid`, run the script with `--type committed --base <baseRefOid>` and list staged, unstaged and untracked changes separately as "not in the PR" (not reviewed unless the user asks); when it does not (another branch, unpushed commits, behind), say so and ask before switching (`gh pr checkout <number>`); never review another revision silently.
 2. Fetch the base (`git fetch <remote> <branch>`) and use its remote-tracking ref; if fetching is impossible, use the existing ref and say how old it is.
 3. From the repository root (or `--repo <path>`; Node.js 22+):
 
@@ -44,6 +57,8 @@ Only what is not in context yet:
 
 - **Intent:** the linked issue or task (branch name, PR body, commits) with its acceptance criteria and `## UAT`; in a project whose `esoul-guidelines.json` lists `profile/internal` in `layers`, a plan slice or the owner's request. With none, ask for the intent in one sentence; if there is none, review the change on its own and say the contract was missing.
 - **Rules:** `AGENTS.md`, `CONTEXT.md`, `docs/project_guidelines/code-review.md` and `workflow.md` always (severities, default findings, PR rules, the project's own additions included), the other guideline files when the touched area matches (`code-review.md` › What a reviewer checks against), `accepted` ADRs of the touched areas, glossary terms.
+- **No guidelines in the project:** when `docs/project_guidelines/` or its `code-review.md` is missing, say so under "Not covered" in the report and offer `esoul-guidelines` (`init`; installing needs the user's approval, so Path A never installs). Review against the general rules only: the severity scale of `general/code-review.md` in `esoul-cz/guidelines` (Critical, Major, Minor, Nitpick; Critical and Major block; read it with `gh api repos/eSoul-cz/guidelines/contents/resources/guidelines/general/code-review.md`, or by its plain meaning and say so when unreachable), the project's own rules in `AGENTS.md`, `CONTRIBUTING.md` and coding-standard files, and the upstream smell baseline at Minor at most. Say in each finding that its rule is general, not the project's.
+- **Existing review threads (open PR):** read the discussion inventory once ([GitHub operations](references/github-operations.md#complete-discussion-inventory-and-replies)) and pass every thread, resolved or not, to the briefs under "Already decided"; a finding that repeats one is dropped unless it has new evidence.
 - **CodeRabbit configuration** (parsed in `config`): `profile: assertive` includes nitpicks, `chill` or unset omits them; `inheritance: true` means organization settings this review cannot see, so say so.
 - **Blast radius:** callers of changed signatures and contracts, through `codegraph_explore` when available, otherwise search.
 
@@ -83,7 +98,7 @@ Done when each reported finding has location, evidence, expected behavior with i
 
 ### A6. Report
 
-Use the template in [review-passes.md](references/review-passes.md#report-template): the result as a count ("2 findings, 1 blocking", or "Nothing to fix"), the scope header (base, head, risk, files reviewed and excluded, checks with receipts, reviewer per axis), a walkthrough that can seed the PR description, the `## Standards` and `## Spec` sections, outside the diff, questions, prevention and the verdict. Headings and severity labels stay English; prose follows the conversation's language.
+Use the template in [review-passes.md](references/review-passes.md#report-template): the result as a count ("2 findings, 1 blocking", or "Nothing to fix"), the scope header (base, head, risk, files reviewed and excluded, checks with receipts, reviewer per axis), a walkthrough that can seed the PR description, the `## Standards` and `## Spec` sections, outside the diff, questions, prevention and the verdict. Headings and severity labels stay English; prose follows the conversation's language. With CodeRabbit healthy the report stays in the conversation; posting it to the PR is on request and goes through `post-review.mjs` as A9 says.
 
 ### A7. Prevention
 
@@ -134,7 +149,7 @@ Done when the PR (or its absence), base, stack shape and expected checks are rec
 
 Run the project's checks for the actual changes; fix failures at their source, and keep assertions and CI intact to get green. Reuse receipts as in A3. After a fix re-run only what it can affect, plus the full suite once on the tree to be pushed (test levels, skips and the flaky-test rule: `esoul-testing`; `testing.md` › Testing workflow, Flaky tests). Push all fixes of a round together: every push is a full CI build, and a red build is reproduced locally before the fix is pushed.
 
-The local review is a pre-push pass, never a substitute for the remote review, and one per revision; after fixes review only the delta. Honor explicit local-review or skip instructions and repository policy. Otherwise run the CodeRabbit CLI when it is installed and authenticated ([coderabbit-cli.md](references/coderabbit-cli.md)), and Path A (A1–A8) when it is missing, unauthenticated or limited or the user wants to save quota; record the mode. Path A satisfies an optional or user-requested pass but not a repository rule that names CodeRabbit. A CLI failure, limit or incomplete output is not a clean review. Triage local findings as in B5, keep rejected findings with their reasons in the ledger, and post local-only findings nowhere.
+The local review is a pre-push pass, never a substitute for the remote review, and one per revision; after fixes review only the delta. Honor explicit local-review or skip instructions and repository policy. Otherwise run the CodeRabbit CLI when it is installed and authenticated ([coderabbit-cli.md](references/coderabbit-cli.md)), and Path A (A1–A8) when it is missing, unauthenticated or limited or the user wants to save quota; record the mode. The CLI has no Spec axis: when the task has acceptance criteria or a `## UAT` block, Path A's Spec axis runs in addition. Path A satisfies an optional or user-requested pass but not a repository rule that names CodeRabbit. A CLI failure, limit or incomplete output is not a clean review. Triage local findings as in B5, keep rejected findings with their reasons in the ledger, and post local-only findings nowhere.
 
 Done when the tree to be pushed has a receipt for every check and the local review mode and result are in the ledger.
 
