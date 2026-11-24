@@ -60,8 +60,9 @@ Done when the assignee is set on both sides and the task is in `In progress`.
 - Tasklist IDs come from `## Freelo`; a Freelo task keeps its worker through every move.
 - A task already in `In progress` with the right worker needs no write.
 - Merged work never stays in `Backlog` or `To Do`.
-- UAT tick-off and the final `Done` after `Testing` stay with the user (or the `esoul-uat`
-  skill when installed).
+- UAT tick-off and the final `Done` after `Testing` stay with the user, or with the `esoul-uat`
+  skill when installed: its `issue` mode runs the task's `## UAT` block and reports; ticking the
+  boxes in the issue is then a write the user approves.
 
 ## 3. Open the PR
 
