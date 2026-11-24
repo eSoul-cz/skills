@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 // Installs the eSoul Codex agents and rules into ${CODEX_HOME:-~/.codex}.
 // Usage: node codex/install.mjs [--dry-run]
-// Copies codex/agents/*.toml (overwrite) and inserts or replaces the marked block of
-// codex/AGENTS.md in AGENTS.md. Text outside the markers and config.toml are never touched.
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
+// Copies codex/agents/*.toml (overwrite), removes installed generated agents that no longer
+// exist in codex/agents, and inserts or replaces the marked block of codex/AGENTS.md in
+// AGENTS.md. Text outside the markers and config.toml are never touched.
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -39,6 +40,17 @@ for (const file of agents) {
         copyFileSync(join(here, 'agents', file), join(agentsOut, file));
     }
     console.log(`${dryRun ? 'would copy' : 'copied'} ${file} -> ${agentsOut}`);
+}
+
+// Remove agents installed earlier from this generator whose source disappeared.
+const GENERATED = '# Generated from agents/';
+for (const file of existsSync(agentsOut) ? readdirSync(agentsOut).filter((f) => f.endsWith('.toml') && !agents.includes(f)) : []) {
+    if (readFileSync(join(agentsOut, file), 'utf8').startsWith(GENERATED)) {
+        if (!dryRun) {
+            unlinkSync(join(agentsOut, file));
+        }
+        console.log(`${dryRun ? 'would remove' : 'removed'} stale ${file} from ${agentsOut}`);
+    }
 }
 
 if (next === current) {

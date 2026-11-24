@@ -1,6 +1,6 @@
 ---
 name: scout
-description: Read-only code and log search on a cheap model. Use instead of Explore for "where is X", "how does X work", "what uses X", file inventories, and extracting facts from logs, transcripts or exports. Returns a short answer with file:line evidence, never file dumps.
+description: Read-only code and log search. Use instead of Explore for "where is X", "how does X work", "what uses X", file inventories, and extracting facts from logs, transcripts or exports. Returns a short answer with file:line evidence, never file dumps.
 model: haiku
 effort: medium
 maxTurns: 25

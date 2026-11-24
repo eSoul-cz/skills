@@ -12,12 +12,7 @@ const outDir = join(root, 'codex', 'agents');
 const MODELS = { haiku: 'gpt-6-luna', sonnet: 'gpt-6.1-terra', opus: 'gpt-6.1-sol' };
 
 // Claude-specific wording replaced in descriptions and bodies (whole words only).
-const REPLACEMENTS = [
-    [/\bHaiku\b/g, MODELS.haiku],
-    [/\bSonnet\b/g, MODELS.sonnet],
-    [/\bOpus\b/g, MODELS.opus],
-    [/\bExplore\b/g, 'the built-in explorer'],
-];
+const REPLACEMENTS = [[/\bExplore\b/g, 'the built-in explorer']];
 const localize = (text) => REPLACEMENTS.reduce((out, [pattern, to]) => out.replace(pattern, to), text);
 const GENERATED = '# Generated from agents/';
 

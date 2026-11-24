@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Optional convenience of the esoul-skills plugin; the skills work without it.
 // PreToolUse guard for the Agent/Task tool: keeps subagents off the main session's model.
 // Denies Explore, forks, and general-purpose or Plan agents without an explicit model. Everything
 // else (and any unexpected input) is allowed, so the guard never blocks real work by accident.
