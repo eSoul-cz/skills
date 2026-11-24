@@ -1,0 +1,71 @@
+name: Question
+description: A decision or a fact the client (or eSoul) still has to provide
+title: ""
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        An open question is a decision that belongs to the client and blocks something. It is not a
+        work item: no category label, no UAT, no Freelo task. Write the title as
+        `Context: Decision asked` (for example `Shipping: Choose the carriers for the first
+        release`), the point as an outcome, with no `Q-nn` prefix and no slice ID. The content may
+        be Czech. The sections below are the body of the issue; the client questionnaire is
+        generated from them, grouped by **Blokuje**. When the question is answered, record the
+        answer in an ADR, the glossary or a guideline, then close this issue with a comment that
+        links the place. The answer itself does not live in the issue.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Otázka
+      description: What exactly has to be decided or provided, in plain words the client understands.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Proč na tom záleží
+      description: What depends on the answer and what happens if it stays open.
+    validations:
+      required: true
+
+  - type: textarea
+    id: options
+    attributes:
+      label: Možnosti
+      description: The realistic options, each with its consequences.
+      placeholder: |
+        1. …
+        2. …
+    validations:
+      required: true
+
+  - type: textarea
+    id: recommendation
+    attributes:
+      label: Doporučení
+      description: The option eSoul recommends and why; it is pre-filled in the questionnaire.
+    validations:
+      required: true
+
+  - type: textarea
+    id: blocks
+    attributes:
+      label: Blokuje
+      description: >-
+        What waits for the answer: slices (`F1-17`), ADRs (`ADR-0004`), screens, issues (`#N`).
+      placeholder: |
+        - Slice F1-17 …
+        - ADR-0004 (proposed)
+    validations:
+      required: true
+
+  - type: textarea
+    id: default
+    attributes:
+      label: Co platí do odpovědi
+      description: The default eSoul implements while the question is open.
+    validations:
+      required: true

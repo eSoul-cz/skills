@@ -6,23 +6,8 @@ deciders: eSoul
 
 <!-- Copy this file to NNNN-english-slug.md (next free number, never reused), add a row to the
      Records table in index.md, and delete every comment. Write in English with the terms from
-     GLOSSARY.md; a Czech domain term may follow in parentheses where it matters.
-
-     Change policy, once the record exists:
-     - Never accepted yet: amend it in place. Put a dated revision note directly under the title
-       and say what changed and why:
-         > Revised YYYY-MM-DD by the project maintainer after the client's answers. The record
-         > had never been accepted, so it is amended in place rather than superseded.
-       List the record under Revisions in index.md.
-     - Accepted, and a point is filled in, confirmed or narrowed: add a dated note under the
-       title, newest first, citing its source (podklady note, question issue #N, issue). Never rewrite the
-       accepted text:
-         > Note of YYYY-MM-DD from the client's written answers (odpovedi-klienta-YYYY-MM-DD.md).
-         > **One-sentence outcome.** Detail, and which bullet below it overrides.
-     - Accepted, and the substance of the decision flips: write a new ADR, set this one to
-       `superseded by ADR-NNNN` in its frontmatter and in index.md, and keep it unchanged as
-       history.
-     In every case `date` is the day the status last changed. -->
+     GLOSSARY.md; a Czech domain term may follow in parentheses where it matters. Change policy
+     once the record exists: see Rules in index.md. -->
 
 # English decision title written as a statement
 

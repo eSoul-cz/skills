@@ -32,9 +32,8 @@ rozsahu v [rozsahu díla](rozsah.md), co který slice blokuje u klienta v
   [README](README.md#akceptace). **Jakmile issue existuje, rozsah a úplný scénář UAT žijí v
   issue**; buňka se zkrátí na stav a odkaz („UAT v #N“) a mění se jen značkami **Hotovo.** a
   **Zrušeno.**
-- **Granularita:** slice je jedno issue, jeden PR a jeden scénář UAT. Slice,
-  jehož odhad lidského času (zadání agentovi, kontrola, review, UAT, opravy) přesáhne 4 h, se
-  rozdělí.
+- **Granularita:** slice je jedno issue, jeden PR a jeden scénář UAT. Příliš velký slice se
+  rozdělí (limit určují pracovní pravidla Freela).
 
 ## 2. Slices po fázích
 
@@ -59,8 +58,7 @@ základy.
 Jen u projektu s veřejným webem (`website`, `website-admin`, `eshop`; u `application` pro veřejnou
 část). Řezy se nemažou, jen upraví na stack, a patří do první dávky úkolů hned po bootstrapu;
 u projektu bez veřejného webu je smaž celý blok. AI-06 jen u e-shopu. ID `AI-<nn>` se
-nepřečísluje. Pravidla, kontroly a výjimky: [ai-readiness.md](../ai-readiness.md). Slice delší
-než 4 h se rozdělí.
+nepřečísluje. Pravidla, kontroly a výjimky: [ai-readiness.md](../ai-readiness.md).
 
 | ID | Titulek | Kat. | Závislosti | Rozsah | Obrazovky | Issue | Akceptace |
 |---|---|---|---|---|---|---|---|

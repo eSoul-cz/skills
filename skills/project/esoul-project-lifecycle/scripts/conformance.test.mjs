@@ -295,6 +295,47 @@ test('--github reports title, label, UAT, Freelo, slice and ruleset findings', (
     assert.ok(gh.calls.every((call) => !/\b(edit|create|close|delete|merge|-X|--method)\b/.test(call)), 'only read commands');
 });
 
+test('--github treats `question` issues as register entries: no category, UAT or Freelo expectation, but the form sections', () => {
+    const root = project(fullFiles());
+    const questionBody = (sections) => sections.map((name) => `### ${name}\n\ntext\n`).join('\n');
+    const all = ['Otázka', 'Proč na tom záleží', 'Možnosti', 'Doporučení', 'Blokuje', 'Co platí do odpovědi'];
+    const repository = {
+        'api repos/o/r/rulesets': [],
+        'api repos/o/r/rules/branches/main': [],
+        'api repos/o/r': { default_branch: 'main', allow_squash_merge: true },
+        'api user': { login: 'someone' },
+    };
+    const gh = fakeGh({
+        ...repository,
+        'issue list -R o/r --state open': [
+            { number: 1, title: 'Doprava: Vybrat dopravce', labels: [{ name: 'question' }], body: questionBody(all) },
+            { number: 2, title: 'Platby: Zvolit bránu', labels: [{ name: 'Question' }], body: all.map((name) => `**${name}**\ntext`).join('\n') },
+            { number: 3, title: 'Sklad: Povolit zápornou zásobu', labels: [{ name: 'question' }], body: questionBody(all.slice(0, 4)) },
+            { number: 4, title: 'Košík: Přidat produkt', labels: [{ name: 'frontend' }], body: issueBody() },
+        ],
+        'issue list -R o/r --state all': [{ number: 1 }, { number: 2 }, { number: 3 }, { number: 4 }],
+    });
+    const result = runConformance(root, { github: 'o/r', gh });
+    assert.deepEqual(find(result, 'issue-category-label'), []);
+    assert.deepEqual(find(result, 'issue-uat'), []);
+    assert.deepEqual(find(result, 'issue-freelo-link'), []);
+    assert.match(find(result, 'question-sections')[0].message, /^1 open `question` issue\(s\).*#3\.$/);
+    assert.match(find(result, 'issue-summary')[0].message, /3 of them `question`/);
+
+    // A work item is still checked, and a question issue is still subject to the title rules.
+    const noisy = fakeGh({
+        ...repository,
+        'issue list -R o/r --state open': [
+            { number: 5, title: '[FE] Doprava: Vybrat dopravce', labels: [{ name: 'question' }], body: questionBody(all) },
+            { number: 6, title: 'Doprava: Vybrat dopravce', labels: [], body: 'No sections.' },
+        ],
+        'issue list -R o/r --state all': [{ number: 5 }, { number: 6 }],
+    });
+    const checked = runConformance(root, { github: 'o/r', gh: noisy });
+    assert.match(find(checked, 'issue-title-prefix')[0].message, /#5\.$/);
+    assert.match(find(checked, 'issue-category-label')[0].message, /^1 open issue.*#6\.$/);
+});
+
 test('--github flags the shared account bypass and skips Freelo checks in freelo-only mode', () => {
     const root = project(fullFiles({ 'CONTEXT.md': context('full', 'laravel', 'freelo-only') }));
     const gh = fakeGh({
@@ -480,6 +521,12 @@ test('CONTEXT.md needs the guideline headings; ## Freelo is recommended, not req
 
     const lightNoTracker = runConformance(project(lightFiles({ 'CONTEXT.md': lightFiles()['CONTEXT.md'].replace(/## Tracker\n[\s\S]*?(?=\n## )/, '') })));
     assert.equal(find(lightNoTracker, 'context-section')[0].severity, 'warning');
+});
+
+test('the light tier requires the Commit convention section too', () => {
+    const withoutCommit = lightFiles()['CONTEXT.md'].replace(/## Commit convention\n[\s\S]*$/, '');
+    const result = runConformance(project(lightFiles({ 'CONTEXT.md': withoutCommit })));
+    assert.deepEqual(find(result, 'context-section').map((f) => [f.severity, f.message]), [['warning', 'CONTEXT.md has no `## Commit convention` section.']]);
 });
 
 test('stacks: laravel, astro, lsr, lunar and other:<name> are known; any other name is not', () => {

@@ -1,9 +1,7 @@
 # Retrofit an existing project
 
-Use for a project that already has code but not the eSoul structure. Doglead 3.0 went through
-this in one week. Plemenná kniha has most of the engineering rules but no written tasking
-convention or issue templates. The order matters: make CI trustworthy first, then the rules,
-then the decisions.
+Use for a project that already has code but not the eSoul structure. The order matters: make CI
+trustworthy first, then the rules, then the decisions.
 
 ## 1. Audit (read-only)
 
@@ -16,14 +14,14 @@ Run `node <skill>/scripts/conformance.mjs <repo> --github <owner/repo>` and read
 - CI state, existing gates, and what is skipped;
 - the guidelines state: is there an `esoul-guidelines.json`, and is there a `docs/project_guidelines/`
   from the old lifecycle bundle (section 3 below);
-- the original site: whether `Original site` is in the profile and `assets/case-study/pred/` exists; if the site is still unchanged, capture it ([case-study.md](case-study.md)).
+- the original site: whether `Original site` is in the profile and `assets/case-study/pred/` exists; if the site is still unchanged, capture it (skill `esoul-website-launch`, case study).
 
-Legacy files, specs and client files are summarized by a cheap read-only explorer subagent per area (when the harness offers one; otherwise read them yourself),
-with `file:line` evidence, instead of the session reading them. The audit only produces a
-report, returned to the user. Do not write it to a PR, Freelo or the repository; any such
-write goes through `esoul-task-create` preview and explicit approval (for example as the PR
-description of the first retrofit PR or a Freelo-only `pm` task).
-Do not create report files in the repository.
+Legacy files, specs and client files are summarized by a read-only explorer per area (a cheap
+one, when the harness offers subagents; otherwise read them yourself), with `file:line` evidence,
+instead of the session reading them. The audit only produces a report, returned to the user; it
+is not a file in the repository (`workflow.md` › Repository rules). Any write of the report to a
+PR, Freelo or the repository goes through `esoul-task-create` preview and explicit approval (for
+example as the PR description of the first retrofit PR or a Freelo-only `pm` task).
 
 ## 2. Plan the retrofit as pairs
 
@@ -33,8 +31,8 @@ Create the retrofit work as issue + Freelo pairs up front, via `esoul-task-creat
 1. Critical bugs found in the audit.
 2. CI green and required on `main` (ruleset).
 3. Root files and agent rules: the missing common files from the template
-   ([root-files.md](root-files.md)), issue templates, `CONTEXT.md`, the project part of
-   `AGENTS.md`, LFS.
+   ([root-files.md](root-files.md)), the issue forms (`task`, `bug`, `question`), `CONTEXT.md`,
+   the project part of `AGENTS.md`, LFS.
 4. Guidelines: `esoul-guidelines init` and `sync`, `esoul-guidelines check` in CI
    (skill `esoul-guidelines`); migrate an existing `docs/project_guidelines/`.
 5. Linters, strict types, formatter, one local check command. Existing violations go into a
@@ -48,8 +46,8 @@ Create the retrofit work as issue + Freelo pairs up front, via `esoul-task-creat
    warning header (moved under `docs/plan/` and marked as historical).
 10. Plan and slices derived from three sources only: ADR gaps, open issues, and newly proposed
     feature pairs. See [plan-and-slices.md](plan-and-slices.md).
-11. Vendored skills and the skills lock; mutation testing where the project's guideline layers
-    include `package/mutation-testing`.
+11. The project's skills (`npx @esoul-cz/skills project init`, `skills-lock.json`); mutation testing
+    where the project's guideline layers include `package/mutation-testing`.
 
 ## 3. Migrate an existing `docs/project_guidelines/`
 
@@ -75,7 +73,8 @@ A project that took the old lifecycle bundle has generic guideline text of its o
 
 ## 4. Rules during retrofit
 
-- One retrofit step per PR. Do not fix product code in passing; open a pair instead.
+- One retrofit step per change: a PR each in client repositories (`profile/internal` repositories
+  MAY push directly). Do not fix product code in passing; open a pair instead.
 - Existing ADRs or decision documents in another format stay valid. Do not rename files that
   are linked from issues; add new ADRs in the current format.
 - If the project already uses `GLOSSARY.md` for both conventions and vocabulary, move the
@@ -90,3 +89,6 @@ A project that took the old lifecycle bundle has generic guideline text of its o
   into `question` issues, one per open item, through `esoul-task-create` with an approved preview;
   the file is removed afterwards.
 - Retire project-local tasking skills once `CONTEXT.md` records the convention.
+
+Done when every step above is a merged pair or a named exception, `esoul-guidelines check` exits 0
+and the conformance script reports no error.

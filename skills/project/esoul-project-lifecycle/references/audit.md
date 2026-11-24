@@ -22,13 +22,16 @@ It checks required files per tier (including the guideline config, lock and inde
 `CONTEXT.md` sections (Project profile, Tracker, Tasking convention, Commit convention),
 leftover `{{…}}` placeholders, ADR index ↔ frontmatter consistency and duplicate numbers, slice IDs
 and their issues, issue titles with category prefixes, AI-readiness inputs (`ai-readiness-doc`,
-`ai-readiness-slices` for website, website-admin and eshop), issues without a category label, UAT or Freelo link, the
-repository's merge and ruleset settings, and the case-study inputs (`Original site` in the
-profile; a `assets/case-study/pred/*/manifest.json` when it is a URL). Exit code 1 means errors.
+`ai-readiness-slices` for website, website-admin and eshop), work items without a category label,
+UAT or Freelo link, `question` issues without the sections of `question.yml` (they are register
+entries, exempt from the work-item checks: [labels.md](labels.md)), the repository's merge and
+ruleset settings, and the
+case-study inputs (`Original site` in the profile; a `assets/case-study/pred/*/manifest.json`
+when it is a URL). Exit code 1 means errors.
 
-For an audit of a live public site, also run the AI-readiness check against production
-(`ai-readiness.mjs run --base <url> --exceptions docs/ai-readiness.md --out assets/ai-readiness/<date>/`,
-via `test-runner`) and report failed `must` checks as Errors; see [ai-readiness.md](ai-readiness.md).
+For an audit of a live public site, also run the AI-readiness check against production (skill
+`esoul-quality-gates`, through a test runner when the harness offers one) and report failed
+`must` checks as Errors.
 
 ## 2. Completeness review (judgement)
 
@@ -40,7 +43,7 @@ citing evidence for every finding:
 | Check | Pass when |
 |---|---|
 | Podklady → plan | Every requirement in the podklady maps to a slice or an explicit exclusion in `rozsah.md` |
-| Questions | Every open `question` issue (`gh issue list --label question --state open`) names what it blocks; nothing blocked is `ready-for-agent` |
+| Questions | Every open `question` issue (`gh issue list --label question --state open`) names what it blocks; nothing blocked is `ready-for-agent` ([labels.md](labels.md)) |
 | ADRs → code | Accepted ADRs' Implementation status matches the code; gaps have issues or say "No issue" |
 | Plan → GitHub | Every slice has a pair; every open issue maps to a slice or is a follow-up of one |
 | GitHub → Freelo | Titles identical, reciprocal links, labels on both sides, estimates present for To Do |
@@ -50,12 +53,9 @@ citing evidence for every finding:
 | Staleness | Plan status date, „Hotovo.“ markers and phase table reflect reality |
 | Data safety | No real personal data in tests, fixtures, issues or PRs |
 | Checks → CI | The commands in `README.md`, `AGENTS.md`, `CLAUDE.md` and `tools.md` match what the `Jenkinsfile` runs; framework versions named there match `composer.json`/`package.json`; `esoul-guidelines check` runs in CI |
-| Agent rules → testing | `AGENTS.md`/`CLAUDE.md` say nothing about tests that contradicts `testing.md` (asking before the full suite, never deleting tests, other run rules) |
-| Suite → testing.md | No committed tests of an excluded kind (performance, migration and schema, data-definition, tests reading local data files) unless named exceptions; every architecture test is a named exception |
-| Test tiers | The project lists its tier-1 flows (an ADR or the plan's decision register, referenced from its project guidelines); tier-2 surfaces have the success, authorization and validation-keys tests and no scenario copies of a tested layer |
-| Suite budget | The CI test stage is within the 10-minute budget (or the budget the project states below the managed block) and publishes JUnit results with per-test times |
-| Test groups | `phpunit.xml` (or the stack equivalent) excludes `sandbox` and `quarantine`; every quarantined test links an open issue; `db-engine` tests exist where queries depend on the production engine |
-| CI cost | Push builds run only the read-only checks of `tools.md` (no scheduled groups, no mutation); the release-image test build is limited to image inputs; serial runners (`--maxWorkers=1`) are justified in the `Jenkinsfile` |
+| Agent rules → testing | `AGENTS.md`/`CLAUDE.md` say nothing about tests that contradicts `testing.md` |
+| Suite → testing.md | The suite, its CI stage and its test groups meet the MUST and SHOULD rules of `testing.md`; every deviation is a named exception in the project's guidelines or an ADR |
+| CI cost | Push builds run only the read-only checks of `tools.md`; every deviation in the `Jenkinsfile` (serial runners, extra stages) is justified there |
 
 ## 3. Report
 

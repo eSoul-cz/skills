@@ -7,11 +7,14 @@ An open question is an issue (or a tracker task) labelled `question`, never a fi
 keeps no copy of it.
 
 - Open one `question` issue per decision that belongs to the client and blocks something, through
-  `esoul-task-create` (preview, approval, read-back). Do not ask what the code, the podklady or eSoul
-  can decide; eSoul decisions go to ADRs with deciders `eSoul`.
-- The issue body has: **Otázka**, **Proč na tom záleží**, **Možnosti**, **Doporučení**,
-  **Blokuje** (slices, ADRs, screens) and **Co platí do odpovědi** (the default eSoul implements
-  while waiting). The title names the point as an outcome, not a question number; no `Q-nn` prefix.
+  `esoul-task-create` (preview, approval, read-back) and the issue form
+  `.github/ISSUE_TEMPLATE/question.yml`, which carries the label `question`. Do not ask what the
+  code, the podklady or eSoul can decide; eSoul decisions go to ADRs with deciders `eSoul`.
+- The form's sections are the body of the issue: **Otázka**, **Proč na tom záleží**,
+  **Možnosti**, **Doporučení**, **Blokuje** (slices, ADRs, screens) and **Co platí do odpovědi**
+  (the default eSoul implements while waiting). The title is `Context: Decision asked` and names
+  the point as an outcome, not a question number; no `Q-nn` prefix. A `question` issue is not a
+  work item: no category label, no `## UAT`, and in `github-freelo` mode no paired Freelo task.
 - Blocked work says which question it waits for: the issue is labelled `needs-info`, names the
   `question` issue under `Závislosti`, and uses GitHub's native `blocked_by` where it applies.
 - The light tier uses the same issues. „Co dodá klient“ in `docs/sitemap-a-meta.md` stays the
@@ -27,15 +30,16 @@ keeps no copy of it.
 The questionnaire is generated from the open `question` issues at the moment it is sent; no
 committed list of questions exists.
 
-1. List them, through an ops subagent when the harness offers one (otherwise yourself):
+1. List them, through an ops helper when the harness offers subagents (otherwise yourself):
    `gh issue list --repo <owner/repo> --label question --state open --limit 200 --json number,title,body,labels,milestone`
    (for a Freelo-only project, the Freelo tasks with the `question` label through the official
    `freelo` skill, layer upstream-core).
 2. Group the issues by topic (the `Blokuje` field and the area the question touches), order the
    groups by what they block, and keep each question's recommendation pre-filled.
-3. Write the questionnaire (`.docx` or PDF) in plain Czech and send it. Store what was sent and
-   what came back in `assets/`, with a transcript note in `docs/podklady/`. The questionnaire cites
-   the issue number of each question so the answer maps back.
+3. Write the questionnaire in plain Czech as a `.docx` (skill `esoul-office-documents`) or PDF
+   and send it. Store what was sent and what came back in `assets/`, with a transcript note in
+   `docs/podklady/`. The questionnaire cites the issue number of each question so the answer maps
+   back.
 4. Before a workshop, prepare an agenda from the blocking questions, ordered by what they block.
 5. Write the workshop or call down the same day as `odpovedi-klienta-YYYY-MM-DD.md`: who, what
    was decided (by question issue `#N`), what is new, what stays open.

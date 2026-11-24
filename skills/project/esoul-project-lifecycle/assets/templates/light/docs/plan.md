@@ -102,8 +102,8 @@ Strom stránek, meta a přesměrování jsou v [sitemap-a-meta.md](sitemap-a-met
 | F4-03 | — | Spuštění: Spouštěcí checklist, brána AI readiness a přepnutí domény | S | — | čeká |
 | F4-04 | — | Zápisy: Search Console, Bing, Google Business Profile a Firmy.cz | S | — | čeká |
 
-<!-- AI-01 až AI-06 jsou standardní řezy AI-ready webu (`ai-readiness.md` ve skillu
-     `esoul-project-lifecycle`): u webu je nemazat, jen upravit na stack; patří do první dávky
+<!-- AI-01 až AI-06 jsou standardní řezy AI-ready webu (skill `esoul-quality-gates`): u webu je
+     nemazat, jen upravit na stack; patří do první dávky
      úkolů. U projektu bez veřejného webu je smazat. AI-06 jen u e-shopu. Pravidla a výjimky
      vede [ai-readiness.md](ai-readiness.md). -->
 

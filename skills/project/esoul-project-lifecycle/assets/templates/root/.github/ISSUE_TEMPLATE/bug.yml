@@ -45,7 +45,11 @@ body:
     id: impact
     attributes:
       label: Impact
-      description: The difference between a crooked alignment and a wrong amount is an order of magnitude.
+      description: >-
+        The difference between a crooked alignment and a wrong amount is an order of magnitude.
+        Severity (the review scale, also used by UAT bug reports): Blocks a key flow, Distorted
+        data and Exposes personal or foreign data are Critical; Functional limitation is Major
+        when a main flow is affected, otherwise Minor; Cosmetic is Nitpick.
       options:
         - Blocks a key flow (the user cannot finish the main action)
         - Distorted data, amounts or documents
@@ -87,7 +91,7 @@ body:
   - type: textarea
     id: uat
     attributes:
-      label: UAT (regression check)
+      label: UAT
       description: >-
         Steps that prove after the fix that the bug is gone, including the original reproduction.
         A non-technical person clicks through them; use the dimensions from `CONTEXT.md` with

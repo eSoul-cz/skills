@@ -1,6 +1,6 @@
 # Stack profile: LSR
 
-PHP application on the LSR packages (`lsr/*`), served by RoadRunner, with an Inertia 3 and Vue 3
+PHP application on the LSR packages (`lsr/*`), served by RoadRunner, with an Inertia and Vue
 frontend. The rules live in the guideline layer `framework/lsr` (`architecture.md`, `frontend.md`,
 `tools.md`, `testing.md`, `deployment.md`), plus `package/lsr-cqrs` when `lsr/cqrs` is installed
 and `package/inertia-vue`, rendered into the project's `docs/project_guidelines/`. This profile
@@ -19,7 +19,7 @@ On top of the root files and the docs tree ([bootstrap.md](../bootstrap.md)):
 1. Start from the published template variant `lsr-inertia`
    ([root-files.md](../root-files.md) explains how to read a `template-<variant>` repository).
    It carries the RoadRunner and Docker setup, the `/up` health route, the Vite, Tailwind and
-   shadcn-vue frontend, PHPStan level 10, the network guard of the tests and a `Jenkinsfile` on
+   shadcn-vue frontend, strict static analysis, the network guard of the tests and a `Jenkinsfile` on
    the `lsrPipeline` step; do not rebuild them by hand. The template ships no locks: run
    `composer install && pnpm install` and commit both locks right after creating the project.
 2. `esoul-guidelines init` detects `lsr/core`, `lsr/cqrs` and the Inertia packages; confirm the
@@ -39,8 +39,8 @@ On top of the root files and the docs tree ([bootstrap.md](../bootstrap.md)):
 - [ ] Jenkins green on the scaffold with the checks of `tools.md` plus `esoul-guidelines check`,
       required check `Jenkins` in the ruleset.
 - [ ] `composer.lock` and `pnpm-lock.yaml` committed (the Docker build needs both).
-- [ ] PHPStan at level 10 without a baseline; `composer cs`, `composer test` and the frontend
-      checks pass.
+- [ ] The checks of `tools.md` pass (static analysis without a baseline, code style, tests and the
+      frontend checks).
 - [ ] `GET /up` answers 200 and the compose smoke test passes.
 - [ ] Tests run with the network guard and no external system on.
 - [ ] One reference slice implemented end to end that agents copy.

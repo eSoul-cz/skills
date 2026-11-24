@@ -29,15 +29,11 @@ snapshot: {{LEGACY_SNAPSHOT_DATE}}
 
 ## Zdroje
 
-Zdroje leží ve složce `_reference/` hlavního checkoutu. Guideline `security-and-data.md`
-(Anonymized dumps for agents) dovoluje gitignorovanou lokální složku (podle konvence
-`_reference/`) s neanonymizovaným klientským materiálem pro práci na projektu; je uvedená v
-`.gitignore` (a `.dockerignore`), nikdy se necommituje ani nesdílí (ani přes LFS, issues, PR)
-a je jen ke čtení. Cesty začínající `_reference/` v těchto dokumentech odkazují na ni.
-
-Vývoj a AI agenti pracují ve výchozím stavu jen s **anonymizovaným** dumpem nebo exportem;
-neanonymizovaná data čtou jen podle pravidel téhož guidelinu (potvrzení vlastníka, nic z nich
-se nevynáší do repozitáře, issues ani PR).
+Zdroje leží ve složce `_reference/` hlavního checkoutu: gitignorovaná lokální složka jen ke čtení
+(uvedená v `.gitignore` a `.dockerignore`), kterou popisuje guideline `security-and-data.md`
+(co smí obsahovat, že se nikdy necommituje ani nesdílí, a kdy agent smí číst neanonymizovaná
+data). Cesty začínající `_reference/` v těchto dokumentech odkazují na ni. Vývoj a AI agenti
+pracují ve výchozím stavu jen s **anonymizovaným** dumpem nebo exportem.
 
 | Zdroj | Co to je |
 |---|---|

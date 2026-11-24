@@ -21,8 +21,8 @@ The `common` layer is identical in every variant, so any variant yields the same
 | `renovate.json5` | Renovate replaces Dependabot |
 
 Not copied: `esoul-guidelines.json` and its lock (created by `esoul-guidelines init`, see
-skill `esoul-guidelines`), `.esoul/template.json` (belongs to the template update flow) and
-any skeleton code.
+skill `esoul-guidelines`), `.esoul/template.json` (belongs to the template update flow of the
+skill `esoul-project-update`) and any skeleton code.
 
 ## 2. Fetch and copy
 
@@ -59,7 +59,7 @@ Rules:
 
 | Asset | Used for |
 |---|---|
-| `assets/templates/root/.github/ISSUE_TEMPLATE/{task,bug,config}.yml` | Issue forms with the UAT fields, English form text; copy when missing |
+| `assets/templates/root/.github/ISSUE_TEMPLATE/{task,bug,question,config}.yml` | Issue forms, English form text (UAT fields in `task` and `bug`); copy when missing |
 | `assets/templates/root/CONTEXT-sections.md` | The text bootstrap writes into the template's `CONTEXT.md`: `## Project profile`, `## Tracker`, `## Tasking convention`, `## Freelo`, the commit scope line, `## Business time zone`, `## Locales`, `## Language per place`, `## Sources of truth` |
 | `assets/templates/root/AGENTS.md` | The project part of `AGENTS.md`, appended **below** the managed guideline block |
 | `assets/templates/docs/` and `assets/templates/light/docs/` | The documentation tree ([bootstrap.md](bootstrap.md)) |

@@ -80,8 +80,8 @@ Pravidla samotného plánu:
 1. **Práce je rozdělená na vertikální slices.** Každý slice je pár GitHub issue + Freelo task se
    stejným titulkem podle `## Tasking convention` v [CONTEXT.md](../../CONTEXT.md); slice `pm`
    je jen Freelo task. Jakmile issue existuje, je zadáním slice ono.
-2. **Odhady patří do Freela**, ne do plánu. Odhad je lidský čas (zadání agentovi, kontrola,
-   review, UAT, opravy) po 15 minutách; úkol jde do `To Do` jen se schváleným odhadem.
+2. **Odhady patří do Freela**, ne do plánu. Úkol jde do `To Do` jen s úplným popisem, schváleným
+   odhadem a bez blokujících závislostí.
 3. **Každý slice nese zařazení rozsahu** (`S`, `P`, `N`, `E`, `—`). Značka zůstává kvůli
    dohledatelnosti, co je nad smlouvu, i když se to staví v původní ceně.
 4. **Otázky na klienta vede jen tracker:** issue se štítkem `question`. Plán říká jen, co která

@@ -1,101 +1,107 @@
-# Rozhodnutí — {{PROJECT_NAME}}
+# Decisions — {{PROJECT_NAME}}
 
-Log rozhodnutí webu (ADR-lite). Rozhodnutí se zapisuje, když měla skutečné alternativy a za
-rok se někdo zeptá, proč se neudělalo jinak. Volba nástroje bez důsledků (formátovač, linter)
-sem nepatří.
+The decision register of the website (ADR-lite): it ranks with ADRs in the sources of truth
+(`docs/project_guidelines/domain.md`, Reading order and authority). Write a decision down when it
+had real alternatives and someone may ask a year from now why it was not done differently
+(`docs/project_guidelines/documentation.md`, ADR or guideline). A tool choice without
+consequences (formatter, linter) is a guideline, not an entry. English, like ADRs.
 
-## Pravidla
+## Rules
 
-- Každé rozhodnutí má číslo `D-nn`, které se **nikdy nepřečísluje ani nepoužije znovu**.
-- Záznam má datum, stav, rozhodnutí, důvod a **aspoň dvě zamítnuté varianty** s důvodem.
-- Stav: `navrženo` (čeká na schválení; není zadání), `platí`, `nahrazeno D-nn`.
-- Platné rozhodnutí se nepřepisuje. Doplnění je datovaná poznámka pod záznamem; když se
-  rozhodnutí obrací, vznikne nový záznam a starý dostane stav `nahrazeno D-nn`.
-- „Rozhodl“ jmenuje stranu (klient, eSoul), ne osobu.
-- Rozhodnutí se zapisuje ve stejném PR, který ho zavádí do kódu nebo do plánu.
+- Every decision has a number `D-nn` that is **never renumbered or reused**.
+- An entry has a date, a status, the decision, the reason and, when there is one, **at least one
+  rejected alternative** with its reason.
+- Status uses the ADR vocabulary: `proposed` (awaiting approval; not a specification),
+  `accepted`, `superseded by D-nn`.
+- An accepted decision is not rewritten. A supplement is a dated note under the entry; when the
+  decision flips, a new entry supersedes the old one, which gets `superseded by D-nn`.
+- "Decided by" names a party (client, eSoul), not a person.
+- A decision is written in the same PR that introduces it into code or the plan.
 
-## Přehled
+## Overview
 
-| D | Rozhodnutí | Stav |
+| D | Decision | Status |
 |---|---|---|
-| [D-01](#d-01-archetyp-a-render-mód) | Archetyp a render mód | `navrženo` |
-| [D-02](#d-02-model-editace-obsahu) | Model editace obsahu | `navrženo` |
-| [D-03](#d-03-formuláře-a-antispam) | Formuláře a antispam | `navrženo` |
-| [D-04](#d-04-motion) | Motion | `navrženo` |
-| [D-05](#d-05-fonty-a-licence) | Fonty a licence | `navrženo` |
-| [D-06](#d-06-hosting-preview-a-noindex) | Hosting, preview a noindex | `navrženo` |
+| [D-01](#d-01-archetype-and-render-mode) | Archetype and render mode | `proposed` |
+| [D-02](#d-02-content-editing-model) | Content editing model | `proposed` |
+| [D-03](#d-03-forms-and-anti-spam) | Forms and anti-spam | `proposed` |
+| [D-04](#d-04-motion) | Motion | `proposed` |
+| [D-05](#d-05-fonts-and-licences) | Fonts and licences | `proposed` |
+| [D-06](#d-06-hosting-preview-and-noindex) | Hosting, preview and noindex | `proposed` |
 
 ---
 
-## D-01 Archetyp a render mód
+## D-01 Archetype and render mode
 
-- **Datum:** TBD
-- **Stav:** `navrženo`
-- **Rozhodl:** TBD
-- **Rozhodnutí:** TBD
-- **Proč:** TBD
-- **Zamítnuté varianty:** TBD
+- **Date:** TBD
+- **Status:** `proposed`
+- **Decided by:** TBD
+- **Decision:** TBD
+- **Reason:** TBD
+- **Rejected alternatives:** TBD
 
-<!-- Astro: A statický web (obsah v repozitáři), B malý web s klientským adminem (SSR),
-     C headless (statický web plněný při buildu z externího CMS). U jiného stacku: platforma
-     a způsob vykreslení. Kritéria: kdo a jak často mění obsah, formuláře, výkon, provoz. -->
+<!-- Astro: A static site (content in the repository), B small site with a client admin (SSR),
+     C headless (static site filled at build time from an external CMS). For another stack: the
+     platform and the rendering mode. Criteria: who changes content and how often, forms,
+     performance, operations. -->
 
-## D-02 Model editace obsahu
+## D-02 Content editing model
 
-- **Datum:** TBD
-- **Stav:** `navrženo`
-- **Rozhodl:** TBD
-- **Rozhodnutí:** TBD
-- **Proč:** TBD
-- **Zamítnuté varianty:** TBD
+- **Date:** TBD
+- **Status:** `proposed`
+- **Decided by:** TBD
+- **Decision:** TBD
+- **Reason:** TBD
+- **Rejected alternatives:** TBD
 
-<!-- Obsahové soubory v repozitáři (mění eSoul), vlastní admin s registrem editovatelných
-     sekcí, externí CMS. Co klient smí měnit sám a co ne. -->
+<!-- Content files in the repository (eSoul edits), a custom admin with a registry of editable
+     sections, an external CMS. What the client may change alone and what not. -->
 
-## D-03 Formuláře a antispam
+## D-03 Forms and anti-spam
 
-- **Datum:** TBD
-- **Stav:** `navrženo`
-- **Rozhodl:** TBD
-- **Rozhodnutí:** TBD
-- **Proč:** TBD
-- **Zamítnuté varianty:** TBD
+- **Date:** TBD
+- **Status:** `proposed`
+- **Decided by:** TBD
+- **Decision:** TBD
+- **Reason:** TBD
+- **Rejected alternatives:** TBD
 
-<!-- Kam formulář odesílá (e-mail přes SMTP, záloha do databáze nebo souboru), honeypot,
-     rate limit, CAPTCHA a její souhlas, uchovávání osobních údajů a jak dlouho. -->
+<!-- Where the form posts to (e-mail over SMTP, a fallback to a database or file), honeypot, rate
+     limit, CAPTCHA and its consent, personal data retention and for how long. -->
 
 ## D-04 Motion
 
-- **Datum:** TBD
-- **Stav:** `navrženo`
-- **Rozhodl:** TBD
-- **Rozhodnutí:** TBD
-- **Proč:** TBD
-- **Zamítnuté varianty:** TBD
+- **Date:** TBD
+- **Status:** `proposed`
+- **Decided by:** TBD
+- **Decision:** TBD
+- **Reason:** TBD
+- **Rejected alternatives:** TBD
 
-<!-- Přechody stránek, scroll animace, knihovny (jen když je motion spec vyžaduje),
-     prefers-reduced-motion, rozpočet JS a vliv na LCP. -->
+<!-- Page transitions, scroll animations, libraries (only where the motion spec needs them),
+     prefers-reduced-motion, JS budget and the effect on LCP. -->
 
-## D-05 Fonty a licence
+## D-05 Fonts and licences
 
-- **Datum:** TBD
-- **Stav:** `navrženo`
-- **Rozhodl:** TBD
-- **Rozhodnutí:** TBD
-- **Proč:** TBD
-- **Zamítnuté varianty:** TBD
+- **Date:** TBD
+- **Status:** `proposed`
+- **Decided by:** TBD
+- **Decision:** TBD
+- **Reason:** TBD
+- **Rejected alternatives:** TBD
 
-<!-- Písma, licence pro web, self-hosting místo externího CDN, podmnožina latin-ext kvůli
-     češtině, načítání (preload, font-display). -->
+<!-- Typefaces, web licences, self-hosting instead of an external CDN, the latin-ext subset for
+     Czech, loading (preload, font-display). -->
 
-## D-06 Hosting, preview a noindex
+## D-06 Hosting, preview and noindex
 
-- **Datum:** TBD
-- **Stav:** `navrženo`
-- **Rozhodl:** TBD
-- **Rozhodnutí:** TBD
-- **Proč:** TBD
-- **Zamítnuté varianty:** TBD
+- **Date:** TBD
+- **Status:** `proposed`
+- **Decided by:** TBD
+- **Decision:** TBD
+- **Reason:** TBD
+- **Rejected alternatives:** TBD
 
-<!-- Kde web běží, kde zůstává doména a DNS, preview prostředí s noindex a basic auth,
-     větev redesignu a přepnutí, zálohy. Podrobnosti provozu jsou v nasazeni.md. -->
+<!-- Where the site runs, where the domain and DNS stay, the preview environment with noindex and
+     basic auth, the redesign branch and the switch, backups. Operations details are in
+     nasazeni.md. -->

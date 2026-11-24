@@ -25,11 +25,10 @@ The light tier uses one `docs/plan.md`: per phase a table `ID | Stránka / sekce
 | F1-17 | Money: Introduce Money and exchange rates | be | F1-03, #12 | S | — | #92 | Obsluha@admin: zadá kurz → ceny v EUR se přepočtou |
 ```
 
-- **ID** `<phase code>-<nn>` (`F1-17` by default; VONO uses its phase codes `M1-05`, `NT-02`),
-  never renumbered or reused. Cancelled slices stay with the reason.
-- **Titulek** follows the project's title rule (`CONTEXT.md › Tasking convention`: English in a
-  new project, Czech tracker titles in an existing Czech one) and becomes the issue and Freelo
-  title verbatim.
+- **ID** `<phase code>-<nn>` (`F1-17` by default; a project may use its own phase codes such as
+  `M1-05` or `NT-02`), never renumbered or reused. Cancelled slices stay with the reason.
+- **Titulek** is `Context: Result` in the project's title language (`CONTEXT.md › Tasking
+  convention`, `Title language`) and becomes the issue and Freelo title verbatim.
 - **Kat.** exactly one of `fe`, `be`, `data`, optionally `+int`; or `pm` for Freelo-only work
   (contracts, workshops, client coordination).
 - **Závislosti** slice IDs, open questions (`#N` of a `question` issue), client inputs `K-nn`, or gates.
@@ -37,8 +36,9 @@ The light tier uses one `docs/plan.md`: per phase a table `ID | Stránka / sekce
 - **Akceptace** one-line scenario `Role@kontext: akce → výsledek`. Money states amount,
   currency and VAT mode.
 - **Granularity**: a slice is one vertical, independently shippable result: one issue, one PR,
-  one UAT scenario. Split when the estimate exceeds 4 h of human time or when it spans frontend and backend in a way that
-  can ship separately (two dependent pairs).
+  one UAT scenario. Split it when it spans frontend and backend in a way that can ship
+  separately (two dependent pairs) or when its estimate exceeds the split rule of the Freelo
+  working rules (`esoul-task-work` › `references/freelo.md`).
 - An ADR that still has to be written or accepted is a slice too (`ADR: Accept …`).
 
 ## Standard AI-ready slices
@@ -46,10 +46,10 @@ The light tier uses one `docs/plan.md`: per phase a table `ID | Stránka / sekce
 For the public-website product types (`website`, `website-admin`, `eshop`; `application` for its
 public part), the plan templates ship the slices `AI-01`…`AI-06` (`AI-06` for `eshop` only). Keep
 them: adapt titles, dependencies and acceptance to the stack, never delete them, and keep the
-`AI-nn` IDs. They belong to the first tasking batch ([tasking-batch.md](tasking-batch.md)). A
-project without a public site deletes them. The rules are owned by the guideline `public-website.md`
-(`docs/project_guidelines/public-website.md`); the slices, the checker and the launch gate by
-[ai-readiness.md](ai-readiness.md); `audit` warns (`ai-readiness-slices`) when they are missing.
+`AI-nn` IDs. They belong to the first tasking batch ([tasking-batch.md](tasking-batch.md)); a
+project without a public site deletes them. The rules are the guideline `public-website.md`
+(`docs/project_guidelines/public-website.md`); the checker, the levels and the exceptions are the
+skill `esoul-quality-gates`; `audit` warns (`ai-readiness-slices`) when the slices are missing.
 
 ## Phases and gates
 
@@ -66,3 +66,7 @@ project without a public site deletes them. The rules are owned by the guideline
 - When the plan and an ADR disagree, fix the plan.
 - Every decision change updates all affected plan files in one PR (`client-update`).
 - `audit` compares the slice table with GitHub and flags drift.
+
+Done when the slice table, `rozsah.md`, the gates and `podklady-a-otazky.md` agree, every slice
+has an ID, a title, a category and a one-line acceptance, and no slice depends on a decision that
+has no ADR, question issue or gate.

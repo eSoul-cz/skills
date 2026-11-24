@@ -11,9 +11,9 @@ handover and the pitfalls add. Shops built on Lunar use [lunar.md](lunar.md).
 
 - `composer.json` requires `laravel/framework`; usually also `esoul-cz/laravel-cqrs` and
   `inertiajs/inertia-laravel`.
-- `artisan`, `phpstan.neon`, `pint.json` at the root; `resources/js` with Vue 3 (Indcom, SCHOK) or
-  React 19 (VONO).
-- Admin either custom Inertia screens or Filament (Indcom).
+- `artisan`, `phpstan.neon`, `pint.json` at the root; `resources/js` with the project's Inertia
+  frontend (Vue or React).
+- Admin either custom Inertia screens or Filament.
 - Process tier is almost always `full`. A Laravel/Filament backend that only feeds a static site
   (headless CMS for Astro `C-headless`) may run `light` if it has no domain logic beyond content.
 
@@ -36,7 +36,7 @@ On top of the root files and the docs tree ([bootstrap.md](../bootstrap.md)):
      `<laravel-boost-guidelines>` block in `AGENTS.md` stays untouched (`tools.md › Laravel Boost`).
    - Vendored skills in `.agents/skills/` with `.claude/skills/<name>` committed symlinks, pinned
      in `skills-lock.json`, added only with
-     `LC_ALL=en_US.UTF-8 npx skills@1.7.2 add <owner/repo> --skill <name> --agent claude-code codex -y`.
+     `npx skills add <owner/repo> --skill <name> --agent claude-code codex --yes` (the pinned form is in the README).
      Typical set: the Boost-managed `laravel-best-practices`, `wayfinder-development`,
      `inertia-vue-development` or `inertia-react-development`, `tailwindcss-development`,
      `testing-best-practices`. The eSoul skills come from `npx @esoul-cz/skills project init`
@@ -47,7 +47,7 @@ On top of the root files and the docs tree ([bootstrap.md](../bootstrap.md)):
 4. `Jenkinsfile` from the shared libraries with `GIT_LFS_SKIP_SMUDGE = '1'` and
    `SKIP_DEPLOY = 'true'` until a Komodo stack exists. On an empty scaffold, guard PHPStan
    (`if find app -name '*.php' | grep -q .; then ...; fi`) and start the database stage only once
-   `database/migrations/*.php` exists (VONO pattern).
+   `database/migrations/*.php` exists.
 
 ## Development handover checklist
 
@@ -64,10 +64,10 @@ Gate B4 is green only when all of these hold on `main`:
 - [ ] Frontend structure checks (`frontend:structure`, `frontend:inertia-page-paths`) with tests,
       where the project has an Inertia frontend.
 - [ ] One reference module implemented end to end (command, query, handler, request, page, tests)
-      that agents copy; Indcom used `Numbering`.
+      that agents copy.
 - [ ] Where the client calculates in workbooks: JSON fixtures in `tests/Fixtures/Workbooks/` and
       parity tests per calculation that `markTestIncomplete` with the slice and issue until the
-      implementing agent fills them in (VONO `*ParityTest.php` + `AssertsWorkbookParity`).
+      implementing agent fills them in (a `*ParityTest.php` per calculation with a shared assertion trait).
 - [ ] Anonymized database dump or seeders available; agents never get a real dump by default.
 - [ ] Project-specific guideline files written, the Boost block regenerated, `skills-lock.json`
       current.
@@ -83,8 +83,8 @@ Gate B4 is green only when all of these hold on `main`:
   two adapters, the real driver and a fake driver for tests (`esoul-workflow` ›
   references/design-principles.md).
 - Authentication, roles and authorization; legal entity or tenant scope.
-- Search, URLs and redirects, SEO head and SSR, page cache. A public part follows
-  [ai-readiness.md](../ai-readiness.md) (slices AI-01…AI-06, launch gate).
+- Search, URLs and redirects, SEO head and SSR, page cache. A public part follows the guideline
+  `public-website.md` and the AI-readiness slices (skill `esoul-quality-gates`).
 - Imports and legacy migration (one-off vs repeatable), exports and file formats.
 - Calculation parity with source workbooks; audit trail and change history.
 - Deployment and runtime (Docker targets, Komodo stack, storage buckets).
@@ -94,19 +94,14 @@ Gate B4 is green only when all of these hold on `main`:
 - Migrations that pass on SQLite and fail on MariaDB/MySQL: generated index or foreign key names
   over 64 characters (guarded by the schema identifier test), a `timestamp()` column without
   `nullable()` or a default under strict mode (error 1067), and `ONLY_FULL_GROUP_BY` rejecting a
-  SELECT expression that differs from the GROUP BY one. Three eSoul projects shipped the name
-  bug in autumn 2026.
+  SELECT expression that differs from the GROUP BY one.
 - PHPStan fails with "no files to analyse" on an empty `app/`: guard it instead of disabling it.
 - Editing the generated Boost block in `AGENTS.md` by hand; it is overwritten by `boost:update`.
 - Wayfinder routes not generated before the frontend build or typecheck in CI
   (`php artisan wayfinder:generate`, `WAYFINDER_TYPES_PREGENERATED=true`).
 - LFS-heavy `assets/` and `docs/design_pencil/` cloned by Jenkins: set `GIT_LFS_SKIP_SMUDGE=1` and
   keep `docs/` out of the Docker build context (`.dockerignore`).
-- Project-local tasking skills drifting from `CONTEXT.md` (Indcom, SCHOK): replace them with
+- Project-local tasking skills drifting from `CONTEXT.md`: replace them with
   `## Tasking convention` in `CONTEXT.md`.
-- Issue titles with `[FE]/[BE]/[DATA]` prefixes or slice IDs; category belongs in labels (company
-  rule: titles).
-- SCHOK grew 40+ ADRs without an index table or `Implementation status`; retrofit adds both
-  without renaming existing files.
-- Data tasks (`data-migration` label) changing PHP code or the data model directly instead of
-  proposing an issue.
+- A project that grew 40+ ADRs without an index table or `Implementation status`: retrofit adds
+  both without renaming existing files.

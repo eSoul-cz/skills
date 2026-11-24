@@ -35,18 +35,17 @@ On top of the root files and the light-tier docs ([bootstrap.md](../bootstrap.md
    `docs/design_pencil/mockup/` outside LFS, published through `esoul-mockup-authoring`. Tokens
    mirror the Pencil `DS – Foundations` variables (`frontend.md › Design tokens`).
 4. Pre-launch protection and the launch switch follow `deployment.md › Preview protection`
-   (basic auth from a manifest secret, `PUBLIC_NOINDEX`); the lifecycle's [launch.md](../launch.md)
+   (basic auth from a manifest secret, `PUBLIC_NOINDEX`); the skill `esoul-website-launch`
    checks the switch.
 5. Agent context: vendored skills in `.agents/skills/` pinned in `skills-lock.json`; the eSoul skills come from `npx @esoul-cz/skills project init`, third-party ones are added with
-   `LC_ALL=en_US.UTF-8 npx skills@1.7.2 add <owner/repo> --skill <name> --agent claude-code codex -y`
-   (seen: `astro` from `astrolicious/agent-skills`, `effect-ts` from `Effect-TS/skills`,
-   `playwright-best-practices`); project-adapted copies are not in the lock and say so in
-   `AGENTS.md`. MCP: `astro-docs` (`https://mcp.docs.astro.build/mcp`), Pencil for `.pen` (never
-   read the file directly), `codegraph` when indexed.
-6. Site-specific pre-launch gates on top of the `Checks` stage: axe in Playwright and Lighthouse
-   CI mobile budgets (performance ≥ 90, accessibility, SEO and best practices 100, LCP < 2.5 s,
-   CLS < 0.05), both required before launch, and the AI-readiness gate
-   ([ai-readiness.md](../ai-readiness.md)).
+   `npx skills add <owner/repo> --skill <name> --agent claude-code codex --yes` (the pinned
+   form is in the README of `eSoul-cz/skills`; seen: `astro` from `astrolicious/agent-skills`,
+   `effect-ts` from `Effect-TS/skills`, `playwright-best-practices`); project-adapted copies are
+   not in the lock and say so in `AGENTS.md`. MCP: `astro-docs`
+   (`https://mcp.docs.astro.build/mcp`), Pencil for `.pen` (never read the file directly),
+   `codegraph` when indexed.
+6. Site-specific gates on top of the `Checks` stage (Lighthouse budgets, axe, link prefetch, the
+   AI-readiness gate): skill `esoul-quality-gates`, all required before launch.
 
 Mutation testing does not apply. For `B-admin`, server code (Effect services, Actions) gets unit
 tests in the same `Checks` stage.
@@ -81,7 +80,7 @@ tests in the same `Checks` stage.
 
 - No checks in Jenkins at all: every early Astro repo shipped with build and deploy only. The
   `Checks` stage is mandatory from the first PR.
-- `docs/` git-ignored as "local only" (`komfort-servis`): client content, design and decisions
+- `docs/` git-ignored as "local only": client content, design and decisions
   must be tracked (assets in LFS).
 - Mockup bundle accidentally containing LFS pointers, or `.pen` exports read as files instead of
   through Pencil MCP.

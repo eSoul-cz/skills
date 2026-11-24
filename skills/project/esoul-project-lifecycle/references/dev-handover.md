@@ -1,9 +1,8 @@
 # Development handover (P7, `handover`)
 
 Before the first feature issue goes to an agent, the codebase must make the right thing easy and
-the wrong thing fail. VONO called this the "development handover"; Indcom started F1 with a
-reference module. Use the stack profile for the exact commands and the project's `tools.md` for
-the checks.
+the wrong thing fail: start with a reference module, as the checklist below says. Use the stack
+profile for the exact commands and the project's `tools.md` for the checks.
 
 ## Checklist
 

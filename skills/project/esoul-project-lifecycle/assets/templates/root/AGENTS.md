@@ -26,11 +26,6 @@ silently.
 - **Open questions are not yours to answer.** A point the client has not decided is an open issue
   labelled `question`; do not guess it from the podklady, the legacy system or your own reasoning.
   Split the dependent work out and ask.
-- **Work labelled `data-migration`** (migrations, imports, data fixes, reports) changes only what
-  its issue specifies. Anything beyond that in application code or the data model is not done in
-  passing: write the proposed fix down and ask for a new issue.
-- **A new domain term goes into [GLOSSARY.md](GLOSSARY.md) in the same pull request** that
-  introduces it: one concept, one Czech term, one English identifier.
 <!-- optional: projects with a Pencil design -->
 - **Design.** The design is `{{DESIGN_PEN_PATH}}`, stored in Git LFS (`git lfs pull
   --include="docs/design_pencil/**"` when the checkout holds a pointer). A `.pen` file is
@@ -39,18 +34,18 @@ silently.
 
 ## Agent skills
 
-- `esoul-workflow` is the entry point for non-trivial work: it sizes the task and routes to the
-  skills below.
-- `esoul-task-create` authors issue and Freelo task pairs under
-  [CONTEXT.md](CONTEXT.md#tasking-convention), after an approved preview; `esoul-task-work`
-  picks up and moves tasks.
-- `gitmoji-commit` writes commits under [CONTEXT.md](CONTEXT.md#commit-convention).
-- `esoul-review` reviews a change before the pull request and drives the pull request to green CI
-  and approval; it does not merge.
-- `esoul-project-lifecycle` keeps the project documentation (podklady, questions, glossary, ADRs,
-  plan and slices) and audits conformance; use it after a client session or when an ADR or the
-  plan changes.
-- `esoul-docs` creates and verifies user and operator documentation.
+`esoul-workflow` is the entry point for non-trivial work: it sizes the task and routes to the
+others. The eSoul skills this project uses, each with its own description in
+`.agents/skills/<name>/SKILL.md` (the set is pinned in `skills-lock.json`):
+
+- work: `esoul-workflow`, `esoul-task-work` (pick up and move tasks), `esoul-review`,
+  `esoul-testing`, `esoul-guidelines`; commits under [CONTEXT.md](CONTEXT.md#commit-convention):
+  `gitmoji-commit` when installed;
+- task and project preparation: `esoul-task-create` (issue and Freelo pairs under
+  [CONTEXT.md](CONTEXT.md#tasking-convention), after an approved preview),
+  `esoul-project-lifecycle` (podklady, questions, glossary, ADRs, plan, conformance),
+  `esoul-project-update` (template updates);
+- documentation: `esoul-docs`.
 
 Project and vendored skills live in `.agents/skills/`; read the relevant one before working in its
 domain. This file and the guidelines take precedence over them.
@@ -58,6 +53,4 @@ domain. This file and the guidelines take precedence over them.
 Ignore these upstream skills if they are installed: the tracker set (`to-spec`, `to-tickets`,
 `triage`, `wayfinder`, `implement-spec`), `setup-matt-pocock-skills`, `pr` and
 `git-guardrails-claude-code`. Grilling is rounds of independent questions each with a recommended
-answer (`esoul-workflow`, `references/grilling.md`), not one question at a time.
-
-Issue tracker, triage labels and domain docs: [docs/agents/](docs/agents/issue-tracker.md).
+answer (`esoul-workflow`, `references/upstream.md`), not one question at a time.

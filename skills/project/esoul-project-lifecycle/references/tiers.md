@@ -43,12 +43,12 @@ the domain, not from the template.
 | Tasking | `github-freelo` pairs | Pairs, or `freelo-only` for small jobs |
 | Acceptance | `## UAT` in every issue | Acceptance on the preview plus the launch checklist |
 | Gates | Stack profile | Stack profile; Astro needs a Jenkins `Checks` stage |
-| Case study | Snapshot of the original site at bootstrap, "po" at launch ([case-study](case-study.md)) | Same |
-| AI readiness | Public website: `docs/ai-readiness.md`, slices `AI-01`…`AI-06`, launch gate ([ai-readiness](ai-readiness.md)) | Same |
-| Before go-live | Handover and application documentation | `launch` mode: launch-readiness audit in `docs/nasazeni.md` |
+| Case study | Snapshot of the original site at bootstrap, "po" at launch (skill `esoul-website-launch`) | Same |
+| AI readiness | Public website: `docs/ai-readiness.md`, slices `AI-01`…`AI-06`, launch gate (skill `esoul-quality-gates`) | Same |
+| Before go-live | Handover and application documentation | The go-live procedure and `docs/nasazeni.md` of skill `esoul-website-launch` |
 
 Templates: full tier under `assets/templates/docs/`, light tier under
-`assets/templates/light/docs/`. Both tiers take their root files from the template
+`assets/templates/light/docs/` (its `docs/nasazeni.md` comes from `esoul-website-launch`). Both tiers take their root files from the template
 ([root-files.md](root-files.md)) and the same guideline layers (skill `esoul-guidelines`):
 the rendered guidelines are never rewritten for the light tier.
 
@@ -62,7 +62,7 @@ the rendered guidelines are never rewritten for the light tier.
 | L3 Design | Brief, `.pen`, mockup bundle, review rounds, approvals in `design-log.md` | B2 (client) |
 | L4 Plan and tasking | `docs/plan.md` page table incl. the AI slices `AI-01`…`AI-06` (kept, in the first batch); Freelo tasks or pairs via `esoul-task-create` | B3 |
 | L5 Build | Pages and sections one PR each through `esoul-workflow`, accepted on the preview | — |
-| L6 Launch | `launch` mode, checklist in `nasazeni.md` complete, AI-readiness gate passed, case-study "po" snapshot, client acceptance recorded | B4 (client) |
+| L6 Launch | Skill `esoul-website-launch` (checklist in `nasazeni.md` complete, AI-readiness gate passed, case-study "po" snapshot), client acceptance recorded | B4 (client) |
 
 ## Escalating light → full
 

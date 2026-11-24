@@ -2,12 +2,11 @@
 
 ## ADR or guideline?
 
-Write an ADR when a rule could reasonably have gone the other way and has meaningful
-consequences that someone may later question: domain model, money and precision, integrations
-and their ownership, state machines, authorization model, data migration strategy, hosting
-topology, content editing model. A rule that is simply how the project is written, or a tool choice, is a
-project guideline. Light-tier projects use `docs/rozhodnuti.md` (`D-nn` entries with date,
-reason, rejected options) instead of ADRs until they escalate.
+The rule is `docs/project_guidelines/documentation.md` › ADR or guideline: an ADR records a
+decision that could reasonably have gone the other way, with consequences someone may question
+later; how the project is written and tool choices are project guidelines. Light-tier projects
+use `docs/rozhodnuti.md` (`D-nn` entries with date, reason, rejected options) instead of ADRs
+until they escalate.
 
 ## Format
 
@@ -22,8 +21,9 @@ Start from `assets/templates/docs/adr/0000-template.md`.
   and how the client or the previous system handles it today. Technical facts (library or API
   behaviour, limits, pricing, legal rules) come from primary sources: official documentation,
   source code, specifications, first-party APIs. Cite the source next to each claim. Delegate
-  long reading to a background subagent on `sonnet` with a fresh context; its findings go into
-  this section or the issue, never into a separate report file.
+  long reading to a read-only helper with a fresh context (a mid-tier model) when the harness
+  offers subagents, otherwise read it yourself; its findings go into this section or the issue,
+  never into a separate report file.
 - **Decision**: present tense, no "should". Link open questions instead of inventing answers.
 - **Consequences**: including the unpleasant ones.
 - **Alternatives considered**: record at least one considered alternative with the reason it was not chosen when there is one (RECOMMENDED); an ADR without a real alternative is allowed.
@@ -59,3 +59,6 @@ records the review date. Accepting an ADR that closes a client question also clo
 Records table (number, decision, status, date), Revisions log, What still blocks (proposed ADRs and
 the questions they wait for), Candidates for future ADRs (create only when the decision becomes
 active).
+
+Done when the ADR has its frontmatter, the four sections, a row in the index Records table with
+the same status, and a link from each question, plan row or issue that depends on it.

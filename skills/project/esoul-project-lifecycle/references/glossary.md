@@ -24,8 +24,8 @@ _Avoid_: `projekt`, `job`, `úkol`.
 
 ## Rules
 
-- A new domain term goes into `GLOSSARY.md` in the same PR that introduces it in code, docs or
-  an issue. Mention it in the PR description.
+- A new term goes into `GLOSSARY.md` in the same PR that introduces it, and the PR description
+  mentions it (`documentation.md`, `domain.md` › Vocabulary).
 - When the client's word and the code's word differ, record both. Never rename silently.
 - A term disputed between documents is a conflict to report, not to resolve by choice.
 - Stress-test new terms in the session discipline below.
@@ -42,3 +42,6 @@ Use this in `glossary`, `adr`, `intake` and `client-update` work, and whenever a
 - Offer an ADR only when the decision is hard to reverse, would surprise a future reader without context, and came from a real trade-off; otherwise it is a project guideline or nothing.
 
 When the skill is not installed, ask the user to run `npx @esoul-cz/skills install upstream-core`, or apply the additions above alone.
+
+Done when every term the work touched is in `GLOSSARY.md` with its Czech term and `_Avoid_` list,
+and every open point is a `question` issue.

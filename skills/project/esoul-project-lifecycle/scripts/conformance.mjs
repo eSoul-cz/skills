@@ -5,7 +5,8 @@
 //
 // Checks required files (including the guideline config, lock and index), CONTEXT.md sections, leftover
 // {{PLACEHOLDERS}}, broken relative links, ADR index consistency, slice IDs, AI-readiness inputs and,
-// with --github, issues and repository merge settings.
+// with --github, issues (work items need a category label, UAT and Freelo link; `question` issues
+// are register entries that need the sections of question.yml) and repository merge settings.
 //
 // Node >= 22, no dependencies. Never writes to the project, GitHub or Freelo. Exit code 1 when
 // any error is found, 2 on invalid usage, 0 otherwise. `esoul-guidelines check` is a separate,
@@ -59,13 +60,20 @@ export const REQUIRED_FILES = Object.freeze({
 // tracker section points to) is recommended.
 export const CONTEXT_SECTIONS = Object.freeze({
     full: ['Project profile', 'Tracker', 'Tasking convention', 'Commit convention'],
-    light: ['Project profile', 'Tracker', 'Tasking convention'],
+    light: ['Project profile', 'Tracker', 'Tasking convention', 'Commit convention'],
 });
 
 export const RECOMMENDED_CONTEXT_SECTIONS = Object.freeze(['Freelo']);
 
 export const CATEGORY_LABELS = Object.freeze([
     'frontend', 'backend', 'data-migration', 'infrastructure', 'documentation', 'integration', 'bug',
+]);
+
+// A `question` issue is a register entry of the client's open decisions, not work: it has no
+// category label, no UAT and no Freelo pair, and its body has the sections of question.yml.
+export const QUESTION_LABEL = 'question';
+export const QUESTION_SECTIONS = Object.freeze([
+    'Otázka', 'Proč na tom záleží', 'Možnosti', 'Doporučení', 'Blokuje', 'Co platí do odpovědi',
 ]);
 
 const TIERS = ['full', 'light'];
@@ -259,7 +267,7 @@ export function readProfile(root, findings, tierFlag) {
         profile.originalSite = values['original site'] ?? null;
         profile.productType = values['product type']?.match(/^(application|eshop|website-admin|website)\b/)?.[1] ?? null;
         if (!profile.originalSite) {
-            findings.warn('profile-original-site', 'Project profile does not record `Original site`; record Original site: URL or — (case-study snapshots).', 'CONTEXT.md');
+            findings.warn('profile-original-site', 'Project profile does not record `Original site`; record Original site: URL or — (case-study snapshots, skill esoul-website-launch).', 'CONTEXT.md');
         }
         const recorded = values['process tier'] ?? null;
         if (recorded && TIERS.includes(recorded)) {
@@ -318,19 +326,19 @@ export function checkCaseStudy(root, profile, findings) {
         // no snapshot directory yet
     }
     if (!dates.some((date) => exists(root, `assets/case-study/pred/${date}/manifest.json`))) {
-        findings.warn('case-study-missing', `Original site ${value} has no snapshot (assets/case-study/pred/<date>/manifest.json); see case-study.md.`, 'assets/case-study/');
+        findings.warn('case-study-missing', `Original site ${value} has no snapshot (assets/case-study/pred/<date>/manifest.json); see the case study of skill esoul-website-launch.`, 'assets/case-study/');
     }
 }
 
 /**
  * Public-website projects are AI-ready by default: docs/ai-readiness.md and the standard slices
- * AI-01..AI-05 (AI-06 for an e-shop) must exist; `application` is exempt (ai-readiness.md).
+ * AI-01..AI-05 (AI-06 for an e-shop) must exist; `application` is exempt (skill esoul-quality-gates).
  */
 export function checkAiReadiness(root, profile, tier, findings) {
     const type = profile.productType;
     if (!['website', 'website-admin', 'eshop'].includes(type)) return;
     if (!exists(root, 'docs/ai-readiness.md')) {
-        findings.warn('ai-readiness-doc', `Product type \`${type}\` has no docs/ai-readiness.md (AI readiness policy, run log, exceptions); see ai-readiness.md.`, 'docs/ai-readiness.md');
+        findings.warn('ai-readiness-doc', `Product type \`${type}\` has no docs/ai-readiness.md (AI readiness policy, run log, exceptions); see skill esoul-quality-gates.`, 'docs/ai-readiness.md');
     }
     const rel = tier === 'light' ? 'docs/plan.md' : findSliceFile(root);
     const ids = new Set();
@@ -340,7 +348,7 @@ export function checkAiReadiness(root, profile, tier, findings) {
     const required = ['AI-01', 'AI-02', 'AI-03', 'AI-04', 'AI-05', ...(type === 'eshop' ? ['AI-06'] : [])];
     const missing = required.filter((id) => !ids.has(id));
     if (missing.length > 0) {
-        findings.warn('ai-readiness-slices', `Plan ${rel ?? '(no slice file)'} lacks the standard AI-ready slices: ${missing.join(', ')}; see ai-readiness.md.`, rel ?? 'docs/plan/seznam-slices.md');
+        findings.warn('ai-readiness-slices', `Plan ${rel ?? '(no slice file)'} lacks the standard AI-ready slices: ${missing.join(', ')}; see skill esoul-quality-gates.`, rel ?? 'docs/plan/seznam-slices.md');
     }
 }
 
@@ -371,7 +379,7 @@ export function checkContext(context, sectionMap, tier, findings) {
         }
     }
     if (/_Avoid_\s*:/.test(context)) {
-        findings.warn('glossary-in-context', 'CONTEXT.md contains glossary entries (`_Avoid_:`); domain language belongs in GLOSSARY.md (company rule: CONTEXT.md vs GLOSSARY.md).', 'CONTEXT.md');
+        findings.warn('glossary-in-context', 'CONTEXT.md contains glossary entries (`_Avoid_:`); domain language belongs in GLOSSARY.md (guidelines documentation.md, Where a piece of knowledge belongs).', 'CONTEXT.md');
     }
 }
 
@@ -526,7 +534,7 @@ export function checkAdrs(root, findings) {
         .filter(([, adr]) => adr.status === 'accepted' && !/^##\s+Implementation status/im.test(adr.text))
         .map(([, adr]) => adr.number);
     if (missingImplementation.length > 0) {
-        findings.warn('adr-implementation', `${missingImplementation.length} accepted ADR(s) lack \`## Implementation status\` (company rule: ADRs): ${listSome(missingImplementation)}.`, 'docs/adr/');
+        findings.warn('adr-implementation', `${missingImplementation.length} accepted ADR(s) lack \`## Implementation status\` (guidelines documentation.md, ADRs): ${listSome(missingImplementation)}.`, 'docs/adr/');
     }
 
     const index = readText(root, 'docs/adr/index.md');
@@ -682,25 +690,33 @@ export function checkGithub(repo, { tier, taskingMode, slices, sliceFile }, find
         skipped('open issue checks', open.error);
     } else {
         const issues = open.data ?? [];
+        const isQuestion = (issue) => (issue.labels ?? []).some((label) => String(label.name).toLowerCase() === QUESTION_LABEL);
+        const questions = issues.filter(isQuestion);
+        const work = issues.filter((issue) => !isQuestion(issue));
         const prefixed = issues.filter((i) => /^\s*\[(FE|BE|DATA)\]/i.test(i.title)).map((i) => i.number);
         // Slice IDs such as F1-17, M1-05 or NT-02 at the start of a title or in brackets.
         const sliceTitled = issues.filter((i) => /(^|[[(])[A-Z][A-Z0-9]*-\d+\b/.test(i.title.trim())).map((i) => i.number);
-        const unlabeled = issues
+        const unlabeled = work
             .filter((i) => !(i.labels ?? []).some((label) => CATEGORY_LABELS.includes(String(label.name).toLowerCase())))
             .map((i) => i.number);
-        if (prefixed.length > 0) findings.error('issue-title-prefix', `${prefixed.length} open issue(s) carry a [FE]/[BE]/[DATA] title prefix (company rule: titles): ${issueRefs(prefixed)}.`, repo);
-        if (sliceTitled.length > 0) findings.error('issue-title-slice', `${sliceTitled.length} open issue(s) carry a slice ID in the title (company rule: titles): ${issueRefs(sliceTitled)}.`, repo);
+        if (prefixed.length > 0) findings.error('issue-title-prefix', `${prefixed.length} open issue(s) carry a [FE]/[BE]/[DATA] title prefix (guidelines workflow.md, Tasking): ${issueRefs(prefixed)}.`, repo);
+        if (sliceTitled.length > 0) findings.error('issue-title-slice', `${sliceTitled.length} open issue(s) carry a slice ID in the title (guidelines workflow.md, Tasking): ${issueRefs(sliceTitled)}.`, repo);
         if (unlabeled.length > 0) findings.warn('issue-category-label', `${unlabeled.length} open issue(s) have no category label (${CATEGORY_LABELS.join(', ')}): ${issueRefs(unlabeled)}.`, repo);
         if (tier === 'full') {
             // esoul-task-create writes `## UAT`; the GitHub issue form renders the field as `### UAT`.
-            const noUat = issues.filter((i) => !/^#{2,3}\s+UAT\b/m.test(i.body ?? '')).map((i) => i.number);
-            if (noUat.length > 0) findings.warn('issue-uat', `${noUat.length} open issue(s) have no \`## UAT\` section (company rule: UAT): ${issueRefs(noUat)}.`, repo);
+            const noUat = work.filter((i) => !/^#{2,3}\s+UAT\b/m.test(i.body ?? '')).map((i) => i.number);
+            if (noUat.length > 0) findings.warn('issue-uat', `${noUat.length} open issue(s) have no \`## UAT\` section (skill esoul-task-create, UAT format): ${issueRefs(noUat)}.`, repo);
         }
         if (taskingMode !== 'freelo-only') {
-            const noFreelo = issues.filter((i) => !/app\.freelo\.io\/task\//i.test(i.body ?? '')).map((i) => i.number);
+            const noFreelo = work.filter((i) => !/app\.freelo\.io\/task\//i.test(i.body ?? '')).map((i) => i.number);
             if (noFreelo.length > 0) findings.warn('issue-freelo-link', `${noFreelo.length} open issue(s) have no Freelo task link: ${issueRefs(noFreelo)}.`, repo);
         }
-        findings.info('issue-summary', `${issues.length} open issue(s) checked.`, repo);
+        // The questionnaire groups the `question` issues by their `Blokuje` section, so every section must be there.
+        const malformed = questions
+            .filter((i) => QUESTION_SECTIONS.some((name) => !new RegExp(`(^#{2,4}\\s*|\\*\\*)${name}`, 'm').test(i.body ?? '')))
+            .map((i) => i.number);
+        if (malformed.length > 0) findings.warn('question-sections', `${malformed.length} open \`question\` issue(s) lack one of the sections ${QUESTION_SECTIONS.join(', ')} (form question.yml): ${issueRefs(malformed)}.`, repo);
+        findings.info('issue-summary', `${issues.length} open issue(s) checked${questions.length > 0 ? `, ${questions.length} of them \`question\` issue(s) (no category label, UAT or Freelo link expected)` : ''}.`, repo);
     }
 
     // Slice rows -> issues
@@ -720,13 +736,13 @@ export function checkGithub(repo, { tier, taskingMode, slices, sliceFile }, find
     const settings = repoInfo.data ?? {};
     const branch = settings.default_branch || 'main';
     if (settings.allow_squash_merge === false) {
-        findings.error('merge-squash', 'Squash merge is not allowed in the repository settings (company rule: merging).', repo);
+        findings.error('merge-squash', 'Squash merge is not allowed in the repository settings (guidelines workflow.md, Pull requests).', repo);
     } else if (settings.allow_squash_merge === undefined) {
         findings.info('merge-settings', 'Merge settings are not visible to this token.', repo);
     }
     if (settings.allow_merge_commit === true || settings.allow_rebase_merge === true) {
         const others = [settings.allow_merge_commit && 'merge commits', settings.allow_rebase_merge && 'rebase'].filter(Boolean);
-        findings.warn('merge-methods', `Repository also allows ${others.join(' and ')}; the company merging rule expects squash only.`, repo);
+        findings.warn('merge-methods', `Repository also allows ${others.join(' and ')}; the guidelines (workflow.md, Pull requests) expect squash only.`, repo);
     }
 
     let requiredChecks = new Set();
@@ -761,10 +777,10 @@ export function checkGithub(repo, { tier, taskingMode, slices, sliceFile }, find
 
     if (rules.ok || protection.ok) {
         if (!requiredChecks.has('Jenkins')) {
-            findings.error('ruleset-jenkins', `Branch ${branch} does not require the \`Jenkins\` status check (company rule: merging)${requiredChecks.size ? `; required: ${[...requiredChecks].join(', ')}` : ''}.`, repo);
+            findings.error('ruleset-jenkins', `Branch ${branch} does not require the \`Jenkins\` status check (guidelines workflow.md, Pull requests)${requiredChecks.size ? `; required: ${[...requiredChecks].join(', ')}` : ''}.`, repo);
         }
         if (approvals < 1) {
-            findings.error('ruleset-approvals', `Branch ${branch} requires ${approvals} approving review(s); the company merging rule requires at least 1.`, repo);
+            findings.error('ruleset-approvals', `Branch ${branch} requires ${approvals} approving review(s); the guidelines (workflow.md, Pull requests) require at least 1.`, repo);
         }
         if (!rulesSeen) findings.info('ruleset-none', `No ruleset or branch protection applies to ${branch}.`, repo);
     }
@@ -786,10 +802,10 @@ export function checkGithub(repo, { tier, taskingMode, slices, sliceFile }, find
         const actors = detail.data?.bypass_actors;
         const canBypass = detail.data?.current_user_can_bypass;
         if (login === SHARED_ACCOUNT && canBypass && canBypass !== 'never') {
-            findings.error('ruleset-bypass', `Shared account ${SHARED_ACCOUNT} can bypass ruleset "${summary.name}" (company rule: merging).`, repo);
+            findings.error('ruleset-bypass', `Shared account ${SHARED_ACCOUNT} can bypass ruleset "${summary.name}" (guidelines workflow.md, Pull requests).`, repo);
         } else if (Array.isArray(actors) && actors.length > 0) {
             const who = actors.map((a) => `${a.actor_type}${a.actor_id ? `#${a.actor_id}` : ''} (${a.bypass_mode})`);
-            findings.warn('ruleset-bypass', `Ruleset "${summary.name}" has bypass actors: ${who.join(', ')}${canBypass && canBypass !== 'never' ? `; ${login ?? 'the current user'} can bypass` : ''}. Make sure ${SHARED_ACCOUNT} cannot (company rule: merging).`, repo);
+            findings.warn('ruleset-bypass', `Ruleset "${summary.name}" has bypass actors: ${who.join(', ')}${canBypass && canBypass !== 'never' ? `; ${login ?? 'the current user'} can bypass` : ''}. Make sure ${SHARED_ACCOUNT} cannot (guidelines workflow.md, Pull requests).`, repo);
         } else if (actors === undefined) {
             findings.info('ruleset-bypass', `Bypass actors of ruleset "${summary.name}" are not visible to this token.`, repo);
         }

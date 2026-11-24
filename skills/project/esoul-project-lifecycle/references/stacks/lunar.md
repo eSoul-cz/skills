@@ -1,6 +1,6 @@
 # Stack profile: Lunar
 
-Laravel e-shop on Lunar with an Inertia 3 and Vue 3 storefront; Lunar owns the admin panel. The
+Laravel e-shop on Lunar with an Inertia and Vue storefront; Lunar owns the admin panel. The
 rules live in the guideline layers `framework/laravel` and `package/lunar` (`architecture.md`,
 `testing.md`, `integrations.md`), plus `package/filament` (added by `init` whenever it detects
 `lunarphp/lunar`), `package/laravel-inertia` and `package/inertia-vue`. Read
@@ -25,7 +25,7 @@ only the Lunar specifics.
    `package/lunar` › `integrations.md` (ports and fakes, the outbox, idempotency keys); each
    external system is an ADR topic and a slice.
 4. Public storefront: the AI-readiness slices apply (`Product type: eshop` adds `AI-06`, the
-   feeds); see [ai-readiness.md](../ai-readiness.md).
+   feeds); see the skill `esoul-quality-gates`.
 
 ## Development handover checklist
 

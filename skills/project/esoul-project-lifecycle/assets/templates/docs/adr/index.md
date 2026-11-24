@@ -10,29 +10,14 @@ Open points that block a decision are issues labelled `question` in the project'
 answers are recorded here (and in the glossary or a guideline where they belong), the issue is
 then closed.
 
-## Statuses
+## Statuses and when to write an ADR
 
-Every ADR uses one of these frontmatter statuses:
-
-| Status | Meaning |
-|---|---|
-| `proposed` | Awaiting discussion or a client answer; **not an implementation specification**. |
-| `accepted` | Valid target contract. |
-| `superseded by ADR-NNNN` | Historical context; follow its successor. |
-| `deprecated` | Do not introduce this approach in new work. |
-
+A frontmatter `status` is `proposed`, `accepted`, `superseded by ADR-NNNN` or `deprecated`; what
+each means and which one is authoritative is
+[domain.md › ADR status authority](../project_guidelines/domain.md#adr-status-authority).
 `date` is the day the status last changed, and `deciders` names who decided (the client, eSoul,
-or both).
-
-## When to write an ADR
-
-Write one when a decision could reasonably have gone the other way and has meaningful
-consequences that someone may later question. Ask: "Will someone want to know a year from now why this was not done
-differently?" Tool choices such as a formatter, a linter or a test runner are project guidelines
-in
-[docs/project_guidelines/](../project_guidelines/index.md), not ADRs. A restatement of the
-client's assignment is not an ADR either; the assignment is summarised in
-[docs/podklady/](../podklady/README.md).
+or both). Whether a decision is an ADR or a guideline:
+[documentation.md › ADR or guideline](../project_guidelines/documentation.md#adr-or-guideline).
 
 ## Rules
 

@@ -13,15 +13,14 @@ ADR, the plan or an issue says so.
 | Index and binding table | `docs/podklady/README.md` |
 | Dated client answers and meeting notes | `docs/podklady/odpovedi-klienta-YYYY-MM-DD.md` |
 | Design review feedback exports | `docs/podklady/pripominky-mockup-revize-N-YYYY-MM-DD.md` |
-| Screenshots and Lighthouse of the original and launched site | `assets/case-study/pred\|po/<date>/` ([case-study.md](case-study.md)) |
+| Screenshots and Lighthouse of the original and launched site | `assets/case-study/pred\|po/<date>/` (skill `esoul-website-launch`) |
 | Previous system "as it was" | `docs/legacy/<area>.md` |
 | Raw legacy evidence (dumps, crawls) | A gitignored local folder, by convention `_reference/`, or `assets/` when anonymized |
 
 Client data does not live in other gitignored folders such as `storage/`, `tmp/` or Downloads.
-The guidelines (`security-and-data.md`, Anonymized dumps for agents) allow one gitignored local
-folder, by convention `_reference/`, to hold non-anonymised client material such as legacy
-evidence: it is never committed and never shared (not in LFS, issues or pull requests), what is
-derived from it is anonymised, and the project's `.gitignore` names the folder.
+What may be committed, the one gitignored local folder for non-anonymised material and how it
+is shared are the rules of `docs/project_guidelines/security-and-data.md`; the project's
+`.gitignore` names that folder (by convention `_reference/`).
 
 ## Reading the files
 
@@ -57,15 +56,17 @@ Start from `assets/templates/docs/legacy/_template.md`.
 
 ## Personal data
 
-- Dumps are anonymized before an agent reads them by default. Keep the anonymization script and
-  the vetted column list in `scripts/` and say in the PR which dump version agents may use.
-- An agent that finds a non-anonymised dump among its inputs asks the owner before reading it
-  and exports nothing from it (guidelines `security-and-data.md`).
-- Issues, PRs, fixtures and tests contain only synthetic or anonymized values. Parity fixtures
-  may contain numbers and cell references, never names.
+Personal data, anonymised dumps and what agents may read follow
+`docs/project_guidelines/security-and-data.md`. Local facts: keep the anonymisation script and the
+vetted column list in `scripts/` and say in the PR which dump version agents may use. Parity
+fixtures may contain numbers and cell references, never names.
 
 ## After intake
 
 Each gap or ambiguity becomes a `question` issue ([questions-and-client.md](questions-and-client.md)).
-Each decision with real alternatives becomes a `proposed` ADR ([adr.md](adr.md)). Open one PR per
-intake batch.
+Each decision with real alternatives becomes a `proposed` ADR ([adr.md](adr.md)). Deliver each
+intake batch as one change, as the project's workflow guideline says.
+
+Done when every file is in `assets/klient/` and has a note or legacy document (or a stated reason
+it has none), every gap is a `question` issue, and `docs/podklady/README.md` lists each file with
+what it is binding for.

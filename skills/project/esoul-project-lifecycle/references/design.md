@@ -39,3 +39,7 @@ eSoul mockups module, and treats the approved design as part of the specificatio
 
 Gate B2 is the client's written approval of the screens a phase needs. Issues reference the
 approved frames by screen code and node ID.
+
+Done when the brief, the `.pen` file and the mockup bundle agree, every review round is recorded
+in the brief (and in `design-log.md` in the light tier), and the client's written approval of the
+phase's screens exists.

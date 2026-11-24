@@ -38,7 +38,7 @@ Each item must end in a concrete section of the project's own documentation. Do 
 - [ ] Docker setup for local development and production.
 - [ ] Vendored agent skills: `.agents/skills/` with committed `.claude/skills/<name>` symlinks,
       pinned in `skills-lock.json`; the eSoul skills come from `npx @esoul-cz/skills project init`, third-party ones are added only with
-      `LC_ALL=en_US.UTF-8 npx skills@1.7.2 add <owner/repo> --skill <name> --agent claude-code codex -y`;
+      `npx skills add <owner/repo> --skill <name> --agent claude-code codex --yes` (pinned form: the README);
       a CI check that recomputes the lock when the stack has Node available.
 - [ ] MCP servers the agents need (framework docs server, Pencil, `codegraph`, database tools)
       and whether `.mcp.json` is committed.
@@ -66,9 +66,9 @@ Each item must end in a concrete section of the project's own documentation. Do 
 - [ ] Which gates are CI-required and which are local diagnostics (mutation testing,
       Lighthouse before launch, …).
 - [ ] Ruleset on `main`: required check `Jenkins`, one human approval, squash merge only.
-- [ ] A public website follows the guideline `public-website.md` and [ai-readiness.md](../ai-readiness.md):
-      decide how robots, sitemap, `llms.txt`, Markdown and JSON-LD are generated, and run the
-      launch gate.
+- [ ] A public website follows the guideline `public-website.md` and the skill
+      `esoul-quality-gates`: decide how robots, sitemap, `llms.txt`, Markdown and JSON-LD are
+      generated, and run the launch gate.
 
 ### 5. Development handover (in `docs/plan/` or the handover PR)
 

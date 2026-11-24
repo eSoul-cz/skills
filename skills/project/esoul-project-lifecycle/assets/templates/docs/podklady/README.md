@@ -10,8 +10,9 @@ snapshot: {{DATE}}
 > Cílový stav definují ADR v [`docs/adr/`](../adr/index.md) a pravidla v
 > [`docs/project_guidelines/`](../project_guidelines/index.md).
 >
-> **Pozor: podklady obsahují reálná data klienta.** Verzují se vědomě, protože jsou nutným
-> vstupem pro návrh, plán i parity testy. **Repozitář musí zůstat privátní.**
+> **Pozor: podklady jsou provozní materiál klienta bez osobních údajů.** Verzují se vědomě,
+> protože jsou nutným vstupem pro návrh, plán i parity testy. **Repozitář musí zůstat
+> privátní.**
 
 ## Pravidla tohoto adresáře
 
@@ -33,15 +34,15 @@ snapshot: {{DATE}}
   nebo novější verze je nový soubor s datem v názvu, ne přepis starého. Poznámky jsou výtah
   z nich, ne jejich náhrada.
 - Data projektu se neukládají do gitignorovaných složek (`storage/`, `tmp/`, stažené soubory);
-  patří sem a do `assets/`. Výjimku dává guideline `security-and-data.md`: gitignorovaná lokální
-  složka (podle konvence `_reference/`) smí obsahovat neanonymizovaný klientský materiál pro
-  práci na projektu, nikdy se necommituje ani nesdílí.
+  patří sem a do `assets/`. Neanonymizovaný materiál a osobní údaje řídí guideline
+  `security-and-data.md` (jedna gitignorovaná lokální složka, podle konvence `_reference/`).
 - Otázky, které z podkladů nejde vyčíst, vedeme jen v trackeru: každá je issue se štítkem
   `question`. Poznámka na ně odkazuje číslem issue `#N`.
 
-## Reálná data
+## Data v podkladech
 
-Podklady jsou ostrá provozní data, ne anonymizovaná ukázka. Z toho plyne:
+Podklady jsou provozní materiál (sazby, ceny, vzorce, struktury), ne anonymizovaná ukázka, a
+bez osobních údajů. Z toho plyne:
 
 - zůstávají v privátním repozitáři a necitují se do issues, pull requestů, komentářů ani
   screenshotů;
@@ -53,8 +54,8 @@ Podklady jsou ostrá provozní data, ne anonymizovaná ukázka. Z toho plyne:
 - agent pracuje s anonymizovaným dumpem nebo exportem; čtení neanonymizovaných dat řídí
   guideline `security-and-data.md` (potvrzení vlastníka, nic z nich se nevynáší do repozitáře).
 
-<!-- Doplňte, jaké druhy reálných údajů podklady obsahují (jména, sazby, ceny, kontakty …),
-     bez citace samotných hodnot. -->
+<!-- Doplňte, jaké druhy provozních údajů podklady obsahují (sazby, ceny, kontakty firem …),
+     bez citace samotných hodnot a bez osobních údajů. -->
 
 ## Co je čím
 

@@ -55,12 +55,12 @@ Title nejvýše 60 znaků, description 110–155 znaků. Délky ověřuje SEO ko
 ## Technické SEO
 
 - Sitemap bez stránek s `noindex` (generování viz [ai-readiness.md](ai-readiness.md)).
-- Kanonické URL v jednotném tvaru (s lomítkem na konci, nebo bez — jedno pro celý web),
+- Kanonické URL v jednotném tvaru podle guidelinu `public-website.md` (Crawling and indexing),
   `lang="cs"`, `og:locale=cs_CZ`.
 - Obrázky v moderních formátech (AVIF/WebP) se zadaným `width` a `height`, lazy mimo první
   obrazovku, hero s `fetchpriority="high"`.
 - Animace neblokují LCP a respektují `prefers-reduced-motion`.
-- Obsah a odkazy jsou v HTML ze serveru; nesmí záviset na JavaScriptu.
+- Obsah a odkazy jsou v HTML ze serveru (`public-website.md`, Content in the HTML).
 
 ## Dohledatelnost v AI (GEO)
 
@@ -71,8 +71,8 @@ adresa a telefon shodné s Firmy.cz a Google Business Profile.
 
 ## 301 přesměrování ze starého webu
 
-Každá URL starého webu, která v novém stromu není, má trvalé přesměrování na nejbližší
-odpovídající stránku. URL bez náhrady vrací 410. Seznam starých URL vychází z
+Redirecty ze starého webu řídí guideline `public-website.md` (Redirects from an old site; 301 na
+nejbližší stránku, 410 pro obsah bez náhrady). Seznam starých URL vychází z
 [obsahu starého webu](obsah-stary-web.md), ze sitemap starého webu a z exportu Search Console.
 
 | Stará URL | Nová URL | Kód |
