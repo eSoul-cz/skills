@@ -76,9 +76,15 @@ Done when the assignee is set on both sides and the task is in `In progress`.
 
 ## 3. Open the PR
 
-Open it as `docs/project_guidelines/workflow.md` › Pull requests say (title, template, issue
-link). `github-freelo`: `Closes #N` in the body; `freelo-only`: the Freelo task URL in the
-body.
+This step owns opening (or updating) the PR; `esoul-workflow` and `esoul-review` point here. Reuse
+the branch's open PR; otherwise create it with an explicit repository, head and base. The rules are
+`docs/project_guidelines/workflow.md` › Pull requests (title, template, issue link). The PR links
+its task: `github-freelo`: `Closes #N` in the body; `freelo-only`: the Freelo task URL in the
+body. Without an issue or task, ask the user whether the small-admin exception applies, unless `## Tasking convention` records it; never assume it.
+Every contributor is an assignee; ask for at least one other person as reviewer. Fill the
+repository's template with the checks run and their results (and the `No test:` line and Deploy
+notes where they apply), and the risk and what was not done in "Risks and what I did not do";
+keep human-written content.
 
 **Title.** Derive it from the task title as `docs/project_guidelines/workflow.md` › Tasking and
 › Pull requests say, and write it in the commit standard of the developer you work for.
@@ -87,8 +93,8 @@ Mapping into the recommended Gitmoji format: the context becomes the lowercase k
 `:sparkles: [order-history] Add filter`. The PR title is always English: when the tracker title is
 Czech (a project that keeps Czech tracker titles), the PR title is an English, descriptive title of
 the same result that links the issue (`workflow.md` › Tasking), never the Czech title.
-`gitmoji-commit` writes the commits and this title when it is installed; a developer's or
-repository's own standard is applied the same way (`workflow.md` › Commits).
+`gitmoji-commit` writes the commits and this title when it is installed; the developer's own
+standard is applied the same way (`workflow.md` › Commits).
 
 Then move the task to `Code review` and add the work report with the PR link in its note
 ([references/freelo.md](references/freelo.md) › Work reports). A review that sends the task
