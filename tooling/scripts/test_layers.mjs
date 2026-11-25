@@ -687,9 +687,9 @@ test('selector: required layers are added (listed in the skill step), a deselect
     assert.match(prompts.calls.find(([name, text]) => name === 'log' && /needs/.test(text))[1], /Also installed .*: a\./);
 });
 
-test('selector: project init preselects the detected layers and groups under the project target', async () => {
+test('selector: project init preselects the detected layers and groups under the auto target', async () => {
     const definition = withJenkinsGroup();
-    const prompts = stubPrompts({ target: 'project', layers: ['core', 'upstream-core', 'upstream-core:stack'], skills: ['a', 'x', 's1'] });
+    const prompts = stubPrompts({ target: 'auto', layers: ['core', 'upstream-core', 'upstream-core:stack'], skills: ['a', 'x', 's1'] });
     const lines = [];
     const originalLog = console.log;
     console.log = (line = '') => lines.push(String(line));
@@ -698,10 +698,22 @@ test('selector: project init preselects the detected layers and groups under the
     } finally {
         console.log = originalLog;
     }
-    assert.equal(prompts.calls.find(([name]) => name === 'target')[1].initial, 'project');
+    assert.equal(prompts.calls.find(([name]) => name === 'target')[1].initial, 'auto');
     assert.deepEqual(prompts.calls.find(([name]) => name === 'layers')[1].initial, ['core', 'dev', 'upstream-core', 'upstream-core:stack', 'picks:ci']);
     assert.ok(lines.includes('[core · project] npx -y skills add org/skills --skill a'));
     assert.ok(lines.includes('[upstream-core · project] npx -y skills add m/skills@v1 --skill x'));
+});
+
+test('selector: project init keeps an explicit --project as the preselected target', async () => {
+    const prompts = stubPrompts({ target: 'project', layers: ['core'], skills: ['a'] });
+    const originalLog = console.log;
+    console.log = () => {};
+    try {
+        await projectInit(parseArgs(['--dry-run', '--no-stack', '--project']), withJenkinsGroup(), project({}), () => true, { prompts });
+    } finally {
+        console.log = originalLog;
+    }
+    assert.equal(prompts.calls.find(([name]) => name === 'target')[1].initial, 'project');
 });
 
 test('no prompt without a terminal, with --yes, or with layer or --skill arguments: the selector stays out of it', async () => {
