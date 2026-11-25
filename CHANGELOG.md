@@ -4,6 +4,10 @@ All notable changes to `eSoul-cz/skills` are recorded here. The format follows [
 
 ## Unreleased
 
+### Fixed
+
+- `esoul-quality-gates` › `ai-readiness.mjs`, three false `must` failures found on moravecpetr.cz: `jsonld` accepts the schema.org LocalBusiness subtypes (an explicit list including `Electrician`, `Plumber`, `HVACBusiness`, `RoofingContractor`, `GeneralContractor`, `HousePainter`, `Locksmith`, `MovingCompany`) as the home organization and finds a `BreadcrumbList` nested in `WebPage.breadcrumb`; `facts` reads `IČ 87814617` (JavaScript `\b` does not treat `Č` as a word character; `DIČ` still does not count as IČO); `indexable` and `html-basics` skip a page that is `noindex` on purpose and not in the sitemap (reported as info, no canonical required), while a `noindex` sitemap URL still fails.
+
 ## 0.27.4 - 2026-11-25
 
 Patch release of the skills; the npm helper `@esoul-cz/skills` stays at 0.2.3 (no change to the helper). The repository is rendered with `esoul-cz/guidelines` 0.5.5.

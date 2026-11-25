@@ -182,6 +182,7 @@ export function parseSitemapEntries(xml) {
 
 export function extractJsonLd(html) {
     const nodes = [];
+    const nested = [];
     const errors = [];
     const walk = (v) => {
         if (Array.isArray(v)) return v.forEach(walk);
@@ -190,19 +191,47 @@ export function extractJsonLd(html) {
             if (v['@graph']) walk(v['@graph']);
         }
     };
+    // Every object below the top-level nodes (WebPage.breadcrumb, Article.publisher, ...). Kept apart from `nodes`: a nested
+    // publisher Organization must not make a home page pass the "home describes the organization" check.
+    const walkNested = (v) => {
+        if (Array.isArray(v)) return v.forEach(walkNested);
+        if (v && typeof v === 'object') {
+            nested.push(v);
+            Object.values(v).forEach(walkNested);
+        }
+    };
     for (const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
         if (!/application\/ld\+json/i.test(m[1])) continue;
         try {
-            walk(JSON.parse(m[2].trim()));
+            const data = JSON.parse(m[2].trim());
+            walk(data);
+            walkNested(data);
         } catch (error) {
             errors.push(error.message);
         }
     }
-    return { nodes, errors };
+    return { nodes, nested, errors };
 }
 export const typesOf = (node) => [].concat(node?.['@type'] ?? []).map((t) => String(t).replace(/^.*[/#]/, ''));
 const hasType = (nodes, re) => nodes.some((n) => typesOf(n).some((t) => re.test(t)));
-const ORG_RE = /^(Organization|Corporation|NGO|LocalBusiness|Store|OnlineStore|OnlineBusiness|ProfessionalService|Restaurant|Hotel|MedicalBusiness|Dentist|AutoRepair|HomeAndConstructionBusiness|FinancialService|LegalService|RealEstateAgent|TravelAgency|SportsActivityLocation|EntertainmentBusiness|FoodEstablishment|HealthAndBeautyBusiness|Library|SelfStorage|ShoppingCenter|[A-Za-z]*Store|[A-Za-z]*Business)$/;
+/** schema.org Organization and LocalBusiness subtypes a business home page may declare (the explicit list is deliberate: `Event` or `Person` must not match). */
+const ORG_TYPES = new Set([
+    'Organization', 'Corporation', 'NGO', 'LocalBusiness', 'OnlineBusiness', 'OnlineStore', 'Store', 'ProfessionalService', 'FinancialService', 'LegalService',
+    'RealEstateAgent', 'TravelAgency', 'SportsActivityLocation', 'EntertainmentBusiness', 'FoodEstablishment', 'HealthAndBeautyBusiness', 'Library', 'SelfStorage',
+    'ShoppingCenter', 'Hotel', 'Restaurant', 'MedicalBusiness', 'Dentist', 'AutoRepair', 'AutomotiveBusiness', 'AutoDealer', 'AutoWash', 'EmergencyService',
+    'EmploymentAgency', 'GovernmentOffice', 'InternetCafe', 'RadioStation', 'TelevisionStation', 'AccountingService', 'AutomatedTeller', 'BankOrCreditUnion',
+    'InsuranceAgency', 'Notary', 'Attorney', 'DryCleaningOrLaundry', 'Physician', 'Pharmacy', 'Optician', 'Hospital', 'Bakery', 'CafeOrCoffeeShop', 'BarOrPub',
+    'FastFoodRestaurant', 'Winery', 'BeautySalon', 'DaySpa', 'HairSalon', 'HealthClub', 'NailSalon', 'TattooParlor', 'ChildCare', 'Campground', 'BedAndBreakfast',
+    'Hostel', 'Motel', 'Resort', 'LodgingBusiness', 'TouristInformationCenter', 'ArtGallery', 'Museum', 'MovieTheater', 'NightClub',
+    // HomeAndConstructionBusiness family
+    'HomeAndConstructionBusiness', 'Electrician', 'Plumber', 'HVACBusiness', 'RoofingContractor', 'GeneralContractor', 'HousePainter', 'Locksmith', 'MovingCompany',
+    // shops
+    'BikeStore', 'BookStore', 'ClothingStore', 'ComputerStore', 'ConvenienceStore', 'DepartmentStore', 'ElectronicsStore', 'Florist', 'FurnitureStore', 'GardenStore',
+    'GroceryStore', 'HardwareStore', 'HobbyShop', 'HomeGoodsStore', 'JewelryStore', 'LiquorStore', 'MensClothingStore', 'MobilePhoneStore', 'MusicStore', 'OfficeEquipmentStore',
+    'OutletStore', 'PawnShop', 'PetStore', 'ShoeStore', 'SportingGoodsStore', 'TireShop', 'ToyStore', 'WholesaleStore',
+]);
+// the suffix pattern keeps the older coverage of `*Store` and `*Business` types missing from the list
+const ORG_RE = { test: (t) => ORG_TYPES.has(t) || /^[A-Za-z]*(Store|Business)$/.test(t) };
 const ARTICLE_RE = /^(Article|BlogPosting|NewsArticle|TechArticle|Report|ScholarlyArticle)$/;
 
 // ---------------------------------------------------------------------------------------------
@@ -289,6 +318,16 @@ export function checkRobots({ robots, pagePaths, staging }) {
     return details.length ? res('fail', `robots.txt blocks bots (${blocked.length}) or has no Sitemap:.`, details) : res('pass', 'robots.txt allows every bot and links the sitemap.');
 }
 
+// A page that is noindex on purpose: noindex, and known not to be in the sitemap (`inSitemap === false`, set by runAudit only when a
+// sitemap was read). It is linked from the site (privacy policy, thank-you page) but not offered to search engines, so it needs no
+// canonical and is not an indexability error. A noindex URL listed in the sitemap contradicts itself and still fails.
+export function noindexReason(p) {
+    const meta = [metaContent(p.html, 'robots'), metaContent(p.html, 'googlebot')].filter(Boolean).join(',');
+    const header = p.headers?.['x-robots-tag'] ?? '';
+    return /noindex|none/i.test(meta) ? 'meta robots noindex' : /noindex|none/i.test(header) ? 'X-Robots-Tag noindex' : null;
+}
+const isDeliberateNoindex = (p) => p.inSitemap === false && noindexReason(p) !== null;
+
 // --- html-basics
 
 export function checkHtmlBasics(pages) {
@@ -301,7 +340,9 @@ export function checkHtmlBasics(pages) {
         if (!titleOf(html)) details.push(finding(url, 'empty <title>'));
         if (!metaContent(html, 'description')?.trim()) details.push(finding(url, 'missing meta description'));
         const canonical = tagsOf(html, 'link').find((a) => a.rel?.toLowerCase() === 'canonical')?.href;
-        if (!canonical) details.push(finding(url, 'missing canonical'));
+        if (!canonical) {
+            if (!isDeliberateNoindex(p)) details.push(finding(url, 'missing canonical'));
+        }
         else if (!isAbsolute(canonical)) details.push(finding(url, `canonical is not absolute (${canonical})`));
         const alternates = tagsOf(html, 'link').filter((a) => a.rel?.toLowerCase() === 'alternate' && a.hreflang);
         if (alternates.length) {
@@ -323,12 +364,12 @@ export function checkJsonLd(pages) {
     const details = [];
     const warns = [];
     for (const p of pages.filter((x) => x.status === 200)) {
-        const { nodes, errors } = extractJsonLd(p.html);
+        const { nodes, nested, errors } = extractJsonLd(p.html);
         for (const e of errors) details.push(finding(p.url, `JSON-LD cannot be parsed: ${e}`));
         if (p.kind === 'home') {
             if (!hasType(nodes, ORG_RE)) details.push(finding(p.url, 'home has no Organization/LocalBusiness'));
             if (!hasType(nodes, /^WebSite$/)) details.push(finding(p.url, 'home has no WebSite'));
-        } else if (!hasType(nodes, /^BreadcrumbList$/)) warns.push(finding(p.url, 'missing BreadcrumbList'));
+        } else if (!hasType(nodes, /^BreadcrumbList$/) && !hasType(nested, /^BreadcrumbList$/)) warns.push(finding(p.url, 'missing BreadcrumbList'));
         if (p.kind === 'article') {
             const article = nodes.find((n) => typesOf(n).some((t) => ARTICLE_RE.test(t)));
             if (!article) details.push(finding(p.url, 'the article has no Article/BlogPosting in JSON-LD'));
@@ -350,7 +391,8 @@ export function checkFacts(pages) {
     const phone = /href\s*=\s*["']tel:/i.test(raw) || /(?:\+\s?\d{2,3}[\s.-]?)?\b\d{3}[\s.-]?\d{3}[\s.-]?\d{3}\b/.test(text);
     const email = /href\s*=\s*["']mailto:/i.test(raw) || /[\w.+-]+@[\w-]+\.[\w.-]+/.test(text);
     const address = /PostalAddress|<address\b/i.test(raw) || /\b\d{3}\s?\d{2}\s+\p{Lu}[\p{L}]+/u.test(text);
-    const ico = /\bIČO?\b[^\d]{0,20}(\d{8}|\d{2}\s?\d{3}\s?\d{3})\b/i.test(text);
+    // `\b` does not treat `Č` as a word character, so the boundaries are Unicode lookarounds (and `DIČ` does not count as IČO).
+    const ico = /(?<![\p{L}\d])IČO?(?![\p{L}])[^\d]{0,20}(\d{8}|\d{2}\s?\d{3}\s?\d{3})(?!\d)/iu.test(text);
     const details = [];
     if (!phone && !email) details.push(finding(sources[0].url, 'no phone and no e-mail'));
     if (!address) details.push(finding(sources[0].url, 'no postal address'));
@@ -484,14 +526,15 @@ export function checkWebmcp(pages) {
 export function checkIndexable(pages, staging) {
     const noindex = [];
     const indexable = [];
+    const deliberate = [];
     for (const p of pages.filter((x) => x.status === 200)) {
-        const meta = [metaContent(p.html, 'robots'), metaContent(p.html, 'googlebot')].filter(Boolean).join(',');
-        const header = p.headers?.['x-robots-tag'] ?? '';
-        const reason = /noindex|none/i.test(meta) ? 'meta robots noindex' : /noindex|none/i.test(header) ? 'X-Robots-Tag noindex' : null;
-        (reason ? noindex : indexable).push(finding(p.url, reason ?? 'indexable'));
+        const reason = noindexReason(p);
+        if (reason && isDeliberateNoindex(p)) deliberate.push(finding(p.url, `${reason} (on purpose: not in the sitemap)`));
+        else (reason ? noindex : indexable).push(finding(p.url, reason ?? 'indexable'));
     }
     if (staging) return res('info', noindex.length ? 'Staging is noindex (expected).' : 'Warning: staging is indexable; add noindex before launch.', indexable);
-    return noindex.length ? res('fail', `${noindex.length} pages have noindex.`, noindex) : res('pass', 'The sample is indexable.');
+    if (noindex.length) return res('fail', `${noindex.length} pages have noindex.`, [...noindex, ...deliberate]);
+    return res('pass', deliberate.length ? `The sample is indexable (${deliberate.length} deliberately noindex pages outside the sitemap skipped).` : 'The sample is indexable.', deliberate);
 }
 
 // --- ssr (pure part; the rendered text comes from the browser)
@@ -932,8 +975,12 @@ export async function runAudit(o) {
     const homeLinks = extractLinks(homeRes.text, homeRes.finalUrl);
     const urls = o.urls ? parseUrlsFile(o.urls, origin).map((e) => e.url) : pickUrls({ origin, sitemapLocs: sitemap.locs, homeLinks, max: o.max ?? 20, type });
     const fetched = await pmap(urls, async (u) => (u === `${origin}/` && homeRes.finalUrl.replace(/\/$/, '') === origin ? { ...homeRes, url: u } : get(u)), 5);
+    const sitemapSet = new Set(sitemap.locs.map((u) => normalizeUrl(u, origin)?.replace(/\/$/, '')));
+    const inSitemap = (u) => sitemapSet.has(normalizeUrl(u, origin)?.replace(/\/$/, ''));
     const toPage = (r, source) => {
         const page = { url: r.url, finalUrl: r.finalUrl, status: r.status, headers: r.headers, html: r.status === 200 ? r.text : '' };
+        // undefined without a readable sitemap: then nothing can be called "outside the sitemap"
+        if (sitemap.locs.length) page.inSitemap = inSitemap(r.finalUrl ?? r.url);
         return { ...page, kind: classifyPage(page), source };
     };
     const sourceOf = (u) => (o.urls ? 'urls' : sitemap.locSource.has(u) ? `sitemap ${sitemap.locSource.get(u)}` : 'link from home');
