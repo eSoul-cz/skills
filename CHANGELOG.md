@@ -4,6 +4,14 @@ All notable changes to `eSoul-cz/skills` are recorded here. The format follows [
 
 ## Unreleased
 
+## 0.27.3 - 2026-11-25
+
+Patch release with the npm helper `@esoul-cz/skills` 0.2.3 (owner decision).
+
+### Changed
+
+- `esoul-skills project init` opens the selector with the target `auto` instead of `project`: the project layers and stack groups still go into the project, and a user layer ticked there (for example `project` or `helpers`) goes to the user scope instead of being committed into the project. `--project`/`-p` still preselects `project`; without a terminal or with `--yes` everything goes to the project as before. Reason: one run can set up a person's project and user skills without a step that is easy to forget.
+
 ## 0.27.2 - 2026-11-25
 
 Patch release with the npm helper `@esoul-cz/skills` 0.2.2 (owner notes on the helper and on projects without PHP). Reasons: `project init` only reported stale setup and left the removals to the user, so a project kept retired skills and skills an upstream source had dropped; and a repository without PHP had no short install-sync-update path in the skills (only a list of the three routes).
