@@ -11,6 +11,7 @@ import {
     botResponseProblems,
     checkFacts,
     checkHtmlBasics,
+    checkIndexable,
     checkJsonLd,
     checkPolicies,
     checkProductData,
@@ -229,6 +230,57 @@ test('facts: phone, address and company ID for Czech sites', () => {
     assert.equal(checkFacts([page('https://a.cz/', html)]).status, 'pass');
     assert.equal(checkFacts([page('https://a.cz/', html.replace('IČO: 12345678', ''))]).status, 'fail');
     assert.equal(checkFacts([page('https://a.cz/', html.replace('lang="cs"', 'lang="en"').replace('IČO: 12345678', ''))]).status, 'pass');
+});
+
+test('jsonld: schema.org LocalBusiness subtypes count as the home organization', () => {
+    const ld = (type) => `<script type="application/ld+json">{"@graph":[{"@type":${JSON.stringify(type)}},{"@type":"WebSite"}]}</script>`;
+    for (const type of ['Electrician', 'Plumber', 'HVACBusiness', 'RoofingContractor', 'GeneralContractor', 'HousePainter', 'Locksmith', 'MovingCompany', ['Electrician', 'Place']]) {
+        assert.equal(checkJsonLd([page('https://a.cz/', ld(type))]).status, 'pass', String(type));
+    }
+    assert.equal(checkJsonLd([page('https://a.cz/', ld('Person'))]).status, 'fail');
+    // a publisher nested in another node does not describe the home organization
+    const nestedOnly = '<script type="application/ld+json">{"@type":"WebSite","publisher":{"@type":"Organization"}}</script>';
+    assert.equal(checkJsonLd([page('https://a.cz/', nestedOnly)]).status, 'fail');
+});
+
+test('jsonld: a BreadcrumbList nested in WebPage.breadcrumb is found', () => {
+    const nested = '<script type="application/ld+json">{"@graph":[{"@type":"WebPage","breadcrumb":{"@type":"BreadcrumbList","itemListElement":[]}}]}</script>';
+    assert.equal(checkJsonLd([page('https://a.cz/o-nas', nested)]).status, 'pass');
+});
+
+test('facts: IČ with a Czech letter boundary, IČO, and not DIČ', () => {
+    const doc = (footer) => `<html lang="cs"><body><footer>Tel. 777 123 456, Dlouhá 1, 110 00 Praha 1, ${footer}</footer></body></html>`;
+    for (const footer of ['IČ 87814617', 'IČ: 87814617', 'IČO: 12345678', 'IČO 12 345 678']) {
+        assert.equal(checkFacts([page('https://a.cz/', doc(footer))]).status, 'pass', footer);
+    }
+    for (const footer of ['DIČ 87814617', 'DIČ: CZ87814617', 'IČ 1234']) {
+        assert.equal(checkFacts([page('https://a.cz/', doc(footer))]).status, 'fail', footer);
+    }
+});
+
+test('indexable and html-basics: a deliberate noindex page outside the sitemap is skipped, a noindex sitemap URL fails', () => {
+    const head = (robots) => `<html lang="cs"><head><title>T</title><meta name="description" content="d">${robots ? `<meta name="robots" content="${robots}">` : ''}</head>`;
+    const home = page('https://a.cz/', head('').replace('</head>', '<link rel="canonical" href="https://a.cz/"></head>'), { inSitemap: true });
+    const privacy = (extra) => page('https://a.cz/ochrana-osobnich-udaju/', head('noindex, follow'), extra);
+
+    const outside = [home, privacy({ inSitemap: false })];
+    const indexable = checkIndexable(outside, false);
+    assert.equal(indexable.status, 'pass');
+    assert.match(indexable.details[0].finding, /on purpose/);
+    assert.equal(checkHtmlBasics(outside).status, 'pass');
+
+    const inside = [home, privacy({ inSitemap: true })];
+    assert.equal(checkIndexable(inside, false).status, 'fail');
+    assert.match(checkHtmlBasics(inside).details[0].finding, /missing canonical/);
+
+    // no sitemap information (inSitemap unset): behaviour is unchanged
+    assert.equal(checkIndexable([home, privacy({})], false).status, 'fail');
+    // an indexable page without canonical still fails
+    assert.equal(checkHtmlBasics([page('https://a.cz/x', head(''), { inSitemap: false })]).status, 'fail');
+    // a real noindex error next to a deliberate one still fails and lists both
+    const mixed = checkIndexable([page('https://a.cz/b', head('noindex'), { inSitemap: true }), privacy({ inSitemap: false })], false);
+    assert.equal(mixed.status, 'fail');
+    assert.equal(mixed.details.length, 2);
 });
 
 test('policies: an eshop needs terms, shipping and returns', () => {
