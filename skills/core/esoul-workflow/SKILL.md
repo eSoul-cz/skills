@@ -72,6 +72,7 @@ It equals the new commit's `HEAD^{tree}` after the verified files are committed,
 ## 4. Guardrails
 
 - Production is read-only and production data is never written by an agent; data corrections ship as reviewed migrations or commands, never manual SQL (`docs/project_guidelines/security-and-data.md` › Production access). Trigger Jenkins jobs only when the owner asks; never deploy outside Jenkins.
+- A production deployment is watched by whoever started it, you included when the owner asked you to merge or trigger it (`docs/project_guidelines/deployment.md` › Monitoring a deployment). A production start script you write or change follows `deployment.md` › The production start entrypoint: quick, no seeder, and a failing migration is logged and does not block the container.
 - Every write to Freelo, GitHub issues or other shared systems needs an approved preview first. Exception: the mechanical task lifecycle writes of `esoul-task-work` for the task this session works on; report them in the final summary.
 - Destructive commands (reset, drop, force-push, bulk delete, search-replace on a database) need a backup or a dry run and explicit confirmation.
 - Prefer the repository's own scripts (Makefile, composer/npm scripts, `scripts/`) over ad-hoc commands.

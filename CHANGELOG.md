@@ -4,6 +4,10 @@ All notable changes to `eSoul-cz/skills` are recorded here. The format follows [
 
 ## Unreleased
 
+### Changed
+
+- `esoul-workflow` › Guardrails: a production deployment is watched by whoever started it (the owner may ask the agent to merge or trigger one), and a production start script follows `deployment.md` › The production start entrypoint (quick, no seeder, a failing migration is logged and does not block the container). The rules themselves are in the guidelines (next release); no other skill restated them.
+
 ## 0.27.3 - 2026-11-25
 
 Patch release with the npm helper `@esoul-cz/skills` 0.2.3 (owner decision).
