@@ -15,6 +15,7 @@ read it.
 - Stack profile: `esoul-project-lifecycle/references/stacks/laravel.md`
 - Original site: https://…         # URL of the site being replaced, or —
 - Environments: staging https://…, production https://…
+- Ruleset bypass: `none`           # none | owner (shared account keeps a bypass; one-person project)
 - UAT dimensions: Role, Předpoklad, Prodejní kanál, Jazyk, Měna
 - Design: `docs/design/projekt.pen` or Figma URL, or `—`
 ```
@@ -24,6 +25,13 @@ Infer the stack from the repository (`composer.json`, `package.json`, `astro.con
 `laravel`. Propose a tier with the reason, wait for confirmation, then write the
 section. For `other:<name>` the stack profile points to the project's own
 `docs/project_guidelines/tools.md` (see `stacks/new-stack.md`).
+
+Ruleset bypass records whether the shared account `esoul-cz-user` keeps a bypass of the
+ruleset: `none` (default, also when the line is missing) or `owner` (a one-person project where
+the owner merges through it; every use is authorised per pull request with the reason in the PR
+description, `workflow.md` › Pull requests). `conformance.mjs --github` reads it: `owner` turns a
+kept bypass from the error `ruleset-bypass` into the info `ruleset-bypass-recorded`. Organization
+rulesets keep their own bypass list and are not edited per repository.
 
 UAT dimensions are the context a tester must set before clicking. Typical examples: role,
 sales channel, language, currency, VAT mode, module, period, legal entity. Choose them from

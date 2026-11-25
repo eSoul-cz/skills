@@ -249,7 +249,7 @@ export function parseTables(markdown) {
 
 export function readProfile(root, findings, tierFlag) {
     const context = readText(root, 'CONTEXT.md');
-    const profile = { tier: null, tierSource: null, stack: null, archetype: null, productType: null, taskingMode: null, originalSite: null };
+    const profile = { tier: null, tierSource: null, stack: null, archetype: null, productType: null, taskingMode: null, originalSite: null, rulesetBypass: 'none' };
     let profileLines = null;
     let sectionMap = new Map();
 
@@ -287,6 +287,12 @@ export function readProfile(root, findings, tierFlag) {
             profile.tierSource = 'CONTEXT.md';
         } else if (recorded && !recorded.includes('{{')) {
             findings.error('profile-tier', `Process tier \`${recorded}\` is not one of: ${TIERS.join(', ')}.`, 'CONTEXT.md');
+        }
+        const bypass = values['ruleset bypass'] ?? null;
+        if (bypass === 'owner' || bypass === 'none') {
+            profile.rulesetBypass = bypass;
+        } else if (bypass && !bypass.includes('{{')) {
+            findings.warn('profile-ruleset-bypass', `Ruleset bypass \`${bypass}\` is not one of: owner, none; checked as \`none\`.`, 'CONTEXT.md');
         }
         if (profile.stack && !profile.stack.includes('{{') && !STACKS.test(profile.stack)) {
             findings.warn('profile-stack', `Stack \`${profile.stack}\` is not laravel, astro, lsr, lunar or other:<name>.`, 'CONTEXT.md');
@@ -706,7 +712,7 @@ export function makeGh(bin = process.env.CONFORMANCE_GH_BIN || 'gh') {
 
 const issueRefs = (numbers) => listSome(numbers.map((n) => `#${n}`));
 
-export function checkGithub(repo, { tier, taskingMode, slices, sliceFile }, findings, gh = makeGh()) {
+export function checkGithub(repo, { tier, taskingMode, rulesetBypass = 'none', slices, sliceFile }, findings, gh = makeGh()) {
     if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) {
         findings.error('github-repo', `--github expects owner/repo, got \`${repo}\`.`);
         return;
@@ -837,7 +843,12 @@ export function checkGithub(repo, { tier, taskingMode, slices, sliceFile }, find
         const actors = detail.data?.bypass_actors;
         const canBypass = detail.data?.current_user_can_bypass;
         if (login === SHARED_ACCOUNT && canBypass && canBypass !== 'never') {
-            findings.error('ruleset-bypass', `Shared account ${SHARED_ACCOUNT} can bypass ruleset "${summary.name}" (guidelines workflow.md, Pull requests).`, repo);
+            if (rulesetBypass === 'owner') {
+                findings.info('ruleset-bypass-recorded', `Shared account ${SHARED_ACCOUNT} can bypass ruleset "${summary.name}"; the project profile records \`Ruleset bypass: owner\` (every use needs the owner's authorisation in the PR description, guidelines workflow.md, Pull requests).`, repo);
+            } else {
+                const where = summary.source_type === 'Organization' ? ' (an organization ruleset: change it in the organization settings, or record `Ruleset bypass: owner` in the project profile)' : '';
+                findings.error('ruleset-bypass', `Shared account ${SHARED_ACCOUNT} can bypass ruleset "${summary.name}"${where} (guidelines workflow.md, Pull requests).`, repo);
+            }
         } else if (Array.isArray(actors) && actors.length > 0) {
             const who = actors.map((a) => `${a.actor_type}${a.actor_id ? `#${a.actor_id}` : ''} (${a.bypass_mode})`);
             findings.warn('ruleset-bypass', `Ruleset "${summary.name}" has bypass actors: ${who.join(', ')}${canBypass && canBypass !== 'never' ? `; ${login ?? 'the current user'} can bypass` : ''}. Make sure ${SHARED_ACCOUNT} cannot (guidelines workflow.md, Pull requests).`, repo);
@@ -868,7 +879,7 @@ export function runConformance(root, { tier: tierFlag = null, github = null, gh 
     const { rel: sliceFile, slices } = tier === 'full' ? checkSlices(absolute, findings) : { rel: null, slices: [] };
 
     if (github) {
-        checkGithub(github, { tier, taskingMode: profile.taskingMode, slices, sliceFile }, findings, gh ?? makeGh());
+        checkGithub(github, { tier, taskingMode: profile.taskingMode, rulesetBypass: profile.rulesetBypass, slices, sliceFile }, findings, gh ?? makeGh());
     }
 
     const counts = { error: 0, warning: 0, info: 0 };

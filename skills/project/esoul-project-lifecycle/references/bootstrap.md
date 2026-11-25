@@ -83,9 +83,17 @@ documents.
     is a repository setting, not a guideline rule: allow squash merging only, with the PR title
     as the commit title, and delete the branch on merge
     (`gh api -X PATCH repos/<owner>/<repo> -F allow_squash_merge=true -F allow_merge_commit=false -F allow_rebase_merge=false -f squash_merge_commit_title=PR_TITLE -f squash_merge_commit_message=PR_BODY -F delete_branch_on_merge=true`).
-    Then the ruleset on `main` (required check `Jenkins`, one approval, dismiss stale approvals,
-    no bypass for `esoul-cz-user`; `workflow.md` › Pull requests) and the label set of
-    [labels.md](labels.md).
+    Then the ruleset on `main` (required check `Jenkins`, one approval, dismiss stale approvals;
+    `workflow.md` › Pull requests) and the label set of [labels.md](labels.md). Check first what
+    the organization rulesets already cover (`gh api repos/<owner>/<repo>/rulesets?includes_parents=true`,
+    `source_type: Organization`): `Jenkins must pass` and `No direct push to main/master` are
+    organization rulesets, which a project cannot edit; add a repository ruleset only for what
+    they do not cover. **Ask the person whether the shared account `esoul-cz-user` keeps a
+    ruleset bypass:** `none` (default: no bypass in the repository ruleset) or `owner` (a
+    one-person project where the owner merges through it; every use is authorised per pull
+    request with the reason in the PR description, `workflow.md` › Pull requests). Record the
+    answer as `Ruleset bypass` in `CONTEXT.md › Project profile`; with `owner` the repository
+    ruleset keeps the bypass for that account.
 13. **Documentation tooling** (full tier, when client PDFs are expected): hand over to
     `esoul-docs` (its PDF section).
 14. **Verify.** Run `esoul-guidelines check` and
@@ -178,7 +186,7 @@ Templates use `{{UPPER_SNAKE_CASE}}`. Common ones:
 | `{{PROJECT_NAME}}`, `{{CLIENT_NAME}}` | Human project name used in docs headings; client's legal or trading name |
 | `{{GITHUB_REPO}}` | `owner/name` |
 | `{{FREELO_PROJECT_NAME}}`, `{{FREELO_PROJECT_ID}}` | Freelo project |
-| `{{STACK}}`, `{{ARCHETYPE}}`, `{{PRODUCT_TYPE}}`, `{{PROCESS_TIER}}`, `{{STACK_PROFILE}}` | Project profile |
+| `{{STACK}}`, `{{ARCHETYPE}}`, `{{PRODUCT_TYPE}}`, `{{PROCESS_TIER}}`, `{{STACK_PROFILE}}`, `{{RULESET_BYPASS}}` | Project profile |
 | `{{STAGING_URL}}`, `{{PRODUCTION_URL}}` | Environments, `TBD` until known |
 | `{{ORIGINAL_SITE}}`, `{{OLD_SITE_URL}}` | URL of the site being replaced, or `—` |
 | `{{DESIGN_SOURCE}}`, `{{DESIGN_PEN_PATH}}` | Design source (`.pen` path, Figma URL or `—`); path to the `.pen` file |
