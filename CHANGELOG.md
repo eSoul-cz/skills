@@ -4,9 +4,13 @@ All notable changes to `eSoul-cz/skills` are recorded here. The format follows [
 
 ## Unreleased
 
+## 0.27.4 - 2026-11-25
+
+Patch release of the skills; the npm helper `@esoul-cz/skills` stays at 0.2.3 (no change to the helper). The repository is rendered with `esoul-cz/guidelines` 0.5.5.
+
 ### Changed
 
-- `esoul-workflow` › Guardrails: a production deployment is watched by whoever started it (the owner may ask the agent to merge or trigger one), and a production start script follows `deployment.md` › The production start entrypoint (quick, no seeder, a failing migration is logged and does not block the container). The rules themselves are in the guidelines (next release); no other skill restated them.
+- `esoul-workflow` › Guardrails: a production deployment is watched by whoever started it (the owner may ask the agent to merge or trigger one), and a production start script follows `deployment.md` › The production start entrypoint (quick, no seeder, a failing migration is logged and does not block the container). The rules themselves are in the guidelines (0.5.5, the version this repository is rendered with); no other skill restated them.
 
 - `esoul-project-lifecycle`: bootstrap step 12 and retrofit §2 ask whether the shared account `esoul-cz-user` keeps a ruleset bypass (`none` by default, `owner` for a one-person project whose owner merges through it, each use authorised per pull request in the PR description) and record it as `Ruleset bypass` in `CONTEXT.md › Project profile` (template, `tiers.md`, `SKILL.md`). `conformance.mjs --github` reads the line: `owner` reports a kept bypass as the info `ruleset-bypass-recorded` instead of the error `ruleset-bypass`; the error names an organization ruleset, which a project cannot edit per repository (`Jenkins must pass` and `No direct push to main/master` are organization rulesets, so bootstrap adds a repository ruleset only where they do not cover it). Reason: `workflow.md` › Pull requests already allows a bypass with the owner's per-PR authorisation, but bootstrap and conformance treated every bypass as wrong (issue #42).
 
