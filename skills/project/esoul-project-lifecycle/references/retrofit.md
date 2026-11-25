@@ -47,9 +47,10 @@ Create the retrofit work as issue + Freelo pairs up front, via `esoul-task-creat
    project files still mention. A project that already has a lock from before the 0.26.0 layout,
    retired skill names in its files or an older guidelines minor takes the setup update first
    (`esoul-project-update` › `references/setup.md`).
-4. **R2, guidelines:** `esoul-guidelines init` and `sync`, reconciliation of the existing
-   `docs/project_guidelines/` and `AGENTS.md` (section 4), `esoul-guidelines check` in CI
-   (skill `esoul-guidelines`).
+4. **R2, guidelines:** `esoul-guidelines init` and `sync` (a project without PHP gets the command
+   from the machine: skill `esoul-guidelines` › "Without PHP in the project"), reconciliation of
+   the existing `docs/project_guidelines/` and `AGENTS.md` (section 4), `esoul-guidelines check` in
+   CI (skill `esoul-guidelines`).
 5. **R3, pipeline:** the `Jenkinsfile` becomes one call of the shared pipeline library (skill
    `esoul-jenkins-libraries`); the `Guidelines check` stage is built in while the lock exists.
 6. Root files and agent rules: the missing common files from the template
@@ -100,8 +101,9 @@ stays readable at the tag `plugin-0.24.0` of `eSoul-cz/skills`
 (`git show plugin-0.24.0:skills/esoul-project-lifecycle/assets/templates/docs/project_guidelines/<path>`).
 
 1. Run `esoul-guidelines init` and review the layers
-   (skill `esoul-guidelines`), then `esoul-guidelines sync`. The installer writes its managed
-   block into each file and keeps the old text below it.
+   (skill `esoul-guidelines`; without PHP in the project, install the command as its section
+   "Without PHP in the project" says), then `esoul-guidelines sync`. The installer writes its
+   managed block into each file and keeps the old text below it.
 2. For each file, compare the old text below the block with the block, and sort every difference
    by the **conflict policy**:
    - **A clear conflict with a guideline** (the project rule says the opposite of a guideline rule,

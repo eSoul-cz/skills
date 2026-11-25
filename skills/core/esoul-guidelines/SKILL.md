@@ -42,21 +42,37 @@ fail, installing a tool needs the user's approval; ask, then install by project 
   and add the hook to the project's `composer.json` scripts: `post-update-cmd` →
   `esoul-guidelines sync`, placed after `@php artisan boost:update --ansi` when Laravel Boost is
   installed.
-- **Project without PHP** (Astro, other Node projects), the three routes of the guidelines
-  README › "Repositories without PHP":
-  - Composer global: `composer global require esoul-cz/guidelines`;
-  - the PHAR of a GitHub release: download `esoul-guidelines.phar` with its `.sha256` and verify
-    the checksum before use;
-  - the Docker image `rg.fr-par.scw.cloud/testing-images/esoul-guidelines:<tag>` (pin the tag to
-    the release; an image carries exactly one release). Every command becomes
-    `docker run --rm -it -v "$PWD:/app" -w /app --user "$(id -u):$(id -g)" <image> <command>`
-    (`-it` only for `init`).
-
-  On a developer machine prefer Composer global or the PHAR of the version recorded in
-  `esoul-guidelines.lock` (`package_version`); the image is a local convenience. CI runs the
-  recorded version (step 4).
+- **Project without PHP** (Astro static or SSR, the CMS frontend, a Node-only repository): the
+  command comes from the machine, not from `vendor/`; see "Without PHP in the project" below.
 
 Done when `esoul-guidelines list` runs.
+
+## Without PHP in the project
+
+A repository without a `composer.json` has nothing to `composer require` the package into. The
+command runs from the machine, in the project root; `init`, `sync`, `check` and `list` never
+read `vendor/` and work without a `composer.json`. The guidelines README ›
+[Repositories without PHP](https://github.com/eSoul-cz/guidelines#repositories-without-php) is
+the source of truth; this is the short form.
+
+1. **Install** (PHP 8.4+ and Composer on the machine; ask first, step 1):
+   `composer global require esoul-cz/guidelines:^0.5`, and put the global bin directory on the
+   `PATH` once: `export PATH="$(composer global config bin-dir --absolute):$PATH"`.
+2. **Use** from the project root: `esoul-guidelines init` (step 2), `esoul-guidelines sync`
+   (step 3), `esoul-guidelines check`. Commit the files of step 3; nothing else is added to the
+   project (no `package.json` entry, no hook).
+3. **Without Composer**: the PHAR of the GitHub release whose version is `package_version` in
+   `esoul-guidelines.lock` (download `esoul-guidelines.phar` and its `.sha256`, verify the
+   checksum), run as `php esoul-guidelines.phar <command>` or put on the `PATH`. Or the Docker
+   image `rg.fr-par.scw.cloud/testing-images/esoul-guidelines:<release>`, once the README says it
+   is published: `docker run --rm -v "$PWD:/app" -w /app --user "$(id -u):$(id -g)" <image>
+   <command>` (`-it` for `init`; an image carries exactly one release).
+4. **Update**: the global install is per machine and a caret on 0.x stops at the minor, so raise
+   it the same way, `composer global require esoul-cz/guidelines:^0.X -W` (`X` the latest minor;
+   a patch release is `composer global update esoul-cz/guidelines`; a PHAR or image update is the
+   newer release), then `esoul-guidelines sync` in the project and commit as in step 3.
+5. **CI** needs no install: the pipelines run `check` themselves with the version in
+   `esoul-guidelines.lock` (`package_version`), step 4.
 
 ## 2. Initialise and review the layers
 

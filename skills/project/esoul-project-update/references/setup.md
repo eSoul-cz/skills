@@ -24,7 +24,7 @@ Done when `esoul-skills status` reports no stale entry and `skills-lock.json` an
 
 ## 3. Guidelines
 
-1. On 0.x a caret constraint stops at the minor: `^0.3` never reaches 0.4. Raise it with `composer require --dev esoul-cz/guidelines:^<latest minor> -W` (without Composer, take the newer PHAR or image and pin the version CI runs, `esoul-guidelines` step 4), then `esoul-guidelines sync --dry-run -vv`, read what would change, `esoul-guidelines sync`.
+1. On 0.x a caret constraint stops at the minor: `^0.3` never reaches 0.4. Raise it with `composer require --dev esoul-cz/guidelines:^<latest minor> -W` (a project without PHP raises the global one, `composer global require esoul-cz/guidelines:^<latest minor> -W`, or takes the newer PHAR or image and pins the version CI runs: `esoul-guidelines` › "Without PHP in the project" and step 4), then `esoul-guidelines sync --dry-run -vv`, read what would change, `esoul-guidelines sync`.
 2. Read the guidelines changelog between the old and the new `package_version` (`vendor/esoul-cz/guidelines/CHANGELOG.md`; otherwise the repository's). Note renamed headings, new rules and moved files, because the project's own files and skills cite headings.
 3. List the project's own files (below the managed block, project guideline files) that contradict a new rule. Reconcile them with `esoul-guidelines` step 5: a rule the code does not follow yet is a `**Target.**` block with its gap issue (`esoul-task-create`, approved preview); product code is not fixed here.
 4. Commit the regenerated `esoul-guidelines.json`, `esoul-guidelines.lock`, `docs/project_guidelines/` and `AGENTS.md` as their own mechanical commit; `esoul-guidelines check` exits 0.

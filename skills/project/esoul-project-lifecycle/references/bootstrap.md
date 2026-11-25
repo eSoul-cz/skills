@@ -44,8 +44,9 @@ documents.
    `docs/project_guidelines/` and the managed block of `AGENTS.md`, rendered at build time: verify
    them with the skill `esoul-guidelines` (`esoul-guidelines check`, review the layers, `sync
    --dry-run`) and run `init` only for a project that lacks them (then: install the command,
-   `init`, review the layers, `sync`). Light projects take the same layers as full ones, with no
-   rewriting of links in the rendered files. Then append the project part
+   `init`, review the layers, `sync`; without PHP in the project the command comes from the
+   machine, see the skill's "Without PHP in the project"). Light projects take the same layers as
+   full ones, with no rewriting of links in the rendered files. Then append the project part
    (`assets/templates/root/AGENTS.md`) **below** the managed block of `AGENTS.md`.
 6. **Fill placeholders.** Replace every `{{…}}` of the copied assets. Unknown values become
    `TBD` plus a `question` issue, never a guess. Remove optional blocks that do not apply. Skip
