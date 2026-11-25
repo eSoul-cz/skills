@@ -83,7 +83,7 @@ Manifest of community skills eSoul found useful, split by tool, plus the optiona
 
 ## Install
 
-The helper is a Node package on top of [`npx skills`](https://github.com/vercel-labs/skills) (no dependencies of its own):
+The helper is a Node package on top of [`npx skills`](https://github.com/vercel-labs/skills). Its one runtime dependency is `@clack/prompts`, loaded only for the interactive selector, so `--yes`, `--dry-run` and script runs never load it:
 
 ```bash
 # in a project: core, dev and upstream-core, plus the stack skills that match the project
