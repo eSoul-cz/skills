@@ -12,6 +12,7 @@ import {
     batchInvocations,
     expandLayerArgs,
     findStaleSetup,
+    findUpstreamRemoved,
     groupsForGuidelineLayers,
     groupsForProjectFiles,
     layerChoices,
@@ -24,6 +25,7 @@ import {
     satisfiedLayers,
     selectionGroups,
     staleFix,
+    upstreamSpecs,
     validateManifest,
     withSkillRequires,
 } from '../../lib/layers.mjs';
@@ -745,4 +747,138 @@ test('selector: confirming runs one npx skills per source and scope, declining s
             process.env.ESOUL_SKILLS_NPX = previous;
         }
     }
+});
+
+// project init cleans up and refreshes: retired and upstream-dropped skills go (one batched call), the rest is updated.
+function cleanupManifest() {
+    const definition = structuredClone(retiredManifest);
+    definition.layers['upstream-core'] = definition.layers.up;
+    delete definition.layers.up;
+    definition.layers.dev.requires = ['core', 'upstream-core'];
+    return definition;
+}
+
+const cleanupLock = {
+    version: 1,
+    skills: {
+        old: { source: 'org/skills', sourceType: 'github', skillPath: 'skills/old/SKILL.md' },
+        gone: { source: 'org/skills', sourceType: 'github', skillPath: 'skills/gone/SKILL.md' },
+        a: { source: 'org/skills', sourceType: 'github', skillPath: 'skills/core/a/SKILL.md' },
+        x: { source: 'm/skills', sourceType: 'github', skillPath: 'skills/x/SKILL.md' },
+        dropped: { source: 'm/skills', sourceType: 'github', skillPath: 'skills/dropped/SKILL.md' },
+        kept: { source: 'm/skills', sourceType: 'github', skillPath: 'skills/kept/SKILL.md' },
+        s9: { source: 's/stack', sourceType: 'github', skillPath: 'skills/s9/SKILL.md' },
+        merged: { source: 'other/repo', sourceType: 'github', skillPath: 'skills/merged/SKILL.md' },
+        foreign: { source: 'other/repo', sourceType: 'github', skillPath: 'skills/foreign/SKILL.md' },
+    },
+};
+
+/** A project with the lock above and an `npx` stand-in: `m/skills@v1` lists x, y and kept, `s/stack` cannot be read, the rest succeeds. */
+function cleanupProject() {
+    const root = project({ 'skills-lock.json': cleanupLock });
+    const log = join(root, 'npx.log');
+    const script = join(root, 'npx');
+    writeFileSync(
+        script,
+        `#!/bin/sh\necho "$@" >> "${log}"\ncase "$*" in\n  *"add s/stack --list"*) exit 1;;\n  *"add m/skills@v1 --list"*) printf '│\\n◇  Available Skills\\n│    x\\n│\\n│      Does x.\\n│    y\\n│    kept\\n│\\n';;\n  *) echo '[]';;\nesac\n`,
+    );
+    chmodSync(script, 0o755);
+    return { root, calls: () => (existsSync(log) ? readFileSync(log, 'utf8').trim().split('\n') : []) };
+}
+
+async function cleanupRun(args, ui = {}, { terminal = false } = {}) {
+    const { root, calls } = cleanupProject();
+    const previous = process.env.ESOUL_SKILLS_NPX;
+    const stdin = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
+    process.env.ESOUL_SKILLS_NPX = join(root, 'npx');
+    Object.defineProperty(process.stdin, 'isTTY', { value: terminal, configurable: true });
+    const lines = [];
+    const originalLog = console.log;
+    console.log = (line = '') => lines.push(String(line));
+    let error = null;
+    try {
+        await projectInit(parseArgs([...args, '--no-stack']), cleanupManifest(), root, () => true, ui);
+    } catch (thrown) {
+        error = thrown;
+    } finally {
+        console.log = originalLog;
+        process.env.ESOUL_SKILLS_NPX = previous ?? '';
+        if (previous === undefined) {
+            delete process.env.ESOUL_SKILLS_NPX;
+        }
+        if (stdin) {
+            Object.defineProperty(process.stdin, 'isTTY', stdin);
+        } else {
+            delete process.stdin.isTTY;
+        }
+    }
+    return { text: lines.join('\n'), calls: calls(), error };
+}
+
+test('upstream removal: only lock entries of a layers.json source that the source no longer lists, never a wanted skill or an unreadable source', () => {
+    const definition = cleanupManifest();
+    assert.deepEqual(upstreamSpecs(definition, cleanupLock).sort(), ['m/skills@v1', 's/stack']);
+    const listings = new Map([
+        ['m/skills@v1', new Set(['x', 'y', 'kept'])],
+        ['s/stack', null],
+    ]);
+    const result = findUpstreamRemoved(definition, cleanupLock, listings);
+    assert.deepEqual(result.removed.map((entry) => entry.name), ['dropped']);
+    assert.deepEqual(result.unverified, ['s/stack']);
+    assert.equal(result.removed[0].source, 'm/skills');
+    assert.deepEqual(findUpstreamRemoved(definition, null, new Map()), { removed: [], unverified: [] });
+});
+
+test('project init --yes removes the retired and the upstream-dropped skills in one call, keeps foreign ones, then refreshes', async () => {
+    const { text, calls, error } = await cleanupRun(['--yes']);
+    assert.equal(error, null);
+    const removals = calls.filter((call) => call.startsWith('-y skills remove'));
+    assert.deepEqual(removals, ['-y skills remove old gone dropped -y']);
+    assert.deepEqual(calls.filter((call) => call.startsWith('-y skills update')), ['-y skills update -p -y']);
+    assert.ok(calls.findIndex((call) => call.startsWith('-y skills remove')) < calls.findIndex((call) => call.startsWith('-y skills update')), 'remove first, then update');
+    assert.ok(calls.findIndex((call) => call.startsWith('-y skills add org/skills')) < calls.findIndex((call) => call.startsWith('-y skills remove')), 'the install comes first');
+    assert.equal(calls.filter((call) => call.endsWith('--list')).length, 2, 'each source is listed once');
+    assert.match(text, /^ {2}old {2}\(retired in org\/skills; use a, b\)$/m);
+    assert.match(text, /^ {2}gone {2}\(no longer in org\/skills\)$/m);
+    assert.match(text, /^ {2}dropped {2}\(m\/skills no longer lists it\)$/m);
+    assert.match(text, /Could not list s\/stack/);
+    assert.doesNotMatch(text, /^ {2}(merged|foreign|s9|kept|x|a) /m);
+});
+
+test('project init without a terminal and without --yes removes nothing, says to pass --yes, and still refreshes', async () => {
+    const { text, calls, error } = await cleanupRun([]);
+    assert.equal(error, null);
+    assert.deepEqual(calls.filter((call) => call.startsWith('-y skills remove')), []);
+    assert.match(text, /Not removed \(no terminal\): pass --yes to remove them, or run\n {2}npx -y skills remove old gone dropped -y/);
+    assert.deepEqual(calls.filter((call) => call.startsWith('-y skills update')), ['-y skills update -p -y']);
+});
+
+test('project init --dry-run prints the remove and update commands and runs neither', async () => {
+    const { text, calls } = await cleanupRun(['--dry-run', '--yes']);
+    assert.match(text, /^\[cleanup · project\] npx -y skills remove old gone dropped -y$/m);
+    assert.match(text, /^\[refresh · project\] npx -y skills update -p -y$/m);
+    assert.deepEqual(calls.filter((call) => /skills (remove|update|add org)/.test(call)), []);
+    assert.equal(calls.filter((call) => call.endsWith('--list')).length, 2, 'listing a source is read-only');
+});
+
+test('project init in a terminal asks before removing (default yes); declining keeps the skills and prints the command', async () => {
+    const answers = { target: 'project', layers: ['core', 'upstream-core'], skills: ['a', 'x'] };
+    const yes = stubPrompts({ ...answers });
+    const accepted = await cleanupRun(['--no-requires'], { prompts: yes });
+    assert.equal(accepted.error, null);
+    assert.ok(yes.calls.some(([name, data]) => name === 'confirm' && /^Remove these 3 skills\?$/.test(data.message)));
+    assert.deepEqual(accepted.calls.filter((call) => call.startsWith('-y skills remove')), ['-y skills remove old gone dropped -y']);
+    const no = stubPrompts({ ...answers, confirm: (data) => !/^Remove/.test(data.message) });
+    const declined = await cleanupRun(['--no-requires'], { prompts: no });
+    assert.equal(declined.error, null);
+    assert.deepEqual(declined.calls.filter((call) => call.startsWith('-y skills remove')), []);
+    assert.match(declined.text, /Not removed\. Remove them later with\n {2}npx -y skills remove old gone dropped -y/);
+    assert.deepEqual(declined.calls.filter((call) => call.startsWith('-y skills update')), ['-y skills update -p -y']);
+});
+
+test('project init never judges a source it cannot list: only the retired and the own-repository removals go', async () => {
+    const unreadable = await cleanupRun(['--yes'], { listSource: () => null });
+    assert.equal(unreadable.error, null);
+    assert.deepEqual(unreadable.calls.filter((call) => call.startsWith('-y skills remove')), ['-y skills remove old gone -y']);
+    assert.match(unreadable.text, /Could not list m\/skills/);
 });
