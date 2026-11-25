@@ -4,6 +4,26 @@ All notable changes to `eSoul-cz/skills` are recorded here. The format follows [
 
 ## Unreleased
 
+## 0.27.2 - 2026-11-25
+
+Patch release with the npm helper `@esoul-cz/skills` 0.2.2 (owner notes on the helper and on projects without PHP). Reasons: `project init` only reported stale setup and left the removals to the user, so a project kept retired skills and skills an upstream source had dropped; and a repository without PHP had no short install-sync-update path in the skills (only a list of the three routes).
+
+### Changed
+
+- `esoul-skills project init` does the whole update of the project scope instead of reporting. After the install it removes the retired skills (the `retired` map of `layers.json`) and the lock entries whose skill their source no longer lists (an upstream such as `mattpocock/skills` dropped or renamed it; found by comparing the lock with `npx skills add <source> --list`, one listing per source) in one `npx skills remove … -y`, then refreshes the rest from the lock with `npx skills update -p -y` (the project-scope update of `skills` 1.9.0; `update` itself skips upstream deletions without a terminal, so the removal has to be the helper's). Reason: the owner wants one command that leaves the project's skills current, not a list of commands to run.
+- The removal follows the mode: in a terminal without `--yes` it shows the list and asks (default yes); `--yes` removes; `--dry-run` prints the `remove` and `update` commands; without a terminal and without `--yes` it removes nothing and says to pass `--yes` (a script must not delete silently), and the refresh still runs. Reason: deleting skill folders needs a person's yes or an explicit flag.
+- Safety rules: project scope only (the user's global skills are never touched; `status` still reports them); a lock entry from a source that is not in `layers.json` stays (the lock names the source); a source that cannot be listed (offline, private) is reported and never judged; a skill the manifest still names is never removed.
+- `esoul-project-update` › `references/setup.md` §2 and `esoul-project-lifecycle` › `references/retrofit.md` R1: the helper does the cleanup; the agent reviews the diff of `.agents/skills/` and the lock and fixes the retired names that project files still mention.
+
+### Added
+
+- `esoul-guidelines`: the section "Without PHP in the project" (Astro static or SSR, the CMS frontend, a Node-only repository): `composer global require esoul-cz/guidelines:^0.5` with Composer's global bin directory on the `PATH`, `esoul-guidelines init|sync|check` from the project root, the PHAR of the version in `esoul-guidelines.lock` or the Docker image as alternatives, the update by raising the global constraint (`composer global require esoul-cz/guidelines:^0.X -W`), and CI running `check` itself. The guidelines README stays the source of truth and is linked. Bootstrap step 5, retrofit R2 and `setup.md` §3 point to it. Reason: an agent in an Astro or Node repository had no ordered procedure to follow.
+- Tests: retired and upstream-dropped skills removed in one batched call, foreign and wanted skills and unreadable sources left alone, no removal without a terminal or `--yes`, `--dry-run`, and the confirmation in the selector flow.
+
+### Fixed
+
+- README: the helper is no longer described as dependency-free; `@clack/prompts` is its one runtime dependency, loaded only for the interactive selector.
+
 ## 0.27.1 - 2026-11-24
 
 Patch release with the npm helper `@esoul-cz/skills` 0.2.1 (owner feedback on the helper; the skills themselves are unchanged). Reasons: a developer should see and trim what gets installed instead of learning the layer names, and a full install ran the same `npx skills add` for one repository several times (each run clones the source again).

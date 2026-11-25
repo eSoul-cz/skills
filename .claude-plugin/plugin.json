@@ -1,6 +1,6 @@
 {
   "name": "esoul-skills",
-  "version": "0.27.1",
+  "version": "0.27.2",
   "description": "eSoul's own agent skills in layers: core (esoul-workflow, esoul-guidelines, esoul-task-work), dev (esoul-review, esoul-testing, esoul-docs), project (esoul-project-lifecycle, esoul-project-update, esoul-uat, esoul-task-create, esoul-data, esoul-mockup-authoring, esoul-quality-gates, esoul-website-launch), helpers (gitmoji-commit, esoul-model-routing), business (esoul-office-documents, esoul-offer-authoring). Optional extras of this plugin: worker agents with pinned models (scout, test-runner, implementer, reviewer, critical-reviewer, uat-runner, ops), session hooks that inject the usage rules and guard subagent models, Codex agent equivalents in codex/. Third-party skills are installed with `npx @esoul-cz/skills install upstream-core`.",
   "author": { "name": "eSoul", "email": "info@esoul.cz", "url": "https://esoul.cz" },
   "homepage": "https://github.com/eSoul-cz/skills",
