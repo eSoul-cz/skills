@@ -40,10 +40,13 @@ Create the retrofit work as issue + Freelo pairs up front, via `esoul-task-creat
 
 1. Critical bugs found in the audit.
 2. CI green and required on `main` (ruleset), and the merge settings of bootstrap step 12 (squash merging only), both after the person approves the exact `gh api` calls.
-3. **R1, the project's skills** (`npx @esoul-cz/skills project init`, `skills-lock.json`); a
-   project that already has a lock from before the 0.26.0 layout, retired skill names in its files
-   or an older guidelines minor takes the setup update first (`esoul-project-update` ›
-   `references/setup.md`).
+3. **R1, the project's skills** (`npx @esoul-cz/skills project init`, `skills-lock.json`): the helper
+   installs the current set, removes the retired skills and the ones their source dropped from the
+   project (one `npx skills remove`, with `--yes` or a confirmation) and refreshes the rest from the
+   lock; the agent reviews the diff (`.agents/skills/`, the lock) and fixes retired names that
+   project files still mention. A project that already has a lock from before the 0.26.0 layout,
+   retired skill names in its files or an older guidelines minor takes the setup update first
+   (`esoul-project-update` › `references/setup.md`).
 4. **R2, guidelines:** `esoul-guidelines init` and `sync`, reconciliation of the existing
    `docs/project_guidelines/` and `AGENTS.md` (section 4), `esoul-guidelines check` in CI
    (skill `esoul-guidelines`).
