@@ -33,7 +33,7 @@ function project(files, { git = true, untracked = {} } = {}) {
     return root;
 }
 
-const context = (tier, stack = 'laravel', mode = 'github-freelo') => `# Demo — project context
+const context = (tier, stack = 'laravel', mode = 'github-freelo', bypassLine = '') => `# Demo — project context
 
 ## Project profile
 
@@ -44,7 +44,7 @@ const context = (tier, stack = 'laravel', mode = 'github-freelo') => `# Demo —
 - Stack profile: \`esoul-project-lifecycle/references/stacks/${stack}.md\`
 - Environments: staging https://staging.example.test, production https://example.test
 - UAT dimensions: Role, Předpoklad
-
+${bypassLine}
 ## Tracker
 
 Work is tracked as GitHub issues, paired with Freelo tasks (see \`## Freelo\`).
@@ -353,6 +353,42 @@ test('--github flags the shared account bypass and skips Freelo checks in freelo
     const result = runConformance(root, { github: 'o/r', gh });
     assert.deepEqual(codes(result, 'error'), ['ruleset-bypass']);
     assert.deepEqual(find(result, 'issue-freelo-link'), []);
+});
+
+test('--github reports a recorded owner bypass of the shared account as info, not error', () => {
+    const root = project(fullFiles({ 'CONTEXT.md': context('full', 'laravel', 'freelo-only', '- Ruleset bypass: `owner`\n') }));
+    const gh = fakeGh({
+        'api repos/o/r/rulesets/1': { bypass_actors: [], current_user_can_bypass: 'always' },
+        'api repos/o/r/rulesets': [{ id: 1, name: 'Jenkins must pass', enforcement: 'active' }],
+        'api repos/o/r/rules/branches/main': [
+            { type: 'required_status_checks', parameters: { required_status_checks: [{ context: 'Jenkins' }] } },
+            { type: 'pull_request', parameters: { required_approving_review_count: 1, allowed_merge_methods: ['squash'] } },
+        ],
+        'api repos/o/r': { default_branch: 'main', allow_squash_merge: true, allow_merge_commit: false, allow_rebase_merge: false },
+        'api user': { login: 'esoul-cz-user' },
+        'issue list -R o/r --state open': [{ number: 1, title: 'Katalog: Zobrazit', labels: [{ name: 'frontend' }], body: '## UAT\n' }],
+        'issue list -R o/r --state all': [{ number: 1 }, { number: 7 }],
+    });
+    const result = runConformance(root, { github: 'o/r', gh });
+    assert.deepEqual(codes(result, 'error'), []);
+    assert.equal(find(result, 'ruleset-bypass-recorded')[0].severity, 'info');
+    assert.deepEqual(find(result, 'ruleset-bypass'), []);
+});
+
+test('--github names an organization ruleset in the bypass error and warns about an unknown profile value', () => {
+    const root = project(fullFiles({ 'CONTEXT.md': context('full', 'laravel', 'freelo-only', '- Ruleset bypass: `maybe`\n') }));
+    const gh = fakeGh({
+        'api repos/o/r/rulesets/1': { bypass_actors: [], current_user_can_bypass: 'always' },
+        'api repos/o/r/rulesets': [{ id: 1, name: 'Jenkins must pass', enforcement: 'active', source_type: 'Organization' }],
+        'api repos/o/r/rules/branches/main': [],
+        'api repos/o/r': { default_branch: 'main' },
+        'api user': { login: 'esoul-cz-user' },
+        'issue list -R o/r --state open': [],
+        'issue list -R o/r --state all': [],
+    });
+    const result = runConformance(root, { github: 'o/r', gh });
+    assert.match(find(result, 'ruleset-bypass')[0].message, /organization ruleset/);
+    assert.equal(find(result, 'profile-ruleset-bypass')[0].severity, 'warning');
 });
 
 test('a failing gh records a skipped finding instead of crashing', () => {

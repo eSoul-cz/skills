@@ -39,7 +39,7 @@ Create the retrofit work as issue + Freelo pairs up front, via `esoul-task-creat
 `blocked_by` so the order is visible. The default order:
 
 1. Critical bugs found in the audit.
-2. CI green and required on `main` (ruleset), and the merge settings of bootstrap step 12 (squash merging only), both after the person approves the exact `gh api` calls.
+2. CI green and required on `main` (ruleset), and the merge settings of bootstrap step 12 (squash merging only), both after the person approves the exact `gh api` calls. Ask whether the shared account `esoul-cz-user` keeps a ruleset bypass and record `Ruleset bypass: owner` or `none` in `CONTEXT.md › Project profile` (bootstrap step 12); organization rulesets (`Jenkins must pass`, `No direct push to main/master`) are not edited per repository, and a repository ruleset is added only where they do not cover it.
 3. **R1, the project's skills** (`npx @esoul-cz/skills project init`, `skills-lock.json`): the helper
    installs the current set, removes the retired skills and the ones their source dropped from the
    project (one `npx skills remove`, with `--yes` or a confirmation) and refreshes the rest from the

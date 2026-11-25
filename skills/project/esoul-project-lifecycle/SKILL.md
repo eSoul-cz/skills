@@ -20,7 +20,7 @@ preparation and its upkeep. It ends when a slice exists as a ready issue with UA
    the mode touches decisions or the plan, and `GLOSSARY.md` in full only in `glossary`, `audit`
    and `retrofit`; otherwise look terms up on demand.
 2. Resolve the **project profile** from `CONTEXT.md › ## Project profile`: stack, archetype,
-   process tier (`full` or `light`), environments, UAT dimensions. When it is missing, propose
+   process tier (`full` or `light`), environments, ruleset bypass (`none` or `owner`), UAT dimensions. When it is missing, propose
    one (see [tiers.md](references/tiers.md)), get confirmation, and write it.
 3. Read the stack profile for the recorded stack only in the modes whose row below lists
    "stack profile" (`bootstrap`, `handover`): [laravel](references/stacks/laravel.md),
@@ -93,7 +93,7 @@ This skill holds no company rule of its own beyond its process: the process tier
 | Topic | Owner |
 |---|---|
 | Issue first; titles; estimates; `## UAT`; dependencies; Freelo states | `docs/project_guidelines/workflow.md` › Tasking; `esoul-task-create` (creation), `esoul-task-work` (working rules) |
-| Merging (squash, `Jenkins` check, one approval, no bypass; agents do not merge or approve without authorisation) and PR review | `workflow.md` › Pull requests; `esoul-review` |
+| Merging (squash, `Jenkins` check, one approval, no bypass unless the profile records `Ruleset bypass: owner`; agents do not merge or approve without authorisation) and PR review | `workflow.md` › Pull requests; `esoul-review` |
 | Commits and the PR title | `workflow.md` › Commits; `gitmoji-commit` (recommended format) |
 | CONTEXT.md holds conventions, GLOSSARY.md domain language, ADR or guideline | `documentation.md` › Where a piece of knowledge belongs; `domain.md` |
 | Astro `Checks` stage | the `framework/astro` guideline, `tools.md` |

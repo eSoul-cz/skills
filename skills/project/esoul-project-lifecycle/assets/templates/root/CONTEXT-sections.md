@@ -11,6 +11,7 @@ alternatives that do not apply and every placeholder before committing.
 <!-- Stack: laravel | astro | lsr | lunar | other:<name>. Archetype (astro only): A-static |
      B-admin | C-headless, otherwise `—`. Product type: application | eshop | website-admin |
      website. Original site: URL of the site being replaced, or `—`. Process tier: full | light.
+     Ruleset bypass: none | owner (the shared account keeps a bypass, asked in bootstrap step 12).
      Design: .pen path, Figma URL, or `—`. -->
 - Stack: `{{STACK}}`
 - Archetype: `{{ARCHETYPE}}`
@@ -19,6 +20,7 @@ alternatives that do not apply and every placeholder before committing.
 - Process tier: `{{PROCESS_TIER}}`
 - Stack profile: `{{STACK_PROFILE}}`
 - Environments: staging {{STAGING_URL}}, production {{PRODUCTION_URL}}
+- Ruleset bypass: `{{RULESET_BYPASS}}`
 - UAT dimensions: Role, Předpoklad{{UAT_EXTRA_DIMENSIONS}}
 - Design: {{DESIGN_SOURCE}}
 
