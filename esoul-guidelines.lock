@@ -1,6 +1,6 @@
 {
     "schema_version": 1,
-    "package_version": "v0.6.1",
+    "package_version": "v0.6.2",
     "layers": [
         "general",
         "profile/internal"
@@ -76,7 +76,7 @@
             "block": "workflow",
             "sha256": "f1cdfab51d6f971ffc9770985a5482ce8ac4ef9cc7f8ed0cdb7d33e17727411d",
             "sources": {
-                "general/workflow.md": "5cc2d251d9b23f8535c80079ee005286b480e3cf66ac6724b4b29e0005af32f9",
+                "general/workflow.md": "c15581d8178f94efec3749f12f97f13cc966c29ed2c4177d1de6b57999f73188",
                 "profile/internal/workflow.md": "f04e75eeeaa458ea66563c941e27bc587df06d9993ae258fbec1cc9aa8a7aae2"
             }
         }
