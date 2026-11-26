@@ -4,6 +4,10 @@ All notable changes to `eSoul-cz/skills` are recorded here. The format follows [
 
 ## Unreleased
 
+## 0.27.5 - 2026-11-26
+
+Patch release of the skills; the npm helper `@esoul-cz/skills` stays at 0.2.3 (no change to the helper). The repository is rendered with `esoul-cz/guidelines` 0.6.1.
+
 ### Changed
 
 - `esoul-guidelines` step 2 names the React layer: a Laravel + Inertia project on React takes `package/laravel-inertia-react` (guidelines 0.6.0, detected from `@inertiajs/react`) after `package/laravel-inertia`, raises an older constraint instead of keeping a frontend exception, and drops such an exception once the layer is selected. The install without PHP uses `^0.6`. The Laravel stack profile of `esoul-project-lifecycle` lists the layer. Reason: guidelines 0.6.0 added the layer (`esoul-cz/guidelines#19`), and the first project to adopt it (a retrofit) had recorded its React frontend as a project exception.
