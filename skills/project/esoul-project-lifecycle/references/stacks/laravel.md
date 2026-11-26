@@ -3,7 +3,7 @@
 Laravel application with a CQRS core. The rules live in the guideline layer `framework/laravel`
 (`architecture.md`, `cqrs.md`, `requests-and-validation.md`, `frontend.md`, `tools.md`,
 `testing.md`, `deployment.md`) plus the package layers the project selects (`package/laravel-inertia`,
-`package/inertia-vue` or, on React, `package/laravel-inertia-react`, `package/filament`,
+`package/inertia-vue` or, in an existing React project, `package/laravel-inertia-react`, `package/filament`,
 `package/mutation-testing`, `package/test-evidence`),
 rendered into the project's `docs/project_guidelines/`. This profile holds only what bootstrap,
 handover and the pitfalls add. Shops built on Lunar use [lunar.md](lunar.md).
@@ -13,7 +13,7 @@ handover and the pitfalls add. Shops built on Lunar use [lunar.md](lunar.md).
 - `composer.json` requires `laravel/framework`; usually also `esoul-cz/laravel-cqrs` and
   `inertiajs/inertia-laravel`.
 - `artisan`, `phpstan.neon`, `pint.json` at the root; `resources/js` with the project's Inertia
-  frontend (Vue or React).
+  frontend: Vue; React only in a project that already uses it.
 - Admin either custom Inertia screens or Filament.
 - Process tier is almost always `full`. A Laravel/Filament backend that only feeds a static site
   (headless CMS for Astro `C-headless`) may run `light` if it has no domain logic beyond content.
@@ -41,7 +41,7 @@ On top of the root files and the docs tree ([bootstrap.md](../bootstrap.md)):
      in `skills-lock.json`, added only with
      `npx skills add <owner/repo> --skill <name> --agent claude-code codex --yes` (the pinned form is in the README).
      Typical set: the Boost-managed `laravel-best-practices`, `wayfinder-development`,
-     `inertia-vue-development` or `inertia-react-development`, `tailwindcss-development`,
+     `inertia-vue-development` (`inertia-react-development` in an existing React project), `tailwindcss-development`,
      `testing-best-practices`. The eSoul skills come from `npx @esoul-cz/skills project init`
      (layers `core`, `dev`, `upstream-core`, including `esoul-docs`); add `gitmoji-commit` with
      `npx @esoul-cz/skills install helpers`.
@@ -84,7 +84,9 @@ Gate B4 is green only when all of these hold on `main`:
 - Application architecture, layers and CQRS (`esoul-cz/laravel-cqrs`); where state machines live.
 - Database engine and decimal precision; the project's tier-1 flows list (`testing.md`).
 - Money representation, currencies, VAT, rounding; exchange rates.
-- Admin approach (Filament vs custom Inertia); frontend framework (Vue vs React).
+- Admin approach (Filament vs custom Inertia). The frontend framework is not a question: a new
+  project uses Vue, as every template variant does; React stays only in a project that already
+  uses it, so that eSoul projects keep one frontend stack.
 - System of record and integration transport (ERP, idempotence, outbox), queue broker and
   process topology (queue workers, scheduler). Each external integration sits behind a port with
   two adapters, the real driver and a fake driver for tests (`esoul-workflow` ›

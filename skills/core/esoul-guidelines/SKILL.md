@@ -91,7 +91,8 @@ a stack or package without detection (`esoul-guidelines list` shows the layers).
 `general`, `profile/*`, `framework/*`, `package/*`. Light projects use the same layers as full
 ones.
 
-A Laravel + Inertia project on React takes `package/laravel-inertia-react` after
+eSoul builds new frontends in Vue; the React layer is for a project that already uses React,
+not a choice for a new one. Such a Laravel + Inertia project takes `package/laravel-inertia-react` after
 `package/laravel-inertia`, not `package/inertia-vue`. `init` from guidelines 0.6.0 adds it when
 `package.json` has `@inertiajs/react`. On an older version the React project raises the
 constraint (step 3) instead of keeping a project exception for its frontend; a project that

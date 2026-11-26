@@ -7,6 +7,7 @@ All notable changes to `eSoul-cz/skills` are recorded here. The format follows [
 ### Changed
 
 - `esoul-guidelines` step 2 names the React layer: a Laravel + Inertia project on React takes `package/laravel-inertia-react` (guidelines 0.6.0, detected from `@inertiajs/react`) after `package/laravel-inertia`, raises an older constraint instead of keeping a frontend exception, and drops such an exception once the layer is selected. The install without PHP uses `^0.6`. The Laravel stack profile of `esoul-project-lifecycle` lists the layer. Reason: guidelines 0.6.0 added the layer (`esoul-cz/guidelines#19`), and the first project to adopt it (a retrofit) had recorded its React frontend as a project exception.
+- Vue is the frontend of a new project (owner, 2026-11-26): the `esoul-project-lifecycle` Laravel stack profile no longer asks "Vue vs React" as an open question; a new project uses Vue, as every template variant does, and React stays only in a project that already uses it (for example VONO IIS). `esoul-guidelines` says the React layer is for such a project, not a choice for a new one. Reason: React is not eSoul's primary framework, and offering it for new projects would multiply frontend stacks.
 
 ### Fixed
 
