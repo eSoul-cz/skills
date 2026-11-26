@@ -1,6 +1,6 @@
 {
     "schema_version": 1,
-    "package_version": "v0.5.5",
+    "package_version": "v0.6.1",
     "layers": [
         "general",
         "profile/internal"
@@ -53,9 +53,9 @@
         },
         "docs/project_guidelines/public-website.md": {
             "block": "public-website",
-            "sha256": "e3e5f3e83540ae29d25a1b8c87587d555f5652715131e7bde06c54ca62d52304",
+            "sha256": "5567b492ed1c660c662dff35d573a0b92a6694ec35f39274697cb95e75dc5d9f",
             "sources": {
-                "general/public-website.md": "854a9400151ed404bab1d1ebad3bc76349afb8ffa071f231b9f3fba876c8b4cf"
+                "general/public-website.md": "3eae972a6647f0c2a0bb392e66bfd1cebb339f6705837e23a69ded557b4b68cd"
             }
         },
         "docs/project_guidelines/security-and-data.md": {

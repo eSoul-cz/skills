@@ -47,7 +47,8 @@ Switching the gate off is a launch step in the launch checklist: remove basic au
 
 - Every URL of the old site that had traffic or links gets a **301** to its closest new page, as listed in the project's sitemap and meta document. Content removed for good returns **410**, not a redirect to the homepage. Old upload paths (for example `/wp-content/uploads/*`) are handled explicitly.
 - Redirect targets use the canonical URL form, so no chain of two redirects exists. After a slug change, the old slug redirects to the new one.
-- Redirects live in the host NGINX site, not in the application: in the manifest (`nginx.extra`) or in a redirect map the project keeps and devops include. The project keeps the list in its sitemap document and hands it over in the pull request's deploy notes ([workflow.md](workflow.md#pull-requests)); devops apply it.
+- Redirects live in the host NGINX site, not in the application, unless the next point applies: in the manifest (`nginx.extra`) or in a redirect map the project keeps and devops include. The project keeps the list in its sitemap document and hands it over in the pull request's deploy notes ([workflow.md](workflow.md#pull-requests)); devops apply it.
+- An application that renders its pages on the server and has its own admin MAY keep the redirects in the application instead, managed by the client in the admin. The same rules hold: 301 or 410 only, the target is a canonical path of the same site, the application refuses a chain or a loop, and it records the old path itself when a slug changes. The initial list from the sitemap document ships as a migration, so the redirects work from the deploy without a manual step, and the deploy notes name it instead of handing a map to devops. Redirects of a whole host (`www`, an old domain) stay in the manifest.
 
 ## Exceptions
 
