@@ -56,7 +56,7 @@ read `vendor/` and work without a `composer.json`. The guidelines README ›
 the source of truth; this is the short form.
 
 1. **Install** (PHP 8.4+ and Composer on the machine; ask first, step 1):
-   `composer global require esoul-cz/guidelines:^0.5`, and put the global bin directory on the
+   `composer global require esoul-cz/guidelines:^0.6`, and put the global bin directory on the
    `PATH` once: `export PATH="$(composer global config bin-dir --absolute):$PATH"`.
 2. **Use** from the project root: `esoul-guidelines init` (step 2), `esoul-guidelines sync`
    (step 3), `esoul-guidelines check`. Commit the files of step 3; nothing else is added to the
@@ -90,6 +90,12 @@ Then review the detected layers in `esoul-guidelines.json` against the stack in
 a stack or package without detection (`esoul-guidelines list` shows the layers). Keep the order
 `general`, `profile/*`, `framework/*`, `package/*`. Light projects use the same layers as full
 ones.
+
+A Laravel + Inertia project on React takes `package/laravel-inertia-react` after
+`package/laravel-inertia`, not `package/inertia-vue`. `init` from guidelines 0.6.0 adds it when
+`package.json` has `@inertiajs/react`. On an older version the React project raises the
+constraint (step 3) instead of keeping a project exception for its frontend; a project that
+recorded such an exception drops it once the layer is selected (step 6, "Keep it valid").
 
 Done when every stack and package of the repository has its layer, or a missing layer is raised
 as a request to `esoul-cz/guidelines`.
