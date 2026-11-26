@@ -4,6 +4,10 @@ All notable changes to `eSoul-cz/skills` are recorded here. The format follows [
 
 ## Unreleased
 
+### Changed
+
+- `esoul-guidelines` step 2 names the React layer: a Laravel + Inertia project on React takes `package/laravel-inertia-react` (guidelines 0.6.0, detected from `@inertiajs/react`) after `package/laravel-inertia`, raises an older constraint instead of keeping a frontend exception, and drops such an exception once the layer is selected. The install without PHP uses `^0.6`. The Laravel stack profile of `esoul-project-lifecycle` lists the layer. Reason: guidelines 0.6.0 added the layer (`esoul-cz/guidelines#19`), and the first project to adopt it (a retrofit) had recorded its React frontend as a project exception.
+
 ### Fixed
 
 - `esoul-quality-gates` › `ai-readiness.mjs`, three false `must` failures found on moravecpetr.cz: `jsonld` accepts the schema.org LocalBusiness subtypes (an explicit list including `Electrician`, `Plumber`, `HVACBusiness`, `RoofingContractor`, `GeneralContractor`, `HousePainter`, `Locksmith`, `MovingCompany`) as the home organization and finds a `BreadcrumbList` nested in `WebPage.breadcrumb`; `facts` reads `IČ 87814617` (JavaScript `\b` does not treat `Č` as a word character; `DIČ` still does not count as IČO); `indexable` and `html-basics` skip a page that is `noindex` on purpose and not in the sitemap (reported as info, no canonical required), while a `noindex` sitemap URL still fails.

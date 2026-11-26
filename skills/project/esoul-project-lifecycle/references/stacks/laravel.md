@@ -3,7 +3,8 @@
 Laravel application with a CQRS core. The rules live in the guideline layer `framework/laravel`
 (`architecture.md`, `cqrs.md`, `requests-and-validation.md`, `frontend.md`, `tools.md`,
 `testing.md`, `deployment.md`) plus the package layers the project selects (`package/laravel-inertia`,
-`package/inertia-vue`, `package/filament`, `package/mutation-testing`, `package/test-evidence`),
+`package/inertia-vue` or, on React, `package/laravel-inertia-react`, `package/filament`,
+`package/mutation-testing`, `package/test-evidence`),
 rendered into the project's `docs/project_guidelines/`. This profile holds only what bootstrap,
 handover and the pitfalls add. Shops built on Lunar use [lunar.md](lunar.md).
 
